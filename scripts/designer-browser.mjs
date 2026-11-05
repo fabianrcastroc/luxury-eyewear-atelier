@@ -15,14 +15,20 @@ try{
  await menu('coleccion.html');await page.locator('.product').first().waitFor();assert.equal(await page.locator('.product').count(),6);assert.equal(await page.locator('#disena').count(),0);
  await menu('disena.html');await page.waitForFunction(()=>document.querySelector('#disena').dataset.renderer==='webgl');await frame(page);
  const canvas=page.locator('#design-preview canvas');
- assert.equal(await page.locator('button[data-model]').count(),6);assert.equal(await page.locator('.model-option img').count(),6);assert.equal(await page.locator('img[src*="references"]').count(),0);await amount('$209.000');
- for(const model of ['rectangular','wayfarer','panto','cat-eye','aviador','clubmaster']){await page.locator(`button[data-model="${model}"]`).click();await frame(page);assert.equal(await page.locator('#design-preview').getAttribute('data-render-model'),model);await amount('$209.000');}
- await page.locator('button[data-model="rectangular"]').click();await panel(1);await frame(page);
+ assert.equal(await page.locator('button[data-model]').count(),4);assert.equal(await page.locator('.model-option img').count(),4);assert.equal(await page.locator('img[src*="references"]').count(),0);await amount('$209.000');
+ for(const model of ['recto','redondo','ovalado','curvo']){await page.locator(`button[data-model="${model}"]`).click();await frame(page);assert.equal(await page.locator('#design-preview').getAttribute('data-render-model'),model);await amount('$209.000');}
+ await page.locator('button[data-model="recto"]').click();
+ await page.locator('#design-frameSize').selectOption('amplia');await page.locator('#design-templeLength').selectOption('145');assert.match(await page.locator('#fit-code').textContent(),/56 □ 18–145/);
+ await page.locator('#open-fit-guide').click();await page.locator('#fit-face-width').fill('189');assert.equal(await page.locator('#apply-fit-size').isDisabled(),true);await page.locator('#fit-face-width').fill('133');await page.locator('#apply-fit-size').click();assert.match(await page.locator('#fit-code').textContent(),/52 □ 17–145/);
+ await panel(1);await frame(page);
+ for(const value of ['clasico','doble','herradura'])await page.locator('#design-bridgeType').selectOption(value);
+ for(const value of ['alto','medio','bajo'])await page.locator('#design-bridgeHeight').selectOption(value);
+
  const initial=digest(await canvas.screenshot());
  const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.5+60,box.y+box.height*.5+20,{steps:7});await page.mouse.up();await frame(page);
  const rotated=await page.locator('#design-preview').getAttribute('data-camera');
- await page.locator('#design-thickness').fill('10');await frame(page);assert.equal(await page.locator('#design-preview').getAttribute('data-camera'),rotated,'Cambiar espesor conserva la cámara girada');
- for(const [key,value] of [['rounding','5'],['bridgeCurve','0'],['bridgeWidth','24'],['armLength','155']]){await page.locator(`#design-${key}`).fill(value);await frame(page);assert.equal(JSON.parse(await page.locator('#design-preview').getAttribute('data-config'))[key],Number(value));assert.equal(await page.locator('#design-preview').getAttribute('data-camera'),rotated);}
+ await page.locator('#design-thickness').fill('8');await frame(page);assert.equal(await page.locator('#design-preview').getAttribute('data-camera'),rotated,'Cambiar espesor conserva la cámara girada');
+ for(const [key,value] of [['rounding','5'],['bridgeNasalCurve','0'],['bridgeThickness','6'],['armWidth','10'],['armExtension','5']]){await page.locator(`#design-${key}`).fill(value);await frame(page);assert.equal(JSON.parse(await page.locator('#design-preview').getAttribute('data-config'))[key],Number(value));assert.equal(await page.locator('#design-preview').getAttribute('data-camera'),rotated);}
  await page.locator('[data-color-part="rimColor"][data-color="marfil"]').click();await page.locator('[data-color-part="bridgeColor"][data-color="burdeos"]').click();await frame(page);assert.notEqual(digest(await canvas.screenshot()),initial);
  await page.locator('[data-view="lateral"]').click();const armImages=new Set();
  for(const style of ['clasico','fino','escultural','sable','curvo','gancho']){await page.locator('#design-armStyle').selectOption(style);await page.locator('#design-armStyleRight').selectOption(style);await frame(page);armImages.add(digest(await canvas.screenshot()));await amount('$209.000');}

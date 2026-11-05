@@ -29,10 +29,10 @@ Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres pági
 
 ## Estudio personal
 
-- Seis siluetas diferenciadas: Recto, Panto, Cat-eye, Aviador, Clubmaster y Wayfarer. Recto es rectangular y de líneas paralelas; Wayfarer tiene contorno trapezoidal.
+- Cuatro siluetas: Recto de proporción compacta, Redondo circular, Ovalado de inspiración aviador sin doble puente predeterminado y Curvo con ceja de acetato y aro inferior fino.
 - Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
 - Estudio de producto de pantalla completa con cuatro paneles accesibles: Modelo, Montura, Cristales y Receta. Solo un panel visible; navegación por teclado y Receta disponible al seleccionar graduación.
-- Aro, espesor, curvatura y ancho del puente, largo de brazos y colores de cada pieza.
+- Tallas A/P 48/16, 52/17 y 56/18, patillas B de 135/140/145/150 mm; cambiar talla conserva la silueta. Puente clásico, doble o herradura, posiciones relativas alta/media/baja, espesor y curva solo del borde nasal: los controles de diseño del puente no separan los aros. Ancho del brazo y extensión ±5 mm antes del gancho; el gancho mantiene su geometría. Colores independientes por pieza.
 - Seis diseños de brazos que se pueden combinar por separado a izquierda y derecha.
 - **Base de $209.000**, incluyendo todas las personalizaciones de montura y cristales solares sin graduación. Sin recargos por modelo, espesor, brazos o colores.
 - Los únicos suplementos corresponden a cristales graduados y sus tratamientos. Monofocales +$45.000, bifocales +$85.000, multifocales +$145.000. Bluelight +$20.000, antirreflejos +$18.000, fotocromático +$45.000, sol óptico +$25.000.
@@ -44,7 +44,7 @@ Son precios referenciales por el par de cristales; falta validación profesional
 
 ## Fotografías y modelos
 
-Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las imágenes de `public/assets/forms/` se generan desde la misma geometría y materiales que la vista editable. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Recto y Wayfarer tienen geometrías diferenciadas y una prueba verifica la simetría rectangular y el estrechamiento trapezoidal respectivamente.
+Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las imágenes de `public/assets/forms/` se generan desde la misma geometría y materiales que la vista editable. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Las pruebas verifican las cuatro siluetas, la separación constante al editar el puente y la conservación del gancho de la patilla.
 
 La portada editorial (`atelier-editorial.webp`) es una imagen original generada con IA; no es una fotografía documental del taller Miscante ni una imagen de Maison Bonnet. Las otras imágenes editoriales y de la colección de demostración (`editorial-solar.png`, `collection-studio.png`) también son generadas con IA y no fotografías de inventario disponible.
 
@@ -74,3 +74,9 @@ npm run test:designer
 El flujo `.github/workflows/pages.yml` se ejecuta al subir a `main`: instala con lockfile, ejecuta las pruebas, genera el sitio y despliega `docs/` en GitHub Pages. Pages está habilitado con GitHub Actions. La URL de cada despliegue se confirma en el entorno `github-pages`.
 
 ![Inicio de Miscante](.github/miscante-preview.png)
+
+## Guía de talla
+
+El código A □ P–B usa medidas nominales en milímetros. No constituye un plano de fabricación. La guía compara el ancho frontal aproximado con una medida de rostro facilitada por el usuario; no guarda esa medida y no aplica una recomendación fuera del rango disponible. No infiere distancia pupilar ni largo de patilla.
+
+Se leyó la [guía pública comunitaria SPECS](https://github.com/GODFREYnganga/Specs/blob/648c536e2b967157699546e1d58521d6560c2790/components/size-guide.tsx) para contrastar las definiciones y señales de comodidad. No es una norma clínica. Los enlaces adicionales de Warby Parker y Zenni son consultas complementarias: su contenido no se pudo verificar desde este entorno por restricciones de red. Las posiciones del puente y la recomendación geométrica son decisiones del configurador y requieren evaluación óptica profesional.

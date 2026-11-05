@@ -1,6 +1,7 @@
 import {products,money,totals,glasses} from './catalog.js';
 import {initDesigner} from './designer.js';
 import {normalizeDesign,designQuote,designSummary,framePreview,frameColors,prescriptionError,prescriptionSignature} from './designer-model.js';
+import {designMeasurements} from './frame-geometry.js';
 const $ = s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 let cart=read('miscante-cart',[]);
@@ -34,9 +35,9 @@ function renderCart(){
   let description=i.custom?designSummary(i.config):p.color;
   let details='';
   if(i.custom){
-   const d=i.config;
+   const d=i.config,measure=designMeasurements(d);
    description+=` · Aro ${frameColors.find(c=>c.id===d.rimColor).name} / Puente ${frameColors.find(c=>c.id===d.bridgeColor).name} / Brazos ${frameColors.find(c=>c.id===d.armColor).name}`;
-   details=`<details class="cart-design-details"><summary>Ver especificaciones y precio</summary><dl><dt>Bordes del aro</dt><dd>${d.rounding}/100</dd><dt>Curva del puente</dt><dd>${d.bridgeCurve}/100</dd><dt>Ancho del puente</dt><dd>${d.bridgeWidth} mm</dd><dt>Brazos</dt><dd>${d.armStyle} / ${d.armStyleRight} · ${d.armLength} mm</dd><dt>Cristal</dt><dd>${d.use==='sol'||d.sunOptical?d.lensColor:d.photo?'Fotocromático '+d.photoColor:'Transparente'}${d.blue&&d.use==='optico'?' · Bluelight':''}${d.ar?' · Antirreflejos':''}</dd></dl>${designQuote(d).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
+   details=`<details class="cart-design-details"><summary>Ver especificaciones y precio</summary><dl><dt>Bordes del aro</dt><dd>${d.rounding}/100</dd><dt>Talla A / P / B</dt><dd>${measure.code}</dd><dt>Frontal aproximado</dt><dd>${measure.front} mm</dd><dt>Puente</dt><dd>${d.bridgeType} · ${d.bridgeHeight} · espesor ${d.bridgeThickness} mm</dd><dt>Borde nasal</dt><dd>${d.bridgeNasalCurve}/100</dd><dt>Brazos</dt><dd>${d.armStyle} / ${d.armStyleRight} · ancho ${d.armWidth} mm · extensión ${d.armExtension} mm</dd><dt>Cristal</dt><dd>${d.use==='sol'||d.sunOptical?d.lensColor:d.photo?'Fotocromático '+d.photoColor:'Transparente'}${d.blue&&d.use==='optico'?' · Bluelight':''}${d.ar?' · Antirreflejos':''}</dd></dl>${designQuote(d).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
    if(d.use==='optico')details+=`<div class="cart-recipe"><p>${cartRecipes.has(i.id)?`Receta adjunta localmente: ${escapeHTML(cartRecipes.get(i.id).name)}`:'Receta pendiente · puedes adjuntarla ahora o más adelante.'}</p><label class="text-link">${cartRecipes.has(i.id)?'Cambiar receta':'Adjuntar receta'}<input type="file" data-cart-recipe="${i.id}" accept=".pdf,.jpg,.jpeg,.png,.webp" aria-label="Adjuntar receta a tu diseño"></label>${cartRecipes.has(i.id)?`<button type="button" class="text-link" data-remove-recipe="${i.id}">Quitar</button>`:''}<small>Solo durante esta visita. No se envía ni se conserva al recargar.</small></div>`;
   }
   return `<article class="cart-item ${i.custom?'custom-cart-item':''}"><div style="background:${p?.bg||'#ebe7dc'}">${photo}</div><section><h3>${title}</h3><small>${description}</small><p>${money(price)}</p><div class="quantity"><button data-qty="${i.id}" data-delta="-1" aria-label="Reducir cantidad de ${title}">−</button><span>${i.qty}</span><button data-qty="${i.id}" data-delta="1" aria-label="Aumentar cantidad de ${title}">+</button><button class="remove" data-remove="${i.id}">Eliminar</button></div></section>${details}</article>`;
