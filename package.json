@@ -1,0 +1,19 @@
+{
+  "name": "miscante-eyewear",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node build.js",
+    "test": "node --test",
+    "test:browser": "node scripts/smoke-browser.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "playwright-core": "1.64.1"
+  }
+}
