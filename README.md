@@ -55,7 +55,7 @@ Las fotografías editoriales y de catálogo fueron generadas con IA para represe
 
 ## Estudio personal — diseña tus gafas
 
-La sección **Diseña tus gafas** permite elegir Panto, Rectangular, Cat-eye o Aviador; modificar redondeo del aro, curvatura y ancho del puente, espesor, largo y diseño de brazos; y combinar colores por pieza. La vista paramétrica responde en vivo y ofrece perspectiva, frente y lateral. En móvil permanece visible mientras se ajustan los controles. Es una ilustración orientativa, no CAD ni geometría lista para fabricar.
+Dentro de **Colecciones**, el acceso **Tu propio Miscante** abre la sección **Diseña tus gafas**, que permite elegir Panto, Rectangular, Cat-eye o Aviador; modificar redondeo del aro, curvatura y ancho del puente, espesor, largo y diseño de brazos; y combinar colores por pieza. La vista paramétrica responde en vivo y ofrece perspectiva, frente y lateral. En móvil permanece visible mientras se ajustan los controles. Es una ilustración orientativa, no CAD ni geometría lista para fabricar.
 
 El usuario puede elegir sol sin graduación y color de tinte, u óptico con monofocales, bifocales o multifocales. Bluelight es acumulable; fotocromático y sol óptico son alternativas excluyentes. El precio desglosa montura, personalizaciones y cristales, y se recalcula también desde la configuración al recuperar la bolsa. Los valores son referenciales por el par: no se calcula la graduación a partir de una receta ni se confirma fabricación. La revisión profesional y la cotización definitiva siguen pendientes de integrar.
 

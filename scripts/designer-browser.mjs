@@ -7,6 +7,9 @@ try {
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
  await page.goto('http://127.0.0.1:3000');
  await page.locator('#design-preview svg').waitFor();
+ assert.equal(await page.locator('#coleccion #disena').count(),1);
+ await page.locator('.collection-paths a[href="#disena"]').click();
+ assert.ok(page.url().endsWith('#disena'));
  assert.equal(await page.locator('#design-total').textContent(),'$174.000');
  await page.locator('[data-model="cat-eye"]').click();
  assert.equal(await page.locator('#design-total').textContent(),'$184.000');
