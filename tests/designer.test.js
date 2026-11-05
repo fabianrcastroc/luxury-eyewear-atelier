@@ -1,3 +1,4 @@
+import {frameContour,frameDimensions} from '../public/frame-geometry.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {defaultDesign,normalizeDesign,designQuote,prescriptionError,prescriptionSignature,framePreview,armStyles,photoColors} from '../public/designer-model.js';
@@ -19,7 +20,7 @@ test('todas las personalizaciones de montura se incluyen en $209.000 y se conser
 });
 test('normaliza diseños persistidos y no confía en precios guardados',()=>{
   const config=normalizeDesign({use:'optico',model:'invalid',thickness:100,armLength:-5,rounding:'bad',rimColor:'<script>',photo:true,sunOptical:true});
-  assert.equal(config.model,'panto');assert.equal(config.thickness,10);assert.equal(config.armLength,135);assert.equal(config.rounding,88);assert.equal(config.rimColor,'miel');assert.equal(config.sunOptical,true);assert.equal(config.photo,false);
+  assert.equal(config.model,'rectangular');assert.equal(config.thickness,10);assert.equal(config.armLength,135);assert.equal(config.rounding,22);assert.equal(config.rimColor,'negro');assert.equal(config.sunOptical,true);assert.equal(config.photo,false);
   assert.equal(designQuote({...defaultDesign,price:1,total:1}).total,209000);
 });
 test('vista responde a geometría, colores, vista y brazos sin repetir identificadores de gradiente',()=>{
@@ -56,4 +57,14 @@ test('fotocromático con antirreflejos y tres tonos disponibles',()=>{
 });
 test('todas las formas y combinaciones de brazos están incluidas sin graduación',()=>{
  for(const left of armStyles)for(const right of armStyles)assert.equal(designQuote({...defaultDesign,armStyle:left.id,armStyleRight:right.id,thickness:10,rimColor:'negro',bridgeColor:'miel',armColor:'oliva'}).total,209000);
+});
+
+// The rectangular model must not silently become a trapezoidal Wayfarer.
+test('Recto tiene proporción rectangular y no el estrechamiento inferior de Wayfarer',()=>{
+ const rect=normalizeDesign({...defaultDesign,model:'rectangular',rounding:22}),way=normalizeDesign({...defaultDesign,model:'wayfarer',rounding:38});
+ const span=points=>Math.max(...points.map(p=>p[0]))-Math.min(...points.map(p=>p[0]));
+ const widths=d=>{const points=frameContour(d,1),{ry}=frameDimensions(d);return [span(points.filter(p=>p[1]>ry*.55)),span(points.filter(p=>p[1]<-ry*.55))];};
+ const [rt,rb]=widths(rect),[wt,wb]=widths(way);assert.ok(Math.abs(rt-rb)<1e-8);assert.ok(wt-wb>.08);
+ assert.ok(frameDimensions(rect).rx/frameDimensions(rect).ry>1.9);
+ assert.ok(frameDimensions({...rect,model:'panto'}).rx/frameDimensions({...rect,model:'panto'}).ry<1.2);
 });

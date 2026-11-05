@@ -54,6 +54,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.qty){const i=cart.find(i=>i.id===b.dataset.qty);if(i){i.qty=Math.min(10,i.qty+Number(b.dataset.delta));cart=cart.filter(x=>x.qty>0);if(i.qty<=0)cartRecipes.delete(i.id);updateCart();renderCart();}}
  if(b.dataset.remove){cartRecipes.delete(b.dataset.remove);cart=cart.filter(x=>x.id!==b.dataset.remove);updateCart();renderCart();}
  if(b.dataset.removeRecipe){cartRecipes.delete(b.dataset.removeRecipe);renderCart();}
+ if(b.id==='menu-toggle')$('#menu-dialog').showModal();
  if(b.id==='cart-toggle')renderCart();if(b.id==='checkout')checkout();if(b.id==='back-cart')renderCart();
  if(b.id==='search-toggle'&&!$('#search-bar')){location.href='./coleccion.html?buscar=1';return;}
  if(b.id==='search-toggle'){$('#search-bar').hidden=!$('#search-bar').hidden;if(!$('#search-bar').hidden){$('#coleccion').scrollIntoView();$('#search').focus();}}

@@ -29,8 +29,9 @@ Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres pági
 
 ## Estudio personal
 
-- Cinco siluetas: Panto, Recto, Cat-eye, Aviador y Clubmaster.
-- Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos; cámara frontal, lateral y perspectiva. Alternativa SVG si WebGL no está disponible.
+- Seis siluetas diferenciadas: Recto, Panto, Cat-eye, Aviador, Clubmaster y Wayfarer. Recto es rectangular y de líneas paralelas; Wayfarer tiene contorno trapezoidal.
+- Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
+- Estudio de producto de pantalla completa con cuatro paneles accesibles: Modelo, Montura, Cristales y Receta. Solo un panel visible; navegación por teclado y Receta disponible al seleccionar graduación.
 - Aro, espesor, curvatura y ancho del puente, largo de brazos y colores de cada pieza.
 - Seis diseños de brazos que se pueden combinar por separado a izquierda y derecha.
 - **Base de $209.000**, incluyendo todas las personalizaciones de montura y cristales solares sin graduación. Sin recargos por modelo, espesor, brazos o colores.
@@ -43,11 +44,11 @@ Son precios referenciales por el par de cristales; falta validación profesional
 
 ## Fotografías y modelos
 
-Las cinco fotografías del selector representan productos físicos de terceros como referencia de silueta: Ray-Ban RB7140, Jeffrey RB4448L, Aviator RB3025-L y Clubmaster RB3016L, más Vogue VO5369S para Cat-eye. No son productos Miscante ni anuncian una colaboración con esas marcas. Procedencia pública y revisión fijada en `public/assets/references/sources.json` y en el selector. Se visualizaron para comprobar que corresponden a cada forma y se optimizaron sin generar o alterar los productos con IA. `scripts/import-reference-photos.mjs` reproduce la importación desde la fuente documentada.
+Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las imágenes de `public/assets/forms/` se generan desde la misma geometría y materiales que la vista editable. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Recto y Wayfarer tienen geometrías diferenciadas y una prueba verifica la simetría rectangular y el estrechamiento trapezoidal respectivamente.
 
-Las imágenes editoriales y de la colección de demostración (`editorial-solar.png`, `collection-studio.png`) siguen siendo imágenes generadas con IA y no fotografías de inventario disponible.
+La portada editorial (`atelier-editorial.webp`) es una imagen original generada con IA; no es una fotografía documental del taller Miscante ni una imagen de Maison Bonnet. Las otras imágenes editoriales y de la colección de demostración (`editorial-solar.png`, `collection-studio.png`) también son generadas con IA y no fotografías de inventario disponible.
 
-El usuario puede reemplazar la foto de referencia desde su dispositivo, o importar un modelo GLB 2.0 autocontenido de hasta 15 MB. El GLB se visualiza como referencia, no se deforma mediante los controles del modelo paramétrico. Se rechazan modelos que requieren descargar geometría o imágenes externas. Los archivos de referencia son temporales y no se transmiten ni se guardan en el repositorio. Para cambiar permanentemente fotos, fichas y geometría hay que actualizar los archivos fuente y publicar el sitio; no existe un panel de administración.
+El usuario puede abrir «Comparar una referencia» y seleccionar una foto personal o un GLB 2.0 autocontenido de hasta 15 MB. La foto se muestra en un diálogo separado. El GLB se muestra en otra vista 3D dentro del mismo diálogo; nunca reemplaza el diseño principal. Las referencias no se deforman ni sustituyen silenciosamente el producto al usar sus controles. Se rechazan modelos que requieren descargar geometría o imágenes externas. Los archivos de referencia son temporales y no se transmiten ni se guardan en el repositorio. Para cambiar permanentemente fotos, fichas y geometría hay que actualizar los archivos fuente y publicar el sitio; no existe un panel de administración.
 
 El render 3D es una visualización de diseño, no un archivo CAD listo para fabricación.
 
@@ -66,7 +67,7 @@ npm run test:browser
 npm run test:designer
 ```
 
-`CHROMIUM_PATH` permite usar otra ruta del navegador. Se verifican el catálogo, bolsa, compra de prueba, navegación entre páginas, generación real de la vista 3D con renderizado de software, brazos combinables, precio base, compatibilidades, colores fotocromáticos, recetas, foto/GLB de referencia y diseños adaptables a 320, 390 y 768 px.
+`CHROMIUM_PATH` permite usar otra ruta del navegador. Se verifican el catálogo, bolsa, compra de prueba, navegación entre páginas, generación real de la vista 3D con renderizado de software, conservación de cámara, cambios de píxeles ante modificaciones de geometría y materiales, seis brazos visualmente distintos, referencias separadas, paneles por teclado, precio base, compatibilidades, colores fotocromáticos, recetas, foto/GLB de referencia y diseños adaptables a 320, 390 y 768 px.
 
 ## Publicación
 
