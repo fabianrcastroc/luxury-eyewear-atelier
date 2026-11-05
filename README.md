@@ -52,3 +52,20 @@ También se puede publicar desde una rama seleccionando `main` y `/docs` en Page
 Las fotografías editoriales y de catálogo fueron generadas con IA para representar el concepto visual; no son fotografías de productos físicos disponibles. Deben reemplazarse con fotografías y especificaciones verificadas antes de vender.
 
 ![Vista de Miscante](.github/miscante-preview.png)
+
+## Estudio personal — diseña tus gafas
+
+La sección **Diseña tus gafas** permite elegir Panto, Rectangular, Cat-eye o Aviador; modificar redondeo del aro, curvatura y ancho del puente, espesor, largo y diseño de brazos; y combinar colores por pieza. La vista paramétrica responde en vivo y ofrece perspectiva, frente y lateral. En móvil permanece visible mientras se ajustan los controles. Es una ilustración orientativa, no CAD ni geometría lista para fabricar.
+
+El usuario puede elegir sol sin graduación y color de tinte, u óptico con monofocales, bifocales o multifocales. Bluelight es acumulable; fotocromático y sol óptico son alternativas excluyentes. El precio desglosa montura, personalizaciones y cristales, y se recalcula también desde la configuración al recuperar la bolsa. Los valores son referenciales por el par: no se calcula la graduación a partir de una receta ni se confirma fabricación. La revisión profesional y la cotización definitiva siguen pendientes de integrar.
+
+Las recetas admiten PDF, JPEG, PNG y WebP, hasta 10 MB, con validación de extensión, MIME y firma de archivo. Las imágenes tienen vista previa. El archivo queda **solo en memoria durante la visita**, sin subirse a un servidor, guardarse en localStorage ni incorporarse al repositorio. La bolsa permite adjuntar, reemplazar o retirar la receta, o dejarla pendiente. Al recargar, las especificaciones siguen en la bolsa pero la receta debe adjuntarse de nuevo. No usar datos médicos reales para probar. Un servicio seguro de recepción y almacenamiento de documentos deberá implementarse antes de operar pedidos reales.
+
+Para validar la función con Chromium instalado y el servidor iniciado:
+
+```sh
+npm test
+npm run test:designer
+```
+
+Esta prueba comprueba modelos, geometría, precios y tratamientos, documentos válidos e inválidos, vista previa de imagen, ausencia de envíos de datos, persistencia de especificaciones, compra de prueba y pantallas de 320, 390 y 768 px.

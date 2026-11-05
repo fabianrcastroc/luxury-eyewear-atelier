@@ -1,7 +1,7 @@
 import {readFile,mkdir,writeFile,cp} from 'node:fs/promises';
 const read = name=>readFile(new URL('./public/'+name,import.meta.url),'utf8');
-const [html,css,catalog,app]=await Promise.all(['index.html','style.css','catalog.js','app.js'].map(read));
-const script=catalog.replaceAll('export ','')+'\n'+app.replace(/^import .*?;\n/,'');
+const [html,css,model,catalog,designer,app]=await Promise.all(['index.html','style.css','designer-model.js','catalog.js','designer.js','app.js'].map(read));
+const script=[model,catalog,designer,app].map(source=>source.replace(/^import .*?;\n/gm,'').replaceAll('export ','')).join('\n');
 let embeddedCss=css;
 let embeddedHtml=html;
 for(const name of ['editorial-solar.png','collection-studio.png']){

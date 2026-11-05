@@ -1,3 +1,4 @@
+import {designQuote} from './designer-model.js';
 export const products = [
   {id:'solar',name:'Solar',category:'sol',shape:'square',color:'Miel translúcida',hex:'#98602f',lens:'#544d31',price:159000,material:'Acetato',size:'51 · 21 · 145',tag:'SELECCIÓN MISCANTE',bg:'#ece9e0'},
   {id:'noir',name:'Noir',category:'sol',shape:'cat',color:'Negro profundo',hex:'#242422',lens:'#343a35',price:169000,material:'Acetato',size:'53 · 19 · 145',tag:'',bg:'#e5e7e2'},
@@ -8,7 +9,7 @@ export const products = [
 ];
 export const money = n => new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n);
 export function totals(cart) {
-  const subtotal = cart.reduce((n,item)=>n+(products.find(p=>p.id===item.id)?.price || 0)*item.qty,0);
+  const subtotal = cart.reduce((n,item)=>n+(item.custom?designQuote(item.config).total:(products.find(p=>p.id===item.id)?.price || 0))*item.qty,0);
   const shipping = subtotal === 0 || subtotal >= 200000 ? 0 : 5000;
   return {subtotal,shipping,total:subtotal+shipping};
 }
