@@ -7,7 +7,10 @@ let embeddedHtml=html;
 for(const name of ['editorial-solar.png','collection-studio.png']){
   const bytes=await readFile(new URL('./public/assets/'+name,import.meta.url));
   const data='data:image/png;base64,'+bytes.toString('base64');
-  embeddedCss=embeddedCss.replaceAll('./assets/'+name,data);
+  if(name==='collection-studio.png'){
+    embeddedCss=embeddedCss.replace("--studio-image:url('./assets/collection-studio.png')",'--studio-image:none');
+    embeddedCss=embeddedCss.replaceAll('background-image:var(--studio-image)',`background-image:url('${data}')`);
+  } else embeddedCss=embeddedCss.replaceAll('./assets/'+name,data);
   embeddedHtml=embeddedHtml.replaceAll('./assets/'+name,data);
 }
 const standalone=embeddedHtml.replace('<link rel="stylesheet" href="./style.css">',`<style>${embeddedCss}</style>`).replace('<script type="module" src="./app.js"></script>','').replace('</body>',`<script type="module">${script}</script></body>`);
