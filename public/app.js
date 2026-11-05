@@ -16,6 +16,7 @@ function show(dialog,html){dialog.innerHTML=html;if(!dialog.open)dialog.showModa
 function updateCart(){store('miscante-cart',cart);$('#cart-count').textContent=cart.reduce((n,i)=>n+i.qty,0);}
 function add(id){const item=cart.find(i=>i.id===id);if(item?.qty>=10){toast('Máximo 10 unidades por modelo en la demostración.');return;}if(item)item.qty++;else cart.push({id,qty:1});updateCart();toast('Añadido a tu bolsa');}
 function render(){
+ if(!$('#products'))return;
  const query=$('#search').value.trim().toLocaleLowerCase('es');
  let list=products.filter(p=>(category==='all'||category==='favoritos'&&favorites.includes(p.id)||p.category===category)&&`${p.name} ${p.color} ${p.material}`.toLocaleLowerCase('es').includes(query));
  const sort=$('#sort').value; if(sort==='price-up')list.sort((a,b)=>a.price-b.price);if(sort==='price-down')list.sort((a,b)=>b.price-a.price);if(sort==='name')list.sort((a,b)=>a.name.localeCompare(b.name));
@@ -35,7 +36,7 @@ function renderCart(){
   if(i.custom){
    const d=i.config;
    description+=` · Aro ${frameColors.find(c=>c.id===d.rimColor).name} / Puente ${frameColors.find(c=>c.id===d.bridgeColor).name} / Brazos ${frameColors.find(c=>c.id===d.armColor).name}`;
-   details=`<details class="cart-design-details"><summary>Ver especificaciones y precio</summary><dl><dt>Bordes del aro</dt><dd>${d.rounding}/100</dd><dt>Curva del puente</dt><dd>${d.bridgeCurve}/100</dd><dt>Ancho del puente</dt><dd>${d.bridgeWidth} mm</dd><dt>Brazos</dt><dd>${d.armStyle} · ${d.armLength} mm</dd><dt>Cristal</dt><dd>${d.use==='sol'||d.sunOptical?d.lensColor:d.photo?'Fotocromático':'Transparente'}${d.blue&&d.use==='optico'?' · Bluelight':''}</dd></dl>${designQuote(d).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
+   details=`<details class="cart-design-details"><summary>Ver especificaciones y precio</summary><dl><dt>Bordes del aro</dt><dd>${d.rounding}/100</dd><dt>Curva del puente</dt><dd>${d.bridgeCurve}/100</dd><dt>Ancho del puente</dt><dd>${d.bridgeWidth} mm</dd><dt>Brazos</dt><dd>${d.armStyle} / ${d.armStyleRight} · ${d.armLength} mm</dd><dt>Cristal</dt><dd>${d.use==='sol'||d.sunOptical?d.lensColor:d.photo?'Fotocromático '+d.photoColor:'Transparente'}${d.blue&&d.use==='optico'?' · Bluelight':''}${d.ar?' · Antirreflejos':''}</dd></dl>${designQuote(d).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
    if(d.use==='optico')details+=`<div class="cart-recipe"><p>${cartRecipes.has(i.id)?`Receta adjunta localmente: ${escapeHTML(cartRecipes.get(i.id).name)}`:'Receta pendiente · puedes adjuntarla ahora o más adelante.'}</p><label class="text-link">${cartRecipes.has(i.id)?'Cambiar receta':'Adjuntar receta'}<input type="file" data-cart-recipe="${i.id}" accept=".pdf,.jpg,.jpeg,.png,.webp" aria-label="Adjuntar receta a tu diseño"></label>${cartRecipes.has(i.id)?`<button type="button" class="text-link" data-remove-recipe="${i.id}">Quitar</button>`:''}<small>Solo durante esta visita. No se envía ni se conserva al recargar.</small></div>`;
   }
   return `<article class="cart-item ${i.custom?'custom-cart-item':''}"><div style="background:${p?.bg||'#ebe7dc'}">${photo}</div><section><h3>${title}</h3><small>${description}</small><p>${money(price)}</p><div class="quantity"><button data-qty="${i.id}" data-delta="-1" aria-label="Reducir cantidad de ${title}">−</button><span>${i.qty}</span><button data-qty="${i.id}" data-delta="1" aria-label="Aumentar cantidad de ${title}">+</button><button class="remove" data-remove="${i.id}">Eliminar</button></div></section>${details}</article>`;
@@ -54,18 +55,19 @@ document.addEventListener('click',e=>{
  if(b.dataset.remove){cartRecipes.delete(b.dataset.remove);cart=cart.filter(x=>x.id!==b.dataset.remove);updateCart();renderCart();}
  if(b.dataset.removeRecipe){cartRecipes.delete(b.dataset.removeRecipe);renderCart();}
  if(b.id==='cart-toggle')renderCart();if(b.id==='checkout')checkout();if(b.id==='back-cart')renderCart();
+ if(b.id==='search-toggle'&&!$('#search-bar')){location.href='./coleccion.html?buscar=1';return;}
  if(b.id==='search-toggle'){$('#search-bar').hidden=!$('#search-bar').hidden;if(!$('#search-bar').hidden){$('#coleccion').scrollIntoView();$('#search').focus();}}
  if(b.id==='clear-search'){$('#search').value='';render();}
  if(b.id==='reset-filters'){category='all';$('#search').value='';document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('active',x.dataset.category==='all'));render();}
  if(b.id==='contact-open')show($('#info-dialog'),`${closeButton}<p class="eyebrow">CONVERSEMOS</p><h2>Tu mirada importa.</h2><p>El canal de atención estará disponible cuando se habilite la tienda. Por ahora puedes explorar la colección y probar tu compra sin cargos.</p><button class="button dark" data-close>Entendido</button>`);
- if(b.dataset.info)show($('#info-dialog'),`${closeButton}<h2>${b.dataset.info==='privacy'?'Tu privacidad':'Términos de la demostración'}</h2><p>${b.dataset.info==='privacy'?'El carrito, los favoritos y la suscripción de prueba se guardan únicamente en este navegador. No utilizamos analítica ni enviamos formularios a un servidor. Los datos de entrega de prueba solo se mantienen en memoria mientras está abierto el formulario. Las recetas se adjuntan temporalmente en memoria durante esta visita y nunca se envían a un servidor ni se guardan en el navegador. Al recargar se deben adjuntar nuevamente.':'Los productos, precios y atributos son ilustrativos. Esta web permite probar una experiencia de compra; no cobra, reserva inventario ni genera contratos o pedidos reales. Antes de abrir la venta se deben confirmar los productos, políticas y medios de pago.'}</p><button data-close class="button dark">Entendido</button>`);
+ if(b.dataset.info)show($('#info-dialog'),`${closeButton}<h2>${b.dataset.info==='privacy'?'Tu privacidad':'Términos de la demostración'}</h2><p>${b.dataset.info==='privacy'?'El carrito, los favoritos y la suscripción de prueba se guardan únicamente en este navegador. No utilizamos analítica ni enviamos formularios a un servidor. Los datos de entrega de prueba solo se mantienen en memoria mientras está abierto el formulario. Las recetas se adjuntan temporalmente en memoria durante esta visita y nunca se envían a un servidor ni se guardan en el navegador. Al recargar o cambiar de página se deben adjuntar nuevamente.':'Los productos, precios y atributos son ilustrativos. Esta web permite probar una experiencia de compra; no cobra, reserva inventario ni genera contratos o pedidos reales. Antes de abrir la venta se deben confirmar los productos, políticas y medios de pago.'}</p><button data-close class="button dark">Entendido</button>`);
 });
 document.addEventListener('submit',e=>{
  if(e.target.id==='newsletter-form'){e.preventDefault();store('miscante-newsletter',true);e.target.reset();toast('¡Gracias! Tu suscripción de prueba quedó registrada en este navegador.');}
  if(e.target.id==='checkout-form'){e.preventDefault();if(!e.target.reportValidity())return;cart=[];cartRecipes.clear();updateCart();show($('#cart-dialog'),`${closeButton}<div class="success-mark">✓</div><p class="eyebrow">PEDIDO DE PRUEBA COMPLETADO</p><h2>Una nueva perspectiva.</h2><p>Has completado la experiencia de compra. No se ha cobrado ni enviado ningún pedido.</p><button class="button dark full" data-close>Volver a la colección <svg class="arrow" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14"/></svg></button>`);}
 });
 document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
-$('#search').addEventListener('input',render);$('#sort').addEventListener('change',render);updateCart();render();
+$('#search')?.addEventListener('input',render);$('#sort')?.addEventListener('change',render);updateCart();render();
 
 initDesigner({notify:toast,onAdd:({config,recipe})=>{
  const id=`custom-${crypto.randomUUID()}`;
@@ -82,3 +84,8 @@ document.addEventListener('change',async e=>{
  if(!cart.some(i=>i.id===id&&i.custom&&i.config.use==='optico'))return;
  cartRecipes.set(id,file);renderCart();toast('Receta adjunta localmente durante esta visita.');
 });
+
+if(new URLSearchParams(location.search).has('buscar')&&$('#search-bar')){$('#search-bar').hidden=false;$('#search').focus();}
+if(document.body.dataset.page==='home'&&location.hash==='#disena')location.replace('./disena.html');
+if(document.body.dataset.page==='home'&&location.hash==='#coleccion')location.replace('./coleccion.html');
+document.querySelectorAll('nav a').forEach(a=>{if(a.getAttribute('href')===`./${location.pathname.split('/').pop()||'index.html'}`)a.setAttribute('aria-current','page');});

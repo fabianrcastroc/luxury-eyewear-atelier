@@ -1,0 +1,36 @@
+{
+  "sourceRepository": "https://github.com/LucasEduardo2002/otica-landing-page",
+  "commit": "5a63274163b3d763e5cf9c1c97e2101a3a41414d",
+  "references": [
+    {
+      "id": "panto",
+      "label": "Ray-Ban RB7140 8124",
+      "path": "colecao/rayban/7140_8124_0.jpg",
+      "url": "https://raw.githubusercontent.com/LucasEduardo2002/otica-landing-page/5a63274163b3d763e5cf9c1c97e2101a3a41414d/public/images/colecao/rayban/7140_8124_0.jpg"
+    },
+    {
+      "id": "rectangular",
+      "label": "Ray-Ban Jeffrey RB4448L",
+      "path": "solares/rayban/jeffrey_rb_4448l_0.jpg",
+      "url": "https://raw.githubusercontent.com/LucasEduardo2002/otica-landing-page/5a63274163b3d763e5cf9c1c97e2101a3a41414d/public/images/solares/rayban/jeffrey_rb_4448l_0.jpg"
+    },
+    {
+      "id": "cat-eye",
+      "label": "Vogue VO5369S",
+      "path": "solares/vogue/vo_5369-s_0.jpg",
+      "url": "https://raw.githubusercontent.com/LucasEduardo2002/otica-landing-page/5a63274163b3d763e5cf9c1c97e2101a3a41414d/public/images/solares/vogue/vo_5369-s_0.jpg"
+    },
+    {
+      "id": "aviador",
+      "label": "Ray-Ban Aviator RB3025-L",
+      "path": "solares/rayban/aviator_rb_3025_l_0.jpg",
+      "url": "https://raw.githubusercontent.com/LucasEduardo2002/otica-landing-page/5a63274163b3d763e5cf9c1c97e2101a3a41414d/public/images/solares/rayban/aviator_rb_3025_l_0.jpg"
+    },
+    {
+      "id": "clubmaster",
+      "label": "Ray-Ban Clubmaster RB3016L",
+      "path": "solares/rayban/clubmaster_rb_3016l_0.jpg",
+      "url": "https://raw.githubusercontent.com/LucasEduardo2002/otica-landing-page/5a63274163b3d763e5cf9c1c97e2101a3a41414d/public/images/solares/rayban/clubmaster_rb_3016l_0.jpg"
+    }
+  ]
+}

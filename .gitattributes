@@ -1,0 +1,2 @@
+# Bundled third-party shader strings retain their original whitespace.
+docs/app.js linguist-generated=true -whitespace

@@ -2,12 +2,14 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import {build} from 'esbuild';
 
 const root = path.resolve(fileURLToPath(new URL('./public/', import.meta.url)));
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png'};
+const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.json':'application/json'};
 export const server = http.createServer(async (req,res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+    if(pathname==='/app.js'){const result=await build({entryPoints:[path.join(root,'app.js')],bundle:true,write:false,format:'esm',target:'es2022'});res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8'}).end(result.outputFiles[0].text);return;}
     const target = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
     if (!target.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
     const data = await readFile(target);

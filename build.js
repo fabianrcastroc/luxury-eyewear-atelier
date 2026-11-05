@@ -1,23 +1,13 @@
-import {readFile,mkdir,writeFile,cp} from 'node:fs/promises';
-const read = name=>readFile(new URL('./public/'+name,import.meta.url),'utf8');
-const [html,css,model,catalog,designer,app]=await Promise.all(['index.html','style.css','designer-model.js','catalog.js','designer.js','app.js'].map(read));
-const script=[model,catalog,designer,app].map(source=>source.replace(/^import .*?;\n/gm,'').replaceAll('export ','')).join('\n');
-let embeddedCss=css;
-let embeddedHtml=html;
-for(const name of ['editorial-solar.png','collection-studio.png']){
-  const bytes=await readFile(new URL('./public/assets/'+name,import.meta.url));
-  const data='data:image/png;base64,'+bytes.toString('base64');
-  if(name==='collection-studio.png'){
-    embeddedCss=embeddedCss.replace("--studio-image:url('./assets/collection-studio.png')",'--studio-image:none');
-    embeddedCss=embeddedCss.replaceAll('background-image:var(--studio-image)',`background-image:url('${data}')`);
-  } else embeddedCss=embeddedCss.replaceAll('./assets/'+name,data);
-  embeddedHtml=embeddedHtml.replaceAll('./assets/'+name,data);
+import {readFile,mkdir,writeFile,cp,rm} from 'node:fs/promises';
+import {build} from 'esbuild';
+const root=new URL('./',import.meta.url);
+const bundle=await build({entryPoints:[new URL('./public/app.js',root).pathname],bundle:true,write:false,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
+for(const dir of ['docs','dist']){
+ await rm(new URL('./'+dir+'/',root),{recursive:true,force:true});
+ await mkdir(new URL('./'+dir+'/',root),{recursive:true});
+ await cp(new URL('./public/',root),new URL('./'+dir+'/',root),{recursive:true});
+ await writeFile(new URL('./'+dir+'/app.js',root),bundle.outputFiles[0].text);
+ await writeFile(new URL('./'+dir+'/.nojekyll',root),'');
+ await writeFile(new URL('./'+dir+'/Miscante.html',root),'<!doctype html><html lang="es"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./index.html"><title>Miscante</title><a href="./index.html">Entrar a Miscante</a></html>');
 }
-const standalone=embeddedHtml.replace('<link rel="stylesheet" href="./style.css">',`<style>${embeddedCss}</style>`).replace('<script type="module" src="./app.js"></script>','').replace('</body>',`<script type="module">${script}</script></body>`);
-await mkdir(new URL('./dist/',import.meta.url),{recursive:true});
-await writeFile(new URL('./dist/Miscante.html',import.meta.url),standalone);
-await mkdir(new URL('./docs/',import.meta.url),{recursive:true});
-await cp(new URL('./public/',import.meta.url),new URL('./docs/',import.meta.url),{recursive:true});
-await writeFile(new URL('./docs/.nojekyll',import.meta.url),'');
-await writeFile(new URL('./docs/Miscante.html',import.meta.url),standalone);
-console.log('Creado dist/Miscante.html: abre este archivo en un navegador, sin instalar dependencias.');
+console.log('Generadas las páginas Inicio, Colección y Estudio personal en docs/ y dist/.');

@@ -1,31 +1,31 @@
 export const iconicModels = [
-  {id:'panto',name:'Panto',description:'Redondo, intelectual y atemporal.',price:159000,rounding:88,lift:0},
-  {id:'rectangular',name:'Rectangular',description:'Geometría limpia. Presencia serena.',price:159000,rounding:22,lift:0},
-  {id:'cat-eye',name:'Cat-eye',description:'Una mirada elevada y expresiva.',price:169000,rounding:50,lift:22},
-  {id:'aviador',name:'Aviador',description:'La silueta de doble puente.',price:179000,rounding:72,lift:-12}
+  {id:'panto',photo:'./assets/references/panto.webp',referenceLabel:'Ray-Ban RB7140 8124',name:'Panto',description:'Redondo, intelectual y atemporal.',price:209000,rounding:88,lift:0},
+  {id:'rectangular',photo:'./assets/references/rectangular.webp',referenceLabel:'Ray-Ban Jeffrey RB4448L',name:'Recto',description:'Geometría limpia. Presencia serena.',price:209000,rounding:22,lift:0},
+  {id:'cat-eye',photo:'./assets/references/cat-eye.webp',referenceLabel:'Vogue VO5369S',name:'Cat-eye',description:'Una mirada elevada y expresiva.',price:209000,rounding:50,lift:22},
+  {id:'aviador',photo:'./assets/references/aviador.webp',referenceLabel:'Ray-Ban Aviator RB3025-L',name:'Aviador',description:'La silueta de doble puente.',price:209000,rounding:72,lift:-12},
+  {id:'clubmaster',photo:'./assets/references/clubmaster.webp',referenceLabel:'Ray-Ban Clubmaster RB3016L',name:'Clubmaster',description:'Línea superior marcada. Equilibrio clásico.',price:209000,rounding:65,lift:0}
 ];
 export const frameColors=[{id:'miel',name:'Miel',hex:'#a76c32'},{id:'carey',name:'Tabaco',hex:'#68422e'},{id:'negro',name:'Obsidiana',hex:'#252622'},{id:'oliva',name:'Oliva',hex:'#697350'},{id:'marfil',name:'Marfil',hex:'#dfd5ba'},{id:'burdeos',name:'Borgoña',hex:'#6d3541'}];
 export const lensColors=[{id:'humo',name:'Gris humo',hex:'#434a4b'},{id:'cafe',name:'Café',hex:'#7c5637'},{id:'verde',name:'Verde mineral',hex:'#526552'},{id:'azul',name:'Azul profundo',hex:'#435c78'},{id:'rosa',name:'Rosa mineral',hex:'#a97b77'}];
+export const photoColors=[{id:'gris',name:'Gris negro',hex:'#414348'},{id:'cafe',name:'Café',hex:'#79573d'},{id:'lila',name:'Lila',hex:'#897496'}];
+export const armStyles=[{id:'clasico',name:'Clásico'},{id:'fino',name:'Filiforme'},{id:'escultural',name:'Escultural'},{id:'sable',name:'Sable'},{id:'curvo',name:'Ondulado'},{id:'gancho',name:'Curva envolvente'}];
 export const lensTypes=[{id:'mono',name:'Monofocales',price:45000},{id:'bi',name:'Bifocales',price:85000},{id:'multi',name:'Multifocales',price:145000}];
-export const defaultDesign={model:'panto',rounding:88,bridgeCurve:55,thickness:6,bridgeWidth:20,armLength:145,armStyle:'clasico',rimColor:'miel',bridgeColor:'miel',armColor:'miel',use:'sol',lensType:'mono',blue:false,photo:false,sunOptical:false,lensColor:'cafe'};
+export const defaultDesign={model:'panto',rounding:88,bridgeCurve:55,thickness:6,bridgeWidth:20,armLength:145,armStyle:'clasico',armStyleRight:'clasico',rimColor:'miel',bridgeColor:'miel',armColor:'miel',use:'sol',lensType:'mono',blue:false,photo:false,ar:false,sunOptical:false,lensColor:'cafe',photoColor:'gris'};
 const valid=(list,id,fallback)=>list.some(x=>x.id===id)?id:fallback;
 const clamp=(v,min,max,fallback)=>Number.isFinite(Number(v))?Math.min(max,Math.max(min,Math.round(Number(v)))):fallback;
 export function normalizeDesign(raw={}){
- const d={...defaultDesign,...raw};
- return {model:valid(iconicModels,d.model,'panto'),rounding:clamp(d.rounding,0,100,88),bridgeCurve:clamp(d.bridgeCurve,0,100,55),thickness:clamp(d.thickness,3,10,6),bridgeWidth:clamp(d.bridgeWidth,16,24,20),armLength:clamp(d.armLength,135,155,145),armStyle:['clasico','escultural','fino'].includes(d.armStyle)?d.armStyle:'clasico',rimColor:valid(frameColors,d.rimColor,'miel'),bridgeColor:valid(frameColors,d.bridgeColor,'miel'),armColor:valid(frameColors,d.armColor,'miel'),use:d.use==='optico'?'optico':'sol',lensType:valid(lensTypes,d.lensType,'mono'),blue:d.blue===true,photo:d.photo===true,sunOptical:d.sunOptical===true&&d.photo!==true,lensColor:valid(lensColors,d.lensColor,'cafe')};
+ const d={...defaultDesign,...raw},optical=d.use==='optico',solar=optical&&d.sunOptical===true;
+ return {model:valid(iconicModels,d.model,'panto'),rounding:clamp(d.rounding,0,100,88),bridgeCurve:clamp(d.bridgeCurve,0,100,55),thickness:clamp(d.thickness,3,10,6),bridgeWidth:clamp(d.bridgeWidth,16,24,20),armLength:clamp(d.armLength,135,155,145),armStyle:valid(armStyles,d.armStyle,'clasico'),armStyleRight:valid(armStyles,d.armStyleRight,valid(armStyles,d.armStyle,'clasico')),rimColor:valid(frameColors,d.rimColor,'miel'),bridgeColor:valid(frameColors,d.bridgeColor,'miel'),armColor:valid(frameColors,d.armColor,'miel'),use:optical?'optico':'sol',lensType:valid(lensTypes,d.lensType,'mono'),blue:optical&&!solar&&d.blue===true,photo:optical&&!solar&&d.photo===true,ar:optical&&!solar&&d.ar===true,sunOptical:solar,lensColor:valid(lensColors,d.lensColor,'cafe'),photoColor:valid(photoColors,d.photoColor,'gris')};
 }
 export function designQuote(raw){
- const d=normalizeDesign(raw),base=iconicModels.find(m=>m.id===d.model);
- const lines=[{label:`Montura ${base.name}`,amount:base.price}];
- if(d.thickness>6)lines.push({label:'Acetato de mayor espesor',amount:12000});
- if(d.armStyle==='escultural')lines.push({label:'Brazos esculturales',amount:18000});
- if(new Set([d.rimColor,d.bridgeColor,d.armColor]).size>1)lines.push({label:'Combinación de colores',amount:8000});
- if(d.use==='sol')lines.push({label:'Cristales de sol sin graduación',amount:15000});
- else {
- const lens=lensTypes.find(l=>l.id===d.lensType);lines.push({label:`Cristales ${lens.name.toLowerCase()}`,amount:lens.price});
- if(d.blue)lines.push({label:'Filtro de luz azul',amount:20000});
- if(d.photo)lines.push({label:'Tratamiento fotocromático',amount:45000});
- if(d.sunOptical)lines.push({label:'Sol óptico (tinte graduado)',amount:25000});
+ const d=normalizeDesign(raw);
+ const lines=[{label:'Diseño personal · montura y personalización',amount:209000}];
+ if(d.use==='optico'){
+  const lens=lensTypes.find(l=>l.id===d.lensType);lines.push({label:`Cristales ${lens.name.toLowerCase()}`,amount:lens.price});
+  if(d.blue)lines.push({label:'Filtro de luz azul',amount:20000});
+  if(d.ar)lines.push({label:'Tratamiento antirreflejos',amount:18000});
+  if(d.photo)lines.push({label:`Fotocromático · ${photoColors.find(c=>c.id===d.photoColor).name}`,amount:45000});
+  if(d.sunOptical)lines.push({label:'Sol óptico (tinte graduado)',amount:25000});
  }
  return {lines,total:lines.reduce((sum,l)=>sum+l.amount,0)};
 }
@@ -34,7 +34,7 @@ let previewSerial=0;
 export function framePreview(raw,view='perspectiva'){
  const gradientID=`design-glass-${++previewSerial}`;
  const d=normalizeDesign(raw),rim=frameColors.find(c=>c.id===d.rimColor).hex,bridge=frameColors.find(c=>c.id===d.bridgeColor).hex,arm=frameColors.find(c=>c.id===d.armColor).hex;
- const tinted=d.use==='sol'||d.sunOptical||d.photo;const lens=d.use==='optico'&&d.photo?'#575b59':tinted?lensColors.find(c=>c.id===d.lensColor).hex:'#d8e5df';
+ const tinted=d.use==='sol'||d.sunOptical||d.photo;const lens=d.use==='optico'&&d.photo?photoColors.find(c=>c.id===d.photoColor).hex:tinted?lensColors.find(c=>c.id===d.lensColor).hex:'#d8e5df';
  const rx=Math.min(83,14+d.rounding*.75),ry=Math.min(65,10+d.rounding*.62),top=112,bot=d.model==='aviador'?257:242;
  const left=145-d.bridgeWidth, right=355+d.bridgeWidth;
  const lensPath=(x,mirror)=>{

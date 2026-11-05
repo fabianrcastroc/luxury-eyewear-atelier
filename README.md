@@ -1,71 +1,75 @@
-# Miscante — Handmade Eyewear
+# Miscante — Estudio de gafas
 
-Tienda de gafas de estética editorial, en español y con precios ilustrativos en pesos chilenos. Aplicación adaptable a móviles, sin dependencias de ejecución ni servicios externos.
+Sitio editorial en español con colección de autor y estudio de diseño personal. Precios en pesos chilenos.
 
-## Ver la tienda
+**Web publicada:** https://fabianrcastroc.github.io/luxury-eyewear-atelier/
 
-Con Node.js 22 o posterior, desde este directorio:
+- Inicio: `index.html`
+- Colección: `coleccion.html`
+- Estudio personal: `disena.html`
+
+Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
+
+## Desarrollo
+
+Node.js 22 o posterior:
 
 ```sh
+npm ci
 npm start
 ```
 
-Abre el navegador en el puerto 3000 del equipo donde ejecutas el comando. Puedes cambiarlo con la variable `PORT`. En una máquina remota necesitas reenvío de puerto; el servidor no crea un enlace público.
-
-También puedes ejecutar `npm run build` y abrir `dist/Miscante.html` directamente en un navegador. Este archivo incluye todos los estilos, ilustraciones y funciones; no necesita servidor ni conexión. Para una URL pública, puedes subir el contenido de `public/` a un alojamiento estático como Netlify o Cloudflare Pages, o subir el HTML generado renombrado a `index.html`. Publicar requiere una cuenta de alojamiento; esta implementación no ha sido publicada.
-
-## Funciones
-
-- Catálogo de seis modelos con imágenes locales de estudio, categorías, búsqueda y ordenación.
-- Detalle de materiales, medidas, color y precio de cada modelo.
-- Favoritos y carrito persistentes en el navegador, cantidades y eliminación de productos.
-- Cálculo de envío: $5.000, gratis desde $200.000.
-- Compra de demostración con validación de formulario y confirmación sin cobros.
-- Registro local de suscripción, preguntas frecuentes, cuidados y privacidad.
-- Diálogos accesibles con cierre por Escape, etiquetas de formulario, foco visible y respeto por movimiento reducido.
-
-## Validación
+Abre el puerto 3000 del equipo donde ejecutas el servidor. Para cambiarlo, usa `PORT`. El servidor empaqueta el JavaScript con esbuild durante desarrollo.
 
 ```sh
-npm test
 npm run build
-# Con Chromium instalado (o CHROMIUM_PATH definido):
-npm run test:browser
 ```
 
-Las pruebas automatizadas verifican importes, envío, entrega de recursos y protección contra acceso fuera de la carpeta pública. También se comprobó con Chromium el recorrido de búsqueda, favoritos, carrito persistente, compra de prueba y diseño móvil.
+Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres páginas, módulos empaquetados y archivos locales. Sirve esa carpeta con un servidor estático; ya no se distribuye como un único HTML independiente. `Miscante.html` mantiene compatibilidad redirigiendo al inicio del sitio.
 
-## Antes de vender
+## Estudio personal
 
-El catálogo, precios, atributos e ilustraciones son de demostración. No hay backend, inventario real, pagos, envío de correos ni recepción de formularios. El contacto explica su disponibilidad futura. La suscripción solo registra una preferencia local; no envía el correo. Los datos de entrega no se transmiten ni se conservan al confirmar la prueba. No introduzcas información real en la demostración.
+- Cinco siluetas: Panto, Recto, Cat-eye, Aviador y Clubmaster.
+- Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos; cámara frontal, lateral y perspectiva. Alternativa SVG si WebGL no está disponible.
+- Aro, espesor, curvatura y ancho del puente, largo de brazos y colores de cada pieza.
+- Seis diseños de brazos que se pueden combinar por separado a izquierda y derecha.
+- **Base de $209.000**, incluyendo todas las personalizaciones de montura y cristales solares sin graduación. Sin recargos por modelo, espesor, brazos o colores.
+- Los únicos suplementos corresponden a cristales graduados y sus tratamientos. Monofocales +$45.000, bifocales +$85.000, multifocales +$145.000. Bluelight +$20.000, antirreflejos +$18.000, fotocromático +$45.000, sol óptico +$25.000.
+- **Sol óptico elimina y deshabilita bluelight, fotocromático y antirreflejos**, incluso al restaurar un diseño guardado.
+- Fotocromático combinable con antirreflejos, en gris negro, café o lila.
+- El precio se recalcula desde la configuración en el estudio y la bolsa, sin confiar en importes guardados.
 
-Para habilitar ventas se deben confirmar el catálogo y las políticas comerciales, conectar pagos con validación de precios en el servidor, inventario, pedidos, envíos y atención al cliente. Nunca incluir claves privadas en el código del navegador.
+Son precios referenciales por el par de cristales; falta validación profesional de receta, graduación, índice y viabilidad de fabricación antes de confirmar una cotización real.
 
-## Publicación en GitHub Pages
+## Fotografías y modelos
 
-El repositorio incluye el workflow `.github/workflows/pages.yml`: verifica la tienda, genera los archivos y despliega `docs/` al subir cambios a `main`. Primero, el propietario debe habilitar **Settings → Pages → Build and deployment → Source → GitHub Actions**. Después debe ejecutar **Actions → Publicar Miscante → Run workflow**. El token del workflow no puede crear el sitio de Pages inicialmente: el intento automático recibió `Resource not accessible by integration`. El resultado de cada publicación aparece en **Actions → Publicar Miscante**. La URL definitiva y su estado se muestran en el entorno **github-pages**; una URL prevista no confirma que la publicación haya terminado.
+Las cinco fotografías del selector representan productos físicos de terceros como referencia de silueta: Ray-Ban RB7140, Jeffrey RB4448L, Aviator RB3025-L y Clubmaster RB3016L, más Vogue VO5369S para Cat-eye. No son productos Miscante ni anuncian una colaboración con esas marcas. Procedencia pública y revisión fijada en `public/assets/references/sources.json` y en el selector. Se visualizaron para comprobar que corresponden a cada forma y se optimizaron sin generar o alterar los productos con IA. `scripts/import-reference-photos.mjs` reproduce la importación desde la fuente documentada.
 
-También se puede publicar desde una rama seleccionando `main` y `/docs` en Pages. No combines ambos modos.
+Las imágenes editoriales y de la colección de demostración (`editorial-solar.png`, `collection-studio.png`) siguen siendo imágenes generadas con IA y no fotografías de inventario disponible.
 
-`npm run build` actualiza `docs/` y crea `dist/Miscante.html`, con imágenes incrustadas para abrirlo sin servidor. En GitHub puedes descargar la copia `docs/Miscante.html` con **Download raw file** y abrir el archivo descargado.
+El usuario puede reemplazar la foto de referencia desde su dispositivo, o importar un modelo GLB 2.0 autocontenido de hasta 15 MB. El GLB se visualiza como referencia, no se deforma mediante los controles del modelo paramétrico. Se rechazan modelos que requieren descargar geometría o imágenes externas. Los archivos de referencia son temporales y no se transmiten ni se guardan en el repositorio. Para cambiar permanentemente fotos, fichas y geometría hay que actualizar los archivos fuente y publicar el sitio; no existe un panel de administración.
 
-Las fotografías editoriales y de catálogo fueron generadas con IA para representar el concepto visual; no son fotografías de productos físicos disponibles. Deben reemplazarse con fotografías y especificaciones verificadas antes de vender.
+El render 3D es una visualización de diseño, no un archivo CAD listo para fabricación.
 
-![Vista de Miscante](.github/miscante-preview.png)
+## Recetas y compra de prueba
 
-## Estudio personal — diseña tus gafas
+Recetas PDF, JPEG, PNG o WebP hasta 10 MB, con validación de extensión, MIME y firma; las imágenes tienen vista previa. El documento se mantiene **solo en memoria durante la página actual**. Nunca se sube a un servidor, guarda en localStorage o incorpora al repositorio. Al recargar o navegar a otra página se debe adjuntar nuevamente. La bolsa permite reemplazarlo, retirarlo o dejarlo pendiente. No usar datos médicos reales para probar.
 
-Dentro de **Colecciones**, el acceso **Tu propio Miscante** abre la sección **Diseña tus gafas**, que permite elegir Panto, Rectangular, Cat-eye o Aviador; modificar redondeo del aro, curvatura y ancho del puente, espesor, largo y diseño de brazos; y combinar colores por pieza. La vista paramétrica responde en vivo y ofrece perspectiva, frente y lateral. En móvil permanece visible mientras se ajustan los controles. Es una ilustración orientativa, no CAD ni geometría lista para fabricar.
+El carrito, favoritos y diseños se guardan localmente. No hay cobros, pedidos comerciales, inventario, recepción de documentos ni envío de correos. Para operar ventas se necesita un backend con validación de precios y recepción segura de recetas, además de pagos y gestión de pedidos.
 
-El usuario puede elegir sol sin graduación y color de tinte, u óptico con monofocales, bifocales o multifocales. Bluelight es acumulable; fotocromático y sol óptico son alternativas excluyentes. El precio desglosa montura, personalizaciones y cristales, y se recalcula también desde la configuración al recuperar la bolsa. Los valores son referenciales por el par: no se calcula la graduación a partir de una receta ni se confirma fabricación. La revisión profesional y la cotización definitiva siguen pendientes de integrar.
-
-Las recetas admiten PDF, JPEG, PNG y WebP, hasta 10 MB, con validación de extensión, MIME y firma de archivo. Las imágenes tienen vista previa. El archivo queda **solo en memoria durante la visita**, sin subirse a un servidor, guardarse en localStorage ni incorporarse al repositorio. La bolsa permite adjuntar, reemplazar o retirar la receta, o dejarla pendiente. Al recargar, las especificaciones siguen en la bolsa pero la receta debe adjuntarse de nuevo. No usar datos médicos reales para probar. Un servicio seguro de recepción y almacenamiento de documentos deberá implementarse antes de operar pedidos reales.
-
-Para validar la función con Chromium instalado y el servidor iniciado:
+## Pruebas
 
 ```sh
 npm test
+# Con el servidor iniciado y Chromium instalado:
+npm run test:browser
 npm run test:designer
 ```
 
-Esta prueba comprueba modelos, geometría, precios y tratamientos, documentos válidos e inválidos, vista previa de imagen, ausencia de envíos de datos, persistencia de especificaciones, compra de prueba y pantallas de 320, 390 y 768 px.
+`CHROMIUM_PATH` permite usar otra ruta del navegador. Se verifican el catálogo, bolsa, compra de prueba, navegación entre páginas, generación real de la vista 3D con renderizado de software, brazos combinables, precio base, compatibilidades, colores fotocromáticos, recetas, foto/GLB de referencia y diseños adaptables a 320, 390 y 768 px.
+
+## Publicación
+
+El flujo `.github/workflows/pages.yml` se ejecuta al subir a `main`: instala con lockfile, ejecuta las pruebas, genera el sitio y despliega `docs/` en GitHub Pages. Pages está habilitado con GitHub Actions. La URL de cada despliegue se confirma en el entorno `github-pages`.
+
+![Inicio de Miscante](.github/miscante-preview.png)
