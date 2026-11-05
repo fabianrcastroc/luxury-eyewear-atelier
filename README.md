@@ -43,7 +43,7 @@ Para habilitar ventas se deben confirmar el catálogo y las políticas comercial
 
 ## Publicación en GitHub Pages
 
-El repositorio incluye el workflow `.github/workflows/pages.yml`: verifica la tienda, genera los archivos y despliega `docs/` al subir cambios a `main`. En GitHub, **Settings → Pages → Build and deployment → Source → GitHub Actions** debe estar habilitado. El resultado de cada publicación aparece en **Actions → Publicar Miscante**. La URL definitiva y su estado se muestran en el entorno **github-pages**; una URL prevista no confirma que la publicación haya terminado.
+El repositorio incluye el workflow `.github/workflows/pages.yml`: verifica la tienda, genera los archivos y despliega `docs/` al subir cambios a `main`. Primero, el propietario debe habilitar **Settings → Pages → Build and deployment → Source → GitHub Actions**. Después debe ejecutar **Actions → Publicar Miscante → Run workflow**. El token del workflow no puede crear el sitio de Pages inicialmente: el intento automático recibió `Resource not accessible by integration`. El resultado de cada publicación aparece en **Actions → Publicar Miscante**. La URL definitiva y su estado se muestran en el entorno **github-pages**; una URL prevista no confirma que la publicación haya terminado.
 
 También se puede publicar desde una rama seleccionando `main` y `/docs` en Pages. No combines ambos modos.
 
