@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,MM} from '../public/frame-geometry.js';
+import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,templeWidthLimit,nasalPads,MM} from '../public/frame-geometry.js';
 import {iconicModels,defaultDesign,normalizeDesign,designQuote,prescriptionError,prescriptionSignature,armStyles,photoColors,framePreview} from '../public/designer-model.js';
 import {totals} from '../public/catalog.js';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} ≈ ${b}`);
@@ -16,7 +16,7 @@ test('la base sigue en $209.000 sin recargos por talla, puente o brazos',()=>{
 });
 test('talla cambia medidas y conserva el perfil normalizado de cada cristal',()=>{
  for(const model of iconicModels){const base=lensContour({...defaultDesign,model:model.id},1);for(const size of frameSizes){const d={...defaultDesign,model:model.id,frameSize:size.id},points=lensContour(d,1),factor=size.lens/52;points.forEach((p,i)=>{close(p[0]/factor,base[i][0]);close(p[1]/factor,base[i][1]);});}}
- assert.equal(designMeasurements(defaultDesign).code,'52 □ 17–140');assert.equal(designMeasurements({...defaultDesign,templeLength:145,armExtension:5}).code,'52 □ 17–150');
+ assert.equal(designMeasurements(defaultDesign).code,'52 □ 17–140');assert.equal(designMeasurements({...defaultDesign,templeLength:145,armExtension:5}).code,'52 □ 17–145');
 });
 test('Redondo es circular y Ovalado conserva la gota con cualquier ajuste de redondeo',()=>{
  for(const id of ['redondo','ovalado']){const a=normalizeDesign({...defaultDesign,model:id,rounding:0}),b=normalizeDesign({...defaultDesign,model:id,rounding:100});assert.deepEqual(lensContour(a,1),lensContour(b,1));}
@@ -25,7 +25,7 @@ test('Redondo es circular y Ovalado conserva la gota con cualquier ajuste de red
  assert.equal(bridgeGeometry(normalizeDesign({...defaultDesign,model:'ovalado'})).bands.length,1);
 });
 test('espesor, altura, tipo y curva del puente nunca separan los aros',()=>{
- for(const model of iconicModels){const base={...defaultDesign,model:model.id},centers=lensCenters(base),outline=frameContour(base,1);for(const type of ['clasico','doble','herradura'])for(const height of ['alto','medio','bajo'])for(const thickness of [3,8]){const d={...base,bridgeType:type,bridgeHeight:height,bridgeThickness:thickness,bridgeNasalCurve:100};assert.deepEqual(lensCenters(d),centers);assert.deepEqual(frameContour(d,1),outline);}}
+ for(const model of iconicModels){const base={...defaultDesign,model:model.id},centers=lensCenters(base),outline=frameContour(base,1);for(const type of ['clasico','doble','herradura'])for(const height of ['alto','medio','bajo'])for(const thickness of [5,12]){const d={...base,bridgeType:type,bridgeHeight:height,bridgeThickness:thickness,bridgeNasalCurve:100};assert.deepEqual(lensCenters(d),centers);assert.deepEqual(frameContour(d,1),outline);}}
 });
 test('curva nasal y espesor solo modifican la cara inferior; doble puente es explícito',()=>{
  for(const model of iconicModels)for(const type of ['clasico','doble','herradura'])for(const height of ['alto','medio','bajo']){
@@ -34,12 +34,23 @@ test('curva nasal y espesor solo modifican la cara inferior; doble puente es exp
   const top=Math.max(...frameContour(d,1).map(p=>p[1]));for(const band of curved.bands){assert.ok(Math.max(...band.upper.map(p=>p[1]))<=top);assert.ok(band.outline.every(p=>p.every(Number.isFinite)));}
  }
 });
-test('ancho solo cambia la sección recta; extensión traslada la curva de oreja sin deformarla',()=>{
+test('ancho completo no mueve el gancho y el largo nominal B determina su posición',()=>{
  for(const model of iconicModels)for(const arm of armStyles)for(const side of [-1,1]){
-  const d={...defaultDesign,model:model.id},base=templePlan(d,side,arm.id),wide=templePlan({...d,armWidth:12},side,arm.id),extended=templePlan({...d,armExtension:5},side,arm.id);
-  assert.deepEqual(base.hook,wide.hook);assert.deepEqual(base.stem,wide.stem);assert.notEqual(base.shaftWidth,wide.shaftWidth);assert.equal(base.hookWidth,wide.hookWidth);
-  assert.deepEqual(base.hookLocal,extended.hookLocal);assert.deepEqual(base.stem[0],extended.stem[0]);close(extended.stemLength-base.stemLength,5*MM);
-  for(let i=0;i<base.hook.length;i++){close(base.hook[i][0],extended.hook[i][0]);close(base.hook[i][1],extended.hook[i][1]);close(extended.hook[i][2]-base.hook[i][2],-5*MM);}
+  const d={...defaultDesign,model:model.id},base=templePlan(d,side,arm.id),wide=templePlan({...d,armWidth:templeWidthLimit(d)},side,arm.id),long=templePlan({...d,templeLength:150},side,arm.id);
+  assert.deepEqual(base.hook,templePlan({...d,nasalProjection:100},side,arm.id).hook);assert.deepEqual(base.hook,wide.hook);assert.deepEqual(base.stem,wide.stem);assert.notEqual(base.shaftWidth,wide.shaftWidth);assert.equal(base.hookWidth,wide.hookWidth);
+  close(wide.shaftWidth,templeWidthLimit(d)*MM);assert.deepEqual(base.hookLocal,long.hookLocal);close(long.join[2]-base.join[2],-10*MM);
+  assert.deepEqual(base.hook,templePlan({...d,armExtension:5},side,arm.id).hook);
+  assert.deepEqual(base.hook,templePlan(d,side,'clasico').hook,'El estilo del tramo recto no cambia el gancho');
+ }
+ assert.ok(!('armExtension' in normalizeDesign({armExtension:5})));
+});
+test('puente admite 5 a 12 mm y apoyo nasal añade material sin deformar el cristal',()=>{
+ assert.equal(normalizeDesign({bridgeThickness:1}).bridgeThickness,5);assert.equal(normalizeDesign({bridgeThickness:30}).bridgeThickness,12);
+ for(const model of iconicModels)for(const side of [-1,1]){
+  const base={...defaultDesign,model:model.id,nasalProjection:0},strong={...base,nasalProjection:100};
+  assert.deepEqual(lensContour(base,side),lensContour(strong,side));assert.deepEqual(lensCenters(base),lensCenters(strong));
+  assert.notDeepEqual(frameContour(base,side),frameContour(strong,side));
+  const p=nasalPads(base,side),q=nasalPads(strong,side);assert.ok(p.outline.length>6);assert.ok(q.depth>p.depth);assert.ok(q.outline.every(p=>p.every(Number.isFinite)));assert.ok(q.outline.every(([x])=>x*side>=3*MM-1e-8));
  }
 });
 test('guía compara ancho frontal y no recomienda automáticamente fuera del rango',()=>{

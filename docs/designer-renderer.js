@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {frameDimensions,frameContour,lensContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,MM} from './frame-geometry.js';
+import {frameDimensions,frameContour,lensContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,nasalPads,MM} from './frame-geometry.js';
 import {normalizeDesign,frameColors,lensColors,photoColors} from './designer-model.js';
 
 export function createDesignRenderer(container){
@@ -30,9 +30,9 @@ export function createDesignRenderer(container){
   function sweep(points,hook){
    const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),positions=[],indices=[],sections=48;
    for(let i=0;i<=sections;i++){
-    const t=i/sections,p=curve.getPoint(t),ease=THREE.MathUtils.smoothstep(t,.62,1);
-    const styleFactor=style==='fino'?.7:style==='escultural'?1.2:style==='sable'?1.1:1;
-    const height=hook?plan.hookWidth:THREE.MathUtils.lerp(plan.shaftWidth*styleFactor,plan.hookWidth,ease),depth=plan.depth;
+    const t=i/sections,p=curve.getPoint(t),ease=THREE.MathUtils.smoothstep(t,.18,1);
+
+    const height=hook?plan.hookWidth:THREE.MathUtils.lerp(plan.shaftWidth,plan.hookWidth,ease),depth=hook?.075:plan.depth;
     for(const [dx,dy] of [[-depth,-height/2],[depth,-height/2],[depth,height/2],[-depth,height/2]])positions.push(p.x+dx,p.y+dy,p.z);
     if(i<sections)for(let j=0;j<4;j++){const a=i*4+j,b=i*4+(j+1)%4,c=(i+1)*4+j,e=(i+1)*4+(j+1)%4;indices.push(a,b,c,b,e,c);}
    }
@@ -59,8 +59,13 @@ export function createDesignRenderer(container){
    const lens=addMesh(new THREE.ShapeGeometry(new THREE.Shape(inner)),lensMaterial);lens.position.set(side*offset,0,.035);
    const pin=addMesh(new THREE.SphereGeometry(.023,10,8),material('#baa26d',true));pin.position.set(side*(offset+Math.max(...outer.map(p=>p.x))*.88),.22,.22);
   }
+  for(const side of [-1,1]){
+   const pad=nasalPads(d,side),shape=new THREE.Shape(pad.outline.map(p=>new THREE.Vector2(...p)));
+   const mesh=addMesh(new THREE.ExtrudeGeometry(shape,{depth:pad.depth,bevelEnabled:true,bevelSize:.025,bevelThickness:.025,bevelSegments:4}),rim);
+   mesh.position.z=-pad.depth+.03;mesh.userData.part='nasal-pad';
+  }
   for(const band of bridgeGeometry(d).bands){const shape=new THREE.Shape(band.outline.map(p=>new THREE.Vector2(...p)));const mesh=addMesh(new THREE.ExtrudeGeometry(shape,{depth:.16,bevelEnabled:true,bevelSize:.014,bevelThickness:.014,bevelSegments:2,steps:1}),bridge);mesh.position.z=.025;}
-  container.dataset.measurements=JSON.stringify(designMeasurements(d));
+  container.dataset.nasalPads='2';container.dataset.measurements=JSON.stringify(designMeasurements(d));
   arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyleRight,arms);
   group.visible=!reference?.visible;render();
  }
