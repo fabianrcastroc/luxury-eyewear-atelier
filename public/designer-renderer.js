@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {frameDimensions,frameContour,lensContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,nasalPads,MM} from './frame-geometry.js';
+import {frameDimensions,frameContour,lensContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,nasalPads,templeSection,MM} from './frame-geometry.js';
 import {normalizeDesign,frameColors,lensColors,photoColors} from './designer-model.js';
 
 export function createDesignRenderer(container){
@@ -33,6 +33,7 @@ export function createDesignRenderer(container){
     const t=i/sections,p=curve.getPoint(t),ease=THREE.MathUtils.smoothstep(t,.18,1);
 
     const height=hook?plan.hookWidth:THREE.MathUtils.lerp(plan.shaftWidth,plan.hookWidth,ease),depth=hook?.075:plan.depth;
+    if(!hook)p.y=templeSection(d,p.y,height).center;
     for(const [dx,dy] of [[-depth,-height/2],[depth,-height/2],[depth,height/2],[-depth,height/2]])positions.push(p.x+dx,p.y+dy,p.z);
     if(i<sections)for(let j=0;j<4;j++){const a=i*4+j,b=i*4+(j+1)%4,c=(i+1)*4+j,e=(i+1)*4+(j+1)%4;indices.push(a,b,c,b,e,c);}
    }
@@ -49,7 +50,8 @@ export function createDesignRenderer(container){
   const centers=lensCenters(d);
   for(const side of [-1,1]){
    const outer=contours(d,side),inner=lensContour(d,side).map(p=>new THREE.Vector2(...p)),offset=Math.abs(centers[side===-1?0:1]);
-   const metalOuter=d.model==='curvo'?lensContour(d,side).map(([x,y])=>new THREE.Vector2(x*1.025,y*1.025)):outer;
+   const baseOuter=frameContour({...d,nasalProjection:0},side);
+   const metalOuter=d.model==='curvo'?lensContour(d,side).map(([x,y],i)=>new THREE.Vector2(x*1.025+outer[i].x-baseOuter[i][0],y*1.025)):outer;
    const shape=new THREE.Shape(metalOuter);shape.holes.push(new THREE.Path([...(d.model==='curvo'?lensContour(d,side).map(p=>new THREE.Vector2(...p)):inner)].reverse()));
    const ring=addMesh(new THREE.ExtrudeGeometry(shape,{depth:.11+d.thickness*.009,bevelEnabled:true,bevelSize:.018,bevelThickness:.018,bevelSegments:3,steps:1}),d.model==='curvo'?material('#bfa876',true):rim);ring.position.set(side*offset,0,0);
    if(d.model==='curvo'){const brow=new THREE.Shape([...outer.slice(0,65),...inner.slice(0,65).reverse()]);const browMesh=addMesh(new THREE.ExtrudeGeometry(brow,{depth:.15,bevelEnabled:true,bevelSize:.018,bevelThickness:.018,bevelSegments:2}),rim);browMesh.position.set(side*offset,0,.02);}
@@ -66,7 +68,7 @@ export function createDesignRenderer(container){
   }
   for(const band of bridgeGeometry(d).bands){const shape=new THREE.Shape(band.outline.map(p=>new THREE.Vector2(...p)));const mesh=addMesh(new THREE.ExtrudeGeometry(shape,{depth:.16,bevelEnabled:true,bevelSize:.014,bevelThickness:.014,bevelSegments:2,steps:1}),bridge);mesh.position.z=.025;}
   container.dataset.nasalPads='2';container.dataset.measurements=JSON.stringify(designMeasurements(d));
-  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyleRight,arms);
+  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);
   group.visible=!reference?.visible;render();
  }
  let selectedView='perspectiva';

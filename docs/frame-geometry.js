@@ -100,7 +100,14 @@ export function templePlan(d,side,style='clasico'){
 export function templeWidthLimit(d){
  const points=frameContour(d,1);return Math.floor((Math.max(...points.map(p=>p[1]))-Math.min(...points.map(p=>p[1])))/MM);
 }
+// Actual vertical bounds used by both renderers, including the shaft centreline.
+export function templeSection(d,centerY,height){
+ const points=frameContour(d,1),top=Math.max(...points.map(p=>p[1])),bottom=Math.min(...points.map(p=>p[1]));
+ const h=Math.min(height,top-bottom),center=Math.max(bottom+h/2,Math.min(top-h/2,centerY));
+ return {bottom:center-h/2,top:center+h/2,center,height:h};
+}
 export function nasalPads(d,side){
+ d={...d,nasalProjection:0};
  const center=lensCenters(d)[side===-1?0:1],outer=frameContour(d,side),arc=[];
  // Continuous crescent following the nasal rim, on the face-facing side.
  for(let i=0;i<128;i++){
@@ -109,7 +116,7 @@ export function nasalPads(d,side){
  arc.sort((a,b)=>b[1]-a[1]);
  const attachment=d.model==='curvo'?Number(d.thickness??4)-.5:-1.4;
  const inner=arc.map(([x,y])=>[side*Math.max(3*MM,side*x+attachment*MM),y]);
- return {outline:[...arc,...inner.reverse()],depth:(2+Number(d.nasalProjection??35)/100*3)*MM};
+ return {outline:[...arc,...inner.reverse()],depth:3*MM};
 }
 export function recommendFrameSize(faceWidth,d){
  const width=Number(faceWidth);if(!Number.isFinite(width)||width<80||width>190)return null;

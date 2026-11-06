@@ -1,4 +1,4 @@
-import {designQuote} from './designer-model.js';
+import {designQuote,normalizeDesign} from './designer-model.js';
 export const products = [
   {id:'solar',name:'Solar',category:'sol',shape:'square',color:'Miel translúcida',hex:'#98602f',lens:'#544d31',price:159000,material:'Acetato',size:'51 · 21 · 145',tag:'SELECCIÓN MISCANTE',bg:'#ece9e0'},
   {id:'noir',name:'Noir',category:'sol',shape:'cat',color:'Negro profundo',hex:'#242422',lens:'#343a35',price:169000,material:'Acetato',size:'53 · 19 · 145',tag:'',bg:'#e5e7e2'},
@@ -8,8 +8,16 @@ export const products = [
   {id:'aura',name:'Aura',category:'sol',shape:'cat',color:'Ámbar',hex:'#af713c',lens:'#705238',price:189000,material:'Acetato',size:'52 · 20 · 145',tag:'EDICIÓN DE ESTUDIO',bg:'#eee4d6'}
 ];
 export const money = n => new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n);
+export function productQuote(productId,raw={}){
+ const product=products.find(p=>p.id===productId);if(!product)return {lines:[],total:0};
+ const options=designQuote(normalizeDesign(raw)).lines.slice(1);
+ const lines=[{label:`Montura ${product.name} · cristales sin graduación incluidos`,amount:product.price},...options];
+ return {lines,total:lines.reduce((sum,line)=>sum+line.amount,0)};
+}
+export function cartProduct(item){return products.find(p=>p.id===(item.productId||item.id));}
+export function itemQuote(item){return item.custom?designQuote(item.config):productQuote(item.productId||item.id,item.config);}
 export function totals(cart) {
-  const subtotal = cart.reduce((n,item)=>n+(item.custom?designQuote(item.config).total:(products.find(p=>p.id===item.id)?.price || 0))*item.qty,0);
+  const subtotal = cart.reduce((n,item)=>n+itemQuote(item).total*item.qty,0);
   const shipping = subtotal === 0 || subtotal >= 200000 ? 0 : 5000;
   return {subtotal,shipping,total:subtotal+shipping};
 }

@@ -29,13 +29,13 @@ try{
  const rotated=await page.locator('#design-preview').getAttribute('data-camera');
  await page.locator('#design-thickness').fill('8');await frame(page);assert.equal(await page.locator('#design-preview').getAttribute('data-camera'),rotated,'Cambiar espesor conserva la cámara girada');
  for(const [key,value] of [['rounding','5'],['bridgeNasalCurve','0'],['bridgeThickness','6'],['armWidth','10'],['nasalProjection','100']]){await page.locator(`#design-${key}`).fill(value);await frame(page);assert.equal(JSON.parse(await page.locator('#design-preview').getAttribute('data-config'))[key],Number(value));assert.equal(await page.locator('#design-preview').getAttribute('data-camera'),rotated);}
- const hookConfig=JSON.parse(await page.locator('#design-preview').getAttribute('data-config'));assert.ok(!('armExtension' in hookConfig));assert.equal(await page.locator('#design-preview').getAttribute('data-nasal-pads'),'2');
+ const hookConfig=JSON.parse(await page.locator('#design-preview').getAttribute('data-config'));assert.ok(!('armExtension' in hookConfig));assert.equal(await page.locator('#design-preview').getAttribute('data-nasal-pads'),'2');assert.equal(await page.locator('#design-armStyleRight').count(),0);assert.equal(hookConfig.armStyleRight,hookConfig.armStyle);
  const fullWidth=await page.locator('#design-armWidth').getAttribute('max');await page.locator('#design-armWidth').fill(fullWidth);await page.locator('#design-bridgeThickness').fill('12');await frame(page);await amount('$209.000');
  await page.locator('[data-color-part="rimColor"][data-color="marfil"]').click();await page.locator('[data-color-part="bridgeColor"][data-color="burdeos"]').click();await frame(page);assert.notEqual(digest(await canvas.screenshot()),initial);
  await page.locator('[data-view="lateral"]').click();const armImages=new Set();
- for(const style of ['clasico','fino','escultural','sable','curvo','gancho']){await page.locator('#design-armStyle').selectOption(style);await page.locator('#design-armStyleRight').selectOption(style);await frame(page);armImages.add(digest(await canvas.screenshot()));await amount('$209.000');}
+ for(const style of ['clasico','fino','escultural','sable','curvo','gancho']){await page.locator('#design-armStyle').selectOption(style);await frame(page);armImages.add(digest(await canvas.screenshot()));await amount('$209.000');}
  assert.equal(armImages.size,6,'Las seis formas de brazo tienen una geometría visible distinta');
- await page.locator('#design-armStyle').selectOption('sable');await page.locator('#design-armStyleRight').selectOption('gancho');
+ await page.locator('#design-armStyle').selectOption('sable');
  await page.locator('#design-armWidth').fill('6');await page.locator('[data-view="perspectiva"]').click();await frame(page);
  await panel(2);await page.locator('[data-use="optico"]').click();await page.locator('#design-lensType').selectOption('multi');await page.locator('[data-setting="ar"]').check();await page.locator('[data-setting="photo"]').check();await amount('$417.000');
  assert.deepEqual(await page.locator('#design-photoColor option').allTextContents(),['Gris negro','Café','Lila']);

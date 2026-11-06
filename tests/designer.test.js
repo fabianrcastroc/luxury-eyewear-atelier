@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,templeWidthLimit,nasalPads,MM} from '../public/frame-geometry.js';
+import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,templeWidthLimit,nasalPads,templeSection,MM} from '../public/frame-geometry.js';
 import {iconicModels,defaultDesign,normalizeDesign,designQuote,prescriptionError,prescriptionSignature,armStyles,photoColors,framePreview} from '../public/designer-model.js';
 import {totals} from '../public/catalog.js';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} ≈ ${b}`);
@@ -50,7 +50,7 @@ test('puente admite 5 a 12 mm y apoyo nasal añade material sin deformar el cris
   const base={...defaultDesign,model:model.id,nasalProjection:0},strong={...base,nasalProjection:100};
   assert.deepEqual(lensContour(base,side),lensContour(strong,side));assert.deepEqual(lensCenters(base),lensCenters(strong));
   assert.notDeepEqual(frameContour(base,side),frameContour(strong,side));
-  const p=nasalPads(base,side),q=nasalPads(strong,side);assert.ok(p.outline.length>6);assert.ok(q.depth>p.depth);assert.ok(q.outline.every(p=>p.every(Number.isFinite)));assert.ok(q.outline.every(([x])=>x*side>=3*MM-1e-8));
+  const p=nasalPads(base,side),q=nasalPads(strong,side);assert.ok(p.outline.length>6);assert.deepEqual(q,p);assert.ok(q.outline.every(p=>p.every(Number.isFinite)));assert.ok(q.outline.every(([x])=>x*side>=3*MM-1e-8));
  }
 });
 test('guía compara ancho frontal y no recomienda automáticamente fuera del rango',()=>{
@@ -66,4 +66,9 @@ test('SVG alternativo responde a geometría, medidas y tipos de puente sin repet
 });
 test('recetas: formatos, firma de archivo y límites de tamaño',()=>{
  assert.equal(prescriptionError({name:'receta.pdf',type:'application/pdf',size:100}),'');assert.match(prescriptionError({name:'r.exe',size:100}),/Formato/);assert.match(prescriptionError({name:'r.pdf',size:11*1024*1024}),/10 MB/);assert.ok(prescriptionSignature(new TextEncoder().encode('%PDF')));assert.equal(prescriptionSignature(new TextEncoder().encode('%PDF'),{name:'falsa.png'}),false);
+});
+
+test('brazos sincronizados y sección nunca supera los extremos del aro',()=>{
+ const paired=normalizeDesign({armStyle:'sable',armStyleRight:'gancho'});assert.equal(paired.armStyleRight,paired.armStyle);
+ for(const model of iconicModels)for(const size of frameSizes){const d={...defaultDesign,model:model.id,frameSize:size.id},points=frameContour(d,1),top=Math.max(...points.map(p=>p[1])),bottom=Math.min(...points.map(p=>p[1]));for(const y of [-.4,0,.16,.4])for(const width of [4,templeWidthLimit(d),100]){const section=templeSection(d,y,width*MM);assert.ok(section.top<=top+1e-8);assert.ok(section.bottom>=bottom-1e-8);}}
 });

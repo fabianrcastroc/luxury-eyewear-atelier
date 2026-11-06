@@ -22,8 +22,8 @@ await page.locator('#search').fill('champagne');
 assert.equal(await page.locator('.product').count(),1);
 await page.locator('#clear-search').click();
 await page.locator('.product-heading [data-product="solar"]').click();
-await page.locator('#product-dialog [data-add]').click();
-await page.locator('#product-dialog [data-close]').click();
+await page.locator('#collection-lens-form button[type="submit"]').click();
+
 await page.reload();
 assert.equal(await page.locator('#cart-count').textContent(),'1');
 await page.locator('#cart-toggle').click();
@@ -51,10 +51,10 @@ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=inner
 await page.screenshot({path:'/tmp/miscante-mobile.png',fullPage:true});
 await page.locator('.product-heading [data-product="noir"]').click();
 assert.equal(await page.locator('#product-dialog').evaluate(e=>e.scrollWidth<=e.clientWidth),true);
-await page.locator('#product-dialog [data-add]').click();
+await page.locator('#collection-lens-form button[type="submit"]').click();
 await page.keyboard.press('Escape');
 await page.locator('#cart-toggle').click();
-await page.locator('[data-remove="noir"]').click();
+await page.locator('[data-remove]').click();
 assert.equal(await page.locator('#cart-count').textContent(),'0');
 assert.deepEqual(errors,[]);
 console.log('PASS: catálogo, filtros, búsqueda, favoritos, persistencia, producto, cantidades, envío, checkout, newsletter, móvil y consola.');

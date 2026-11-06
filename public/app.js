@@ -1,11 +1,12 @@
-import {products,money,totals,glasses} from './catalog.js';
+import {products,money,totals,glasses,cartProduct,itemQuote} from './catalog.js';
+import {initCollectionLenses} from './collection-lenses.js';
 import {initDesigner} from './designer.js';
 import {normalizeDesign,designQuote,designSummary,framePreview,frameColors,prescriptionError,prescriptionSignature} from './designer-model.js';
 import {designMeasurements} from './frame-geometry.js';
 const $ = s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 let cart=read('miscante-cart',[]);
-cart=Array.isArray(cart)?cart.filter(i=>i&&Number.isInteger(i.qty)&&i.qty>0&&i.qty<=10&&(products.some(p=>p.id===i.id)||i.custom===true&&/^custom-[a-f0-9-]{36}$/.test(i.id))).map(i=>i.custom?{id:i.id,custom:true,config:normalizeDesign(i.config),qty:i.qty}:{id:i.id,qty:i.qty}):[];
+cart=Array.isArray(cart)?cart.filter(i=>i&&Number.isInteger(i.qty)&&i.qty>0&&i.qty<=10&&(products.some(p=>p.id===i.id)||i.custom===true&&/^custom-[a-f0-9-]{36}$/.test(i.id)||products.some(p=>p.id===i.productId)&&/^configured-[a-f0-9-]{36}$/.test(i.id))).map(i=>i.custom?{id:i.id,custom:true,config:normalizeDesign(i.config),qty:i.qty}:i.productId?{id:i.id,productId:i.productId,config:normalizeDesign(i.config),qty:i.qty}:{id:i.id,qty:i.qty}):[];
 const cartRecipes=new Map();
 const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let favorites=read('miscante-favorites',[]); favorites=Array.isArray(favorites)?favorites.filter(id=>products.some(p=>p.id===id)):[];
@@ -15,31 +16,33 @@ function toast(message){$('#toast').textContent=message;$('#toast').classList.ad
 const closeButton='<button class="close" data-close aria-label="Cerrar">×</button>';
 function show(dialog,html){dialog.innerHTML=html;if(!dialog.open)dialog.showModal();}
 function updateCart(){store('miscante-cart',cart);$('#cart-count').textContent=cart.reduce((n,i)=>n+i.qty,0);}
-function add(id){const item=cart.find(i=>i.id===id);if(item?.qty>=10){toast('Máximo 10 unidades por modelo en la demostración.');return;}if(item)item.qty++;else cart.push({id,qty:1});updateCart();toast('Añadido a tu bolsa');}
 function render(){
  if(!$('#products'))return;
  const query=$('#search').value.trim().toLocaleLowerCase('es');
  let list=products.filter(p=>(category==='all'||category==='favoritos'&&favorites.includes(p.id)||p.category===category)&&`${p.name} ${p.color} ${p.material}`.toLocaleLowerCase('es').includes(query));
  const sort=$('#sort').value; if(sort==='price-up')list.sort((a,b)=>a.price-b.price);if(sort==='price-down')list.sort((a,b)=>b.price-a.price);if(sort==='name')list.sort((a,b)=>a.name.localeCompare(b.name));
  $('#result-count').textContent=`${list.length} modelos encontrados`;
- $('#products').innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-art" style="background:${p.bg}"><span class="product-tag">${p.tag}</span><button class="favorite ${favorites.includes(p.id)?'selected':''}" data-favorite="${p.id}" aria-label="${favorites.includes(p.id)?'Quitar de':'Añadir a'} favoritos: ${p.name}" aria-pressed="${favorites.includes(p.id)}">${favorites.includes(p.id)?'♥':'♡'}</button><button class="product-image" data-product="${p.id}" aria-label="Ver ${p.name}">${glasses(p)}</button><button class="quick-add" data-add="${p.id}">Añadir a la bolsa +</button></div><div class="product-heading"><button data-product="${p.id}">${p.name}</button><span>${money(p.price)}</span></div><p>${p.category==='sol'?'Gafas de sol':'Montura óptica'} · ${p.material}</p><span class="color-dot" style="background:${p.hex}"></span><small>${p.color}</small></article>`).join(''):'<div class="empty"><h3>No encontramos modelos.</h3><p>Prueba otra búsqueda o explora toda la colección.</p><button class="button dark" id="reset-filters">Ver todas las gafas</button></div>';
+ $('#products').innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-art" style="background:${p.bg}"><span class="product-tag">${p.tag}</span><button class="favorite ${favorites.includes(p.id)?'selected':''}" data-favorite="${p.id}" aria-label="${favorites.includes(p.id)?'Quitar de':'Añadir a'} favoritos: ${p.name}" aria-pressed="${favorites.includes(p.id)}">${favorites.includes(p.id)?'♥':'♡'}</button><button class="product-image" data-product="${p.id}" aria-label="Ver ${p.name}">${glasses(p)}</button><button class="quick-add" data-add="${p.id}">Elegir cristales +</button></div><div class="product-heading"><button data-product="${p.id}">${p.name}</button><span>Desde ${money(p.price)}</span></div><p>${p.category==='sol'?'Gafas de sol':'Montura óptica'} · ${p.material}</p><span class="color-dot" style="background:${p.hex}"></span><small>${p.color}</small></article>`).join(''):'<div class="empty"><h3>No encontramos modelos.</h3><p>Prueba otra búsqueda o explora toda la colección.</p><button class="button dark" id="reset-filters">Ver todas las gafas</button></div>';
 }
-function product(id){const p=products.find(p=>p.id===id);show($('#product-dialog'),`${closeButton}<div class="detail-art" style="background:${p.bg}">${glasses(p)}</div><div class="detail-copy"><p class="eyebrow">COLECCIÓN 01 · ${p.category==='sol'?'DE SOL':'ÓPTICAS'}</p><h2>${p.name}</h2><p>${money(p.price)} <small>CLP</small></p><p>Una silueta ${p.shape==='round'?'redonda':p.shape==='cat'?'de líneas expresivas':'rectangular'} con presencia sutil. Comodidad y carácter para acompañar tu forma de mirar.</p><p><span class="color-dot" style="background:${p.hex}"></span> ${p.color}</p><dl><dt>Material</dt><dd>${p.material}</dd><dt>Lente · puente · patilla</dt><dd>${p.size} mm</dd><dt>Cristales</dt><dd>${p.category==='sol'?'Protección UV400':'Sin graduación'}</dd><dt>Incluye</dt><dd>Estuche y paño de microfibra</dd></dl><button class="button dark full" data-add="${p.id}">Añadir a la bolsa <span>+</span></button><small>Catálogo ilustrativo. Compra de demostración.</small></div>`);}
+function product(id){const p=products.find(p=>p.id===id);show($('#product-dialog'),`${closeButton}<div class="detail-art" style="background:${p.bg}">${glasses(p)}</div><div class="detail-copy"><p class="eyebrow">COLECCIÓN 01 · ${p.category==='sol'?'DE SOL':'ÓPTICAS'}</p><h2>${p.name}</h2><p>Precio base ${money(p.price)} <small>CLP</small></p><p>Una silueta ${p.shape==='round'?'redonda':p.shape==='cat'?'de líneas expresivas':'rectangular'} con presencia sutil. Comodidad y carácter para acompañar tu forma de mirar.</p><p><span class="color-dot" style="background:${p.hex}"></span> ${p.color}</p><dl><dt>Material</dt><dd>${p.material}</dd><dt>Lente · puente · patilla</dt><dd>${p.size} mm</dd><dt>Cristales</dt><dd>${p.category==='sol'?'Protección UV400':'Sin graduación'}</dd><dt>Incluye</dt><dd>Estuche y paño de microfibra</dd></dl><div id="product-lens-options"></div><small>Catálogo ilustrativo. Compra de demostración.</small></div>`);initCollectionLenses($('#product-lens-options'),p,({config,recipe})=>{const id=`configured-${crypto.randomUUID()}`;cart.push({id,productId:p.id,config,qty:1});if(recipe)cartRecipes.set(id,recipe);updateCart();$('#product-dialog').close();toast('Gafas y cristales añadidos a tu bolsa.');});}
 function renderCart(){
  const t=totals(cart);
  const items=cart.map(i=>{
-  const p=i.custom?null:products.find(p=>p.id===i.id);
+  const p=i.custom?null:cartProduct(i);
   const title=i.custom?'Tu diseño Miscante':p.name;
-  const price=i.custom?designQuote(i.config).total:p.price;
+  const price=itemQuote(i).total;
   const photo=i.custom?framePreview(i.config):glasses(p);
   let description=i.custom?designSummary(i.config):p.color;
   let details='';
   if(i.custom){
    const d=i.config,measure=designMeasurements(d);
    description+=` · Aro ${frameColors.find(c=>c.id===d.rimColor).name} / Puente ${frameColors.find(c=>c.id===d.bridgeColor).name} / Brazos ${frameColors.find(c=>c.id===d.armColor).name}`;
-   details=`<details class="cart-design-details"><summary>Ver especificaciones y precio</summary><dl><dt>Bordes del aro</dt><dd>${d.rounding}/100</dd><dt>Talla A / P / B</dt><dd>${measure.code}</dd><dt>Frontal aproximado</dt><dd>${measure.front} mm</dd><dt>Puente</dt><dd>${d.bridgeType} · ${d.bridgeHeight} · espesor ${d.bridgeThickness} mm</dd><dt>Borde nasal</dt><dd>${d.bridgeNasalCurve}/100 · apoyo nasal ${d.nasalProjection}/100 · medias lunas interiores</dd><dt>Brazos</dt><dd>${d.armStyle} / ${d.armStyleRight} · ancho ${d.armWidth} mm</dd><dt>Cristal</dt><dd>${d.use==='sol'||d.sunOptical?d.lensColor:d.photo?'Fotocromático '+d.photoColor:'Transparente'}${d.blue&&d.use==='optico'?' · Bluelight':''}${d.ar?' · Antirreflejos':''}</dd></dl>${designQuote(d).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
-   if(d.use==='optico')details+=`<div class="cart-recipe"><p>${cartRecipes.has(i.id)?`Receta adjunta localmente: ${escapeHTML(cartRecipes.get(i.id).name)}`:'Receta pendiente · puedes adjuntarla ahora o más adelante.'}</p><label class="text-link">${cartRecipes.has(i.id)?'Cambiar receta':'Adjuntar receta'}<input type="file" data-cart-recipe="${i.id}" accept=".pdf,.jpg,.jpeg,.png,.webp" aria-label="Adjuntar receta a tu diseño"></label>${cartRecipes.has(i.id)?`<button type="button" class="text-link" data-remove-recipe="${i.id}">Quitar</button>`:''}<small>Solo durante esta visita. No se envía ni se conserva al recargar.</small></div>`;
+   details=`<details class="cart-design-details"><summary>Ver especificaciones y precio</summary><dl><dt>Bordes del aro</dt><dd>${d.rounding}/100</dd><dt>Talla A / P / B</dt><dd>${measure.code}</dd><dt>Frontal aproximado</dt><dd>${measure.front} mm</dd><dt>Puente</dt><dd>${d.bridgeType} · ${d.bridgeHeight} · espesor ${d.bridgeThickness} mm</dd><dt>Borde nasal</dt><dd>${d.bridgeNasalCurve}/100 · borde del aro ${d.nasalProjection}/100 · medias lunas interiores</dd><dt>Brazos</dt><dd>${d.armStyle} · ambos brazos · ancho ${d.armWidth} mm</dd><dt>Cristal</dt><dd>${d.use==='sol'||d.sunOptical?d.lensColor:d.photo?'Fotocromático '+d.photoColor:'Transparente'}${d.blue&&d.use==='optico'?' · Bluelight':''}${d.ar?' · Antirreflejos':''}</dd></dl>${designQuote(d).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
+  }else if(i.config){
+   const d=i.config;description+=` · ${d.use==='optico'?'Con graduación':'Sin graduación'}`;
+   details=`<details class="cart-design-details"><summary>Ver cristales y precio</summary><p>${d.use==='optico'?(d.lensType==='mono'?'Monofocales':d.lensType==='bi'?'Bifocales':'Multifocales'):'Sin graduación'}${d.blue?' · Luz azul':''}${d.ar?' · Antirreflejos':''}${d.photo?' · Fotocromático '+d.photoColor:''}${d.sunOptical?' · Sol óptico '+d.lensColor:''}</p>${itemQuote(i).lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('')}</details>`;
   }
+   if(i.config?.use==='optico')details+=`<div class="cart-recipe"><p>${cartRecipes.has(i.id)?`Receta adjunta localmente: ${escapeHTML(cartRecipes.get(i.id).name)}`:'Receta pendiente · puedes adjuntarla ahora o más adelante.'}</p><label class="text-link">${cartRecipes.has(i.id)?'Cambiar receta':'Adjuntar receta'}<input type="file" data-cart-recipe="${i.id}" accept=".pdf,.jpg,.jpeg,.png,.webp" aria-label="Adjuntar receta a tus gafas"></label>${cartRecipes.has(i.id)?`<button type="button" class="text-link" data-remove-recipe="${i.id}">Quitar</button>`:''}<small>Solo durante esta visita. No se envía ni se conserva al recargar.</small></div>`;
   return `<article class="cart-item ${i.custom?'custom-cart-item':''}"><div style="background:${p?.bg||'#ebe7dc'}">${photo}</div><section><h3>${title}</h3><small>${description}</small><p>${money(price)}</p><div class="quantity"><button data-qty="${i.id}" data-delta="-1" aria-label="Reducir cantidad de ${title}">−</button><span>${i.qty}</span><button data-qty="${i.id}" data-delta="1" aria-label="Aumentar cantidad de ${title}">+</button><button class="remove" data-remove="${i.id}">Eliminar</button></div></section>${details}</article>`;
  }).join('');
  show($('#cart-dialog'),`${closeButton}<p class="eyebrow">TUS ESENCIALES</p><h2>Tu bolsa <small>(${cart.reduce((n,i)=>n+i.qty,0)})</small></h2>${cart.length?`<div class="cart-items">${items}</div><div class="totals"><p>Subtotal <span>${money(t.subtotal)}</span></p><p>Envío <span>${t.shipping?money(t.shipping):'Sin costo'}</span></p><p class="total">Total <span>${money(t.total)} CLP</span></p></div><button id="checkout" class="button dark full">Continuar <span>→</span></button><p class="fine">Compra de demostración. No se realizarán cargos. Los diseños graduados requieren validación de receta y cotización final.</p>`:'<div class="empty"><p>Tu próxima perspectiva te espera.</p><button class="button dark" data-close>Seguir explorando →</button></div>'}`);
@@ -49,7 +52,7 @@ document.addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.hasAttribute('data-close'))b.closest('dialog').close();
  if(b.dataset.product)product(b.dataset.product);
- if(b.dataset.add)add(b.dataset.add);
+ if(b.dataset.add)product(b.dataset.add);
  if(b.dataset.favorite){const id=b.dataset.favorite;favorites=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id];store('miscante-favorites',favorites);render();}
  if(b.dataset.category){category=b.dataset.category;document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('active',x===b));render();}
  if(b.dataset.qty){const i=cart.find(i=>i.id===b.dataset.qty);if(i){i.qty=Math.min(10,i.qty+Number(b.dataset.delta));cart=cart.filter(x=>x.qty>0);if(i.qty<=0)cartRecipes.delete(i.id);updateCart();renderCart();}}
@@ -83,7 +86,7 @@ document.addEventListener('change',async e=>{
  if(!error){try{if(!prescriptionSignature(new Uint8Array(await file.slice(0,12).arrayBuffer()),file))error='El archivo no contiene una imagen o PDF compatible.';}catch{error='No se pudo leer la receta.';}}
  if(run!==cartUploadRun)return;
  if(error){e.target.value='';toast(error);return;}
- if(!cart.some(i=>i.id===id&&i.custom&&i.config.use==='optico'))return;
+ if(!cart.some(i=>i.id===id&&i.config?.use==='optico'))return;
  cartRecipes.set(id,file);renderCart();toast('Receta adjunta localmente durante esta visita.');
 });
 

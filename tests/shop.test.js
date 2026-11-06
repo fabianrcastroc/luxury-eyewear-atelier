@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,totals} from '../public/catalog.js';
+import {products,totals,productQuote} from '../public/catalog.js';
 import {server} from '../server.js';
 
 test('cálculo de bolsa, cantidades y umbral de envío gratuito',()=>{
@@ -21,4 +21,15 @@ test('servidor entrega la tienda, módulos y errores de recursos',async()=>{
     assert.equal((await fetch(base+'/missing')).status,404);
     assert.equal((await fetch(base+'/%2e%2e%2fpackage.json')).status,403);
   } finally {await new Promise(resolve=>server.close(resolve));}
+});
+
+test('cada producto suma los mismos cristales y exclusiones al precio de su montura',()=>{
+ for(const product of products){
+  assert.equal(productQuote(product.id).total,product.price);
+  for(const [lensType,extra] of [['mono',45000],['bi',85000],['multi',145000]])assert.equal(productQuote(product.id,{use:'optico',lensType}).total,product.price+extra);
+  const optical={use:'optico',lensType:'multi',photo:true,ar:true};
+  assert.equal(productQuote(product.id,optical).total,product.price+208000);
+  assert.equal(productQuote(product.id,{...optical,sunOptical:true,blue:true}).total,product.price+170000);
+  assert.equal(totals([{id:'configured-test',productId:product.id,config:optical,qty:2}]).subtotal,(product.price+208000)*2);
+ }
 });
