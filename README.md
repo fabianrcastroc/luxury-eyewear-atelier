@@ -88,3 +88,35 @@ Cada ficha permite añadir graduación monofocal, bifocal o multifocal, tratamie
 Se puede adjuntar PDF o imagen de receta en la ficha o en la bolsa, con validación de formato, firma y tamaño. El archivo nunca se serializa ni se envía. Al recargar queda pendiente. La compra sigue siendo de demostración.
 
 Con el servidor activo, `npm run test:collection` verifica los seis productos, graduación, tratamientos, precios, archivos, variantes, persistencia, bolsa y móvil.
+
+## Taller paramétrico y software independiente
+
+El diseñador incluye corrección del aro mediante offset normal, medidas A/DBL con decimales, espesor de plancha independiente (2, 3, 4, 6 y 8 mm), altura limitada de silueta, historial de edición, plano 2D con nodos asistidos, cámara ortográfica, desplazamiento, zoom, retícula de 5 mm y exportación GLB métrica. Los proyectos JSON conservan los parámetros y el contorno; no incluyen recetas ni la fotografía original.
+
+En «Modelo → De referencia a modelo» se detectan automáticamente los huecos de ambas lunetas de una fotografía frontal o boceto cerrado con fondo claro. El análisis ocurre en un Worker local. Se propone un contorno convexo y simétrico que se revisa antes de aplicar. La medida A real calibra la escala; la foto no determina profundidad, geometría oculta ni exactitud de fabricación. Una imagen que no ofrece detección fiable se rechaza sin sustituirla por otro modelo.
+
+«Imprimir · 2 hojas» genera dos A4 a escala 1:1: frontal y lunetas en la primera; ambos brazos desarrollados en la segunda. También se descargan ambos SVG. Imprimir al 100 %, desactivar ajuste de página y medir la regla de 100 mm. El eje de los brazos usa el mismo muestreo que el 3D y el largo B indicado. Las tolerancias de montaje, ranura, bisel, bisagras y conformado requieren validación física; no se consideran automáticamente compensadas.
+
+La referencia solicitada es Ray-Ban RB2140 50 □ 22. El botón correspondiente aplica sus medidas nominales aportadas por el usuario; todavía no incorpora un trazado auténtico de esa luneta. No equivale a copiar su curva exacta.
+
+El software de taller tiene un repositorio independiente, `miscante-eyewear-studio`, con entrada, compilación y pruebas propias. Para mantener los cambios en ambos, desde esta web:
+
+```sh
+node scripts/sync-studio.mjs --write
+node scripts/sync-studio.mjs --check
+npm run test:workbench
+```
+
+El destino predeterminado es el repositorio hermano; se puede indicar `--studio /ruta/al/software`. La publicación web sigue usando `docs/`, regenerado con `npm run build`. Guardar archivos o preparar el repositorio local no publica cambios en GitHub Pages.
+
+Las fuentes consultadas y restricciones de acceso están en [design-notes/DESIGN-RESEARCH.md](design-notes/DESIGN-RESEARCH.md).
+
+## Publicación de FR y comprobación previa al taller
+
+`npm run build` genera tanto la web como `docs/fr/` y `dist/fr/`. FR tiene su entrada independiente en `software-fr/` y usa el mismo núcleo de diseño. GitHub Pages publica los dos accesos en el mismo despliegue; no requiere que CI disponga del repositorio de software hermano.
+
+Antes de publicar se verifican `npm test`, `npm run test:metrology` y los flujos del navegador sobre el sitio compilado. La metrología comprueba vértices del GLB para planchas de 2, 3, 4, 6 y 8 mm, simetría y unidades, terminales del frontal y patillas; diferencia herrajes ilustrativos y apoyos nasales añadidos de 3 mm.
+
+Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. La estructura mixta Curvo no admite exportación como un frontal íntegro de acetato; el sistema bloquea esa salida hasta disponer de un plano por materiales.
+
+El repositorio independiente se conserva con sus comandos de instalación, pruebas y compilación; `node scripts/sync-studio.mjs --write` mantiene sincronizados el núcleo compartido y la entrada FR. El alojamiento bajo `/fr/` no convierte el directorio web en un segundo repositorio remoto.

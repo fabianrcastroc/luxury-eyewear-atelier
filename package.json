@@ -11,7 +11,9 @@
     "test:browser": "node scripts/smoke-browser.mjs",
     "test:designer": "npm run build && node scripts/designer-browser.mjs",
     "render:previews": "node scripts/render-model-previews.mjs",
-    "test:collection": "node scripts/collection-lenses-browser.mjs"
+    "test:collection": "node scripts/collection-lenses-browser.mjs",
+    "test:workbench": "node scripts/workbench-browser.mjs",
+    "test:metrology": "node scripts/renderer-metrology.mjs"
   },
   "engines": {
     "node": ">=22"

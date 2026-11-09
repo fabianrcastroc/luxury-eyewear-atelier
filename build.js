@@ -1,6 +1,7 @@
 import {readFile,mkdir,writeFile,cp,rm} from 'node:fs/promises';
 import {build} from 'esbuild';
 import {createHash} from 'node:crypto';
+import {buildFR} from './scripts/build-fr.mjs';
 const root=new URL('./',import.meta.url);
 const bundle=await build({entryPoints:[new URL('./public/app.js',root).pathname],bundle:true,write:false,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
 const scriptVersion=createHash('sha256').update(bundle.outputFiles[0].text).digest('hex').slice(0,12);
@@ -15,3 +16,4 @@ for(const dir of ['docs','dist']){
  await writeFile(new URL('./'+dir+'/Miscante.html',root),'<!doctype html><html lang="es"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./index.html"><title>Miscante</title><a href="./index.html">Entrar a Miscante</a></html>');
 }
 console.log('Generadas las páginas Inicio, Colección y Estudio personal en docs/ y dist/.');
+await buildFR();

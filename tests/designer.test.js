@@ -8,7 +8,7 @@ const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} ≈ ${b}`);
 test('solo cuatro modelos y migración de diseños anteriores',()=>{
  assert.deepEqual(iconicModels.map(m=>m.name),['Recto','Redondo','Ovalado','Curvo']);
  for(const [before,after] of Object.entries({rectangular:'recto',panto:'redondo',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo','cat-eye':'recto'}))assert.equal(normalizeDesign({model:before}).model,after);
- const d=normalizeDesign({bridgeWidth:24,armLength:155});assert.ok(!('bridgeWidth' in d));assert.ok(!('armLength' in d));
+ const d=normalizeDesign({bridgeWidth:24,armLength:155});assert.equal(d.bridgeWidth,24);assert.ok(!('armLength' in d));
 });
 test('la base sigue en $209.000 sin recargos por talla, puente o brazos',()=>{
  for(const m of iconicModels)for(const size of frameSizes)for(const type of ['clasico','doble','herradura'])for(const arm of armStyles)assert.equal(designQuote({...defaultDesign,model:m.id,frameSize:size.id,bridgeType:type,armStyle:arm.id,thickness:8,bridgeThickness:8,armWidth:12,armExtension:5}).total,209000);
@@ -71,4 +71,51 @@ test('recetas: formatos, firma de archivo y límites de tamaño',()=>{
 test('brazos sincronizados y sección nunca supera los extremos del aro',()=>{
  const paired=normalizeDesign({armStyle:'sable',armStyleRight:'gancho'});assert.equal(paired.armStyleRight,paired.armStyle);
  for(const model of iconicModels)for(const size of frameSizes){const d={...defaultDesign,model:model.id,frameSize:size.id},points=frameContour(d,1),top=Math.max(...points.map(p=>p[1])),bottom=Math.min(...points.map(p=>p[1]));for(const y of [-.4,0,.16,.4])for(const width of [4,templeWidthLimit(d),100]){const section=templeSection(d,y,width*MM);assert.ok(section.top<=top+1e-8);assert.ok(section.bottom>=bottom-1e-8);}}
+});
+
+test('el ancho de puente declarado coincide con la distancia real entre aperturas',()=>{
+ for(const size of frameSizes){const d={...defaultDesign,frameSize:size.id},centers=lensCenters(d);close((centers[1]-centers[0])/MM-size.lens,size.bridge);}
+});
+test('el aro mantiene espesor normal constante en todos los segmentos del cristal',()=>{
+ for(const model of iconicModels)for(const rounding of [0,35,100])for(const thickness of [3,8]){
+  const d={...defaultDesign,model:model.id,rounding,thickness,nasalProjection:0},inner=lensContour(d,1),outer=frameContour(d,1);
+  for(let i=0;i<inner.length;i++){const a=inner[i],b=inner[(i+1)%inner.length],p=outer[i],q=outer[(i+1)%outer.length],dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy);close(((p[0]-a[0])*dy-(p[1]-a[1])*dx)/length,thickness*MM);close(((q[0]-b[0])*dy-(q[1]-b[1])*dx)/length,thickness*MM);}
+ }
+});
+test('contorno importado se valida, conserva proporción y refleja ambos aros',()=>{
+ const contour=Array.from({length:64},(_,i)=>[Math.cos(i/64*Math.PI*2),Math.sin(i/64*Math.PI*2)*.7]);
+ const d=normalizeDesign({customContour:contour}),right=lensContour(d,1),left=lensContour(d,-1).slice().reverse();assert.equal(right.length,64);right.forEach(([x,y],i)=>{close(left[i][0],-x);close(left[i][1],y);});
+ assert.ok(normalizeDesign(JSON.parse(JSON.stringify(d))).customContour);
+ for(const invalid of [[...contour.slice(0,10)],contour.map(([x,y],i)=>i===10?[NaN,y]:[x,y]),contour.slice().reverse(),contour.map(([x,y],i)=>i===10?[0,0]:[x,y])])assert.ok(!normalizeDesign({customContour:invalid}).customContour);
+});
+
+ test('medidas de precisión A y DBL conservan escala y aceptan decimales',()=>{
+ for(const lensWidth of [40,51.35,65])for(const bridgeWidth of [14,18.25,24]){const d=normalizeDesign({lensWidth,bridgeWidth}),points=lensContour(d,1),centers=lensCenters(d),measure=designMeasurements(d);close((Math.max(...points.map(p=>p[0]))-Math.min(...points.map(p=>p[0])))/MM,lensWidth);close((centers[1]-centers[0])/MM-lensWidth,bridgeWidth);assert.equal(measure.lens,lensWidth);assert.equal(measure.bridge,bridgeWidth);}
+ const d=normalizeDesign({contourAspectScale:1.15,materialDepth:12});assert.equal(d.materialDepth,12);assert.equal(d.contourAspectScale,1.15);assert.equal(normalizeDesign({materialDepth:-2}).materialDepth,2);
+ });
+
+test('espesores de plancha de acetato son independientes del ancho radial del aro',()=>{
+ const base=normalizeDesign(defaultDesign),aperture=lensContour(base,1),outline=frameContour(base,1),bridge=bridgeGeometry(base);
+ for(const materialDepth of [2,3,4,6,8]){
+  const d=normalizeDesign({...defaultDesign,materialDepth});
+  assert.equal(d.materialDepth,materialDepth);assert.equal(d.thickness,base.thickness);
+  assert.deepEqual(lensContour(d,1),aperture);assert.deepEqual(frameContour(d,1),outline);assert.deepEqual(bridgeGeometry(d),bridge);
+  assert.ok(d.materialDepth*MM>0);
+ }
+ assert.equal(normalizeDesign({}).materialDepth,6);
+});
+
+test('A50 DBL22: cada silueta tiene boxing real de 50 mm y hueco interlenticular de 22 mm',()=>{
+ for(const model of iconicModels)for(const materialDepth of [2,3,4,6,8])for(const rounding of [0,35,100]){
+  const d=normalizeDesign({model:model.id,lensWidth:50,bridgeWidth:22,materialDepth,rounding}),centers=lensCenters(d);
+  const left=lensContour(d,-1).map(([x,y])=>[x+centers[0],y]),right=lensContour(d,1).map(([x,y])=>[x+centers[1],y]);
+  for(const contour of [left,right])close((Math.max(...contour.map(p=>p[0]))-Math.min(...contour.map(p=>p[0])))/MM,50);
+  close((Math.min(...right.map(p=>p[0]))-Math.max(...left.map(p=>p[0])))/MM,22);
+ }
+});
+
+test('migración histórica Wayfarer conserva procedencia y no autentica el contorno',()=>{
+ const d=normalizeDesign({model:'wayfarer',lensWidth:50,bridgeWidth:22});assert.equal(d.model,'curvo');assert.equal(d.migratedFrom,'wayfarer');assert.equal(d.referenceStatus,'unverified');assert.ok(!d.customContour);
+ const restored=normalizeDesign(JSON.parse(JSON.stringify(d)));assert.equal(restored.referenceStatus,'unverified');assert.equal(restored.migratedFrom,'wayfarer');
+ assert.ok(!normalizeDesign(defaultDesign).referenceStatus);
 });

@@ -1,3 +1,4 @@
+import {initWorkbench} from './workbench.js';
 import {iconicModels,bridgeTypes,bridgeHeights,frameColors,lensColors,photoColors,armStyles,lensTypes,defaultDesign,normalizeDesign,designQuote,designSummary,framePreview,prescriptionError,prescriptionSignature} from './designer-model.js';
 import {money} from './catalog.js';
 import {frameSizes,designMeasurements,recommendFrameSize,templeWidthLimit} from './frame-geometry.js';
@@ -5,6 +6,7 @@ export function initDesigner({onAdd,notify}){
  const root=document.querySelector('#disena');if(!root)return;
  let initial;try{initial=JSON.parse(localStorage.getItem('miscante-design')||'null');}catch{}
  let design=normalizeDesign(initial||defaultDesign),view='perspectiva',recipe=null,recipeURL=null,validationRun=0;
+ let workbench=null;
  let viewer=null,referenceViewer=null,referencePhotoURL=null,personalPhoto=false,importedGLB=false,previewMode='editable',referenceLoadRun=0;
  const options=(list,selected)=>list.map(x=>`<option value="${x.id}" ${selected===x.id?'selected':''}>${x.name}${x.price?` · +${money(x.price)}`:''}</option>`).join('');
  const slider=(key,label,min,max,unit)=>`<label class="range-label" for="design-${key}">${label}<output id="value-${key}" for="design-${key}"></output></label><input class="design-range" id="design-${key}" data-setting="${key}" type="range" min="${min}" max="${max}" value="${design[key]}" aria-describedby="hint-${key}"><small id="hint-${key}">${unit}</small>`;
@@ -79,6 +81,7 @@ export function initDesigner({onAdd,notify}){
   root.querySelector('#lens-color-note').textContent=design.use==='sol'?'El tinte seleccionado se refleja en la vista previa.': 'Color del tinte fijo en los cristales graduados.';
   const quote=designQuote(design);root.querySelector('#design-price-lines').innerHTML=quote.lines.map(l=>`<p><span>${l.label}</span><span>${money(l.amount)}</span></p>`).join('');root.querySelector('#design-total').textContent=money(quote.total);
   root.querySelector('#design-form-error').textContent='';
+  workbench?.refresh();
  }
  root.addEventListener('input',e=>{const key=e.target.dataset.setting;if(!key)return;design[key]=e.target.type==='checkbox'?e.target.checked:e.target.value;if(key==='sunOptical'&&design.sunOptical){design.photo=false;design.blue=false;design.ar=false;}sync();});
  root.addEventListener('click',e=>{
@@ -87,7 +90,7 @@ export function initDesigner({onAdd,notify}){
  if(button.id==='open-fit-guide'){refreshFitAdvice();fitDialog.showModal();}
  if(button.id==='open-reference'){referenceDialog.showModal();}
  if(button.dataset.previewMode){if(button.dataset.previewMode!=='editable')referenceDialog.showModal();previewMode='editable';sync();}
- if(button.dataset.model){if(personalPhoto&&referencePhotoURL?.startsWith('blob:'))URL.revokeObjectURL(referencePhotoURL);personalPhoto=false;referencePhotoURL=null;previewMode='editable';const model=iconicModels.find(m=>m.id===button.dataset.model);design.model=model.id;design.rounding=model.rounding;sync();}
+ if(button.dataset.model){if(personalPhoto&&referencePhotoURL?.startsWith('blob:'))URL.revokeObjectURL(referencePhotoURL);personalPhoto=false;referencePhotoURL=null;previewMode='editable';const model=iconicModels.find(m=>m.id===button.dataset.model);design.model=model.id;delete design.customContour;design.contourAspectScale=1;design.rounding=model.rounding;sync();}
  if(button.dataset.view){view=button.dataset.view;viewer?.setView(view);sync();}
  if(button.dataset.use){design.use=button.dataset.use;if(design.use==='sol')clearRecipe();sync();}
  if(button.dataset.colorPart){design[button.dataset.colorPart]=button.dataset.color;sync();}
@@ -110,7 +113,9 @@ export function initDesigner({onAdd,notify}){
  root.querySelector('#designer-form').addEventListener('submit',e=>{
  e.preventDefault();if(design.use==='optico'&&!recipe&&!root.querySelector('#recipe-later').checked){root.querySelector('#design-form-error').textContent='Adjunta tu receta o selecciona que la adjuntarás más adelante.';selectPanel(3);root.querySelector('#recipe-section').scrollIntoView({block:'center',behavior:'smooth'});root.querySelector('#recipe-later').focus({preventScroll:true});return;}
  onAdd({config:normalizeDesign(design),recipe:design.use==='optico'?recipe:null});
- });sync();
+ });
+ workbench=initWorkbench({root,getDesign:()=>design,applyDesign:next=>{design=normalizeDesign(next);sync();},getViewer:()=>viewer,notify});
+ sync();
  import('./designer-renderer.js').then(({createDesignRenderer})=>{viewer=createDesignRenderer(root.querySelector('#design-preview'));root.dataset.renderer='webgl';renderedConfig='';viewer.setView(view);sync();}).catch(()=>{root.dataset.renderer='fallback';root.querySelector('.preview-disclaimer').textContent='Vista de forma simplificada · La vista 3D requiere WebGL.';});
  root.querySelector('#design-reference-photo').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;const error=root.querySelector('#reference-error');error.textContent='';if(file.size>10*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){error.textContent='Selecciona una imagen JPG, PNG o WebP de hasta 10 MB.';return;}if(personalPhoto&&referencePhotoURL)URL.revokeObjectURL(referencePhotoURL);personalPhoto=true;referencePhotoURL=URL.createObjectURL(file);const img=new Image();img.alt='Tu fotografía de referencia';img.src=referencePhotoURL;root.querySelector('#reference-photo-view').replaceChildren(img);previewMode='editable';sync();referenceDialog.showModal();});
  root.querySelector('#design-reference-glb').addEventListener('change',async e=>{
