@@ -20,3 +20,5 @@
 
 .cad-workspace .cad-statusbar>div{flex:0 1 auto;width:auto;flex-wrap:nowrap;justify-content:flex-start;min-height:0}.cad-workspace .cad-statusbar>div span{margin:0;flex:0 1 auto;font-size:10px;color:inherit}.cad-workspace .cad-statusbar .cad-status-led{flex:0 0 6px;background:#8ad8c9}.cad-workspace .cad-statusbar .cad-status-values{margin-left:auto;max-width:65%}@media(max-width:760px){.cad-workspace .cad-statusbar>div span{font-size:9px}.cad-workspace .cad-statusbar .cad-status-values{max-width:55%}}
 .cad-workspace .cad-statusbar{flex-direction:row;flex-wrap:nowrap}
+
+.cad-mobile-models:empty{display:none}.cad-mobile-models .model-grid{padding:14px;gap:10px}.cad-mobile-models .model-option{background:#303a46;border-color:#596b79;color:#dce8ec}.cad-mobile-models .model-option[aria-pressed=true]{border-color:#8ad8c9}.cad-mobile-models .model-option strong{color:#dce8ec}.cad-mobile-models .model-thumb{height:100px}.cad-mobile-models .model-option small{display:none}.cad-mobile-models .cad-reference-import{padding:0 14px 18px}
