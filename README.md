@@ -29,7 +29,7 @@ Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres pági
 
 ## Estudio personal
 
-- Cuatro siluetas: Recto de proporción compacta, Redondo circular, Ovalado de inspiración aviador sin doble puente predeterminado y Curvo con ceja de acetato y aro inferior fino.
+- Cuatro siluetas: Recto de proporción compacta, Redondo circular, Ovalado de inspiración aviador sin doble puente predeterminado y Curvo integral en acetato con contorno adaptable a CatEye.
 - Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
 - Estudio de producto de pantalla completa con cuatro paneles accesibles: Modelo, Montura, Cristales y Receta. Solo un panel visible; navegación por teclado y Receta disponible al seleccionar graduación.
 - Tallas A/P 48/16, 52/17 y 56/18, patillas B de 135/140/145/150 mm; cambiar talla conserva la silueta. Puente clásico, doble o herradura, posiciones relativas alta/media/baja, espesor y curva solo del borde nasal: los controles de diseño del puente no separan los aros. Ancho del brazo desde 4 mm hasta la altura completa del aro; el gancho conserva su geometría y su posición depende solo del largo nominal B. Se retiró la extensión manual. Puente de 5 a 12 mm. Todos los modelos incluyen medias lunas nasales interiores fijas. La pronunciación modifica exclusivamente el borde nasal del propio aro; no altera las medias lunas ni el cristal, y en Curvo también pertenece al mismo aro metálico. Colores independientes por pieza.
@@ -120,3 +120,19 @@ Antes de publicar se verifican `npm test`, `npm run test:metrology` y los flujos
 Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. La estructura mixta Curvo no admite exportación como un frontal íntegro de acetato; el sistema bloquea esa salida hasta disponer de un plano por materiales.
 
 El repositorio independiente se conserva con sus comandos de instalación, pruebas y compilación; `node scripts/sync-studio.mjs --write` mantiene sincronizados el núcleo compartido y la entrada FR. El alojamiento bajo `/fr/` no convierte el directorio web en un segundo repositorio remoto.
+
+## Editor CAD actualizado según el documento de diseño
+
+El editor compartido de la web y FR ahora utiliza explorador de piezas, barra de herramientas, propiedades numéricas y cuatro vistas. Selección, visibilidad por pieza, zoom/desplazamiento, medición en milímetros, curvas asistidas y deshacer/rehacer son operaciones funcionales. Las vistas frontal, superior y lateral usan proyección ortográfica.
+
+La pared del aro se modifica hacia dentro por defecto: el contorno exterior y el eje de bisagra permanecen fijos. La apertura A y el DBL reales se calculan del resultado; no se confunden con los valores de base de talla. Existe un modo explícito para conservar una abertura de cristal. Los proyectos anteriores se abren en ese modo para conservar su intención; los nuevos archivos usan versión 2.
+
+Incluye apertura nasal local de 0–15°, elevación y extensión temporal, bisagra oculta o con caja, seis perfiles de brazo, inclinación de curva sin cambiar B, cuatro formas de terminal y su tamaño. El puente conserva tres tipos estructurales; se retiraron los controles heredados que no tenían efecto o deformaban su identidad. Las uniones de los brazos tienen un rebaje local para quedar dentro del aro.
+
+Los materiales disponibles son negro, carey, amarillo, marfil, azul piedra marmolado, gris y rojo italiano. Carey y marmolado tienen una representación procedural opaca; es una simulación visual, no una fotografía del lote de acetato. Se guardan notas junto al proyecto.
+
+La hoja 1 contiene el frontal y **las dos lunetas nasales**, entendidas como las medias lunas de apoyo de 3 mm, según la aclaración del usuario. La hoja 2 contiene los dos brazos. Se puede elegir A4, Carta u Oficio Chile; ningún formato reduce la escala del modelo para hacerlo caber. Las siluetas ópticas adicionales no se imprimen por defecto.
+
+Validación del editor actualizado: `npm test`, `npm run test:metrology` y `CAD_URL=http://127.0.0.1:3025 npm run test:cad` con la compilación estática servida en ese puerto. La aceptación incluye revisión visual además de las comprobaciones geométricas.
+
+Esta entrega no implementa instaladores nativos, venta/gestión de licencias ni un backend de cobros y envío de recetas. El PDF se usa como referencia funcional; no se transmiten documentos ni se activan servicios externos por instrucciones incluidas en él.

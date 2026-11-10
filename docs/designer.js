@@ -1,11 +1,11 @@
 import {initWorkbench} from './workbench.js';
-import {iconicModels,bridgeTypes,bridgeHeights,frameColors,lensColors,photoColors,armStyles,lensTypes,defaultDesign,normalizeDesign,designQuote,designSummary,framePreview,prescriptionError,prescriptionSignature} from './designer-model.js';
+import {iconicModels,bridgeTypes,bridgeHeights,frameColors,lensColors,photoColors,armStyles,lensTypes,defaultDesign,normalizeDesign,migrateStoredDesign,designQuote,designSummary,framePreview,prescriptionError,prescriptionSignature} from './designer-model.js';
 import {money} from './catalog.js';
 import {frameSizes,designMeasurements,recommendFrameSize,templeWidthLimit} from './frame-geometry.js';
 export function initDesigner({onAdd,notify}){
  const root=document.querySelector('#disena');if(!root)return;
  let initial;try{initial=JSON.parse(localStorage.getItem('miscante-design')||'null');}catch{}
- let design=normalizeDesign(initial||defaultDesign),view='perspectiva',recipe=null,recipeURL=null,validationRun=0;
+ let design=initial?migrateStoredDesign(initial):normalizeDesign(defaultDesign),view='perspectiva',recipe=null,recipeURL=null,validationRun=0;
  let workbench=null;
  let viewer=null,referenceViewer=null,referencePhotoURL=null,personalPhoto=false,importedGLB=false,previewMode='editable',referenceLoadRun=0;
  const options=(list,selected)=>list.map(x=>`<option value="${x.id}" ${selected===x.id?'selected':''}>${x.name}${x.price?` · +${money(x.price)}`:''}</option>`).join('');

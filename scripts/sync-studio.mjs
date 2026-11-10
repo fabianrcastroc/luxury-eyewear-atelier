@@ -13,7 +13,7 @@ const at=args.indexOf('--studio');
 if(at!==-1&&!args[at+1])throw new Error('--studio requires a directory');
 const target=path.resolve(at===-1?path.join(source,'../miscante-eyewear-studio'):args[at+1]);
 if(target===path.resolve(source))throw new Error('The standalone target must differ from the website checkout.');
-const files=['scripts/renderer-metrology.mjs','design-notes/DESIGN-RESEARCH.md','public/designer.js','public/designer-model.js','public/designer-renderer.js','public/frame-geometry.js','public/manufacturing.js','public/temple-development.js','public/reference-extraction.js','public/workbench.js','public/catalog.js','public/style.css','public/assets/favicon.svg','tests/designer.test.js','tests/manufacturing.test.js','tests/reference-extraction.test.js'];
+const files=['public/THIRD_PARTY_NOTICES.txt','scripts/cad-acceptance.mjs','design-notes/REQUIREMENTS-REVIEW.md','design-notes/CAD-VISUAL-QA.md','public/cad-workspace.css','public/finished-geometry.js','public/planar-kernel.js','public/print-paper.js','tests/planar-kernel.test.js','scripts/renderer-metrology.mjs','design-notes/DESIGN-RESEARCH.md','public/designer.js','public/designer-model.js','public/designer-renderer.js','public/frame-geometry.js','public/manufacturing.js','public/temple-development.js','public/reference-extraction.js','public/workbench.js','public/catalog.js','public/style.css','public/assets/favicon.svg','tests/designer.test.js','tests/manufacturing.test.js','tests/reference-extraction.test.js'];
 async function assets(relative){for(const entry of await readdir(path.join(source,relative),{withFileTypes:true})){const name=path.join(relative,entry.name);if(entry.isDirectory())await assets(name);else if(entry.isFile())files.push(name);else throw new Error(`Unsupported asset entry: ${name}`);}}
 await assets('public/assets/forms');
 let mismatches=0;
@@ -27,5 +27,8 @@ for(const [from,to] of [['index.html','index.html'],['index.html','disena.html']
  if(write){await mkdir(path.dirname(destination),{recursive:true});await writeFile(destination,bytes);}
  else{let other;try{other=await readFile(destination);}catch(error){if(error.code!=='ENOENT')throw error;}if(!other||!bytes.equals(other)){console.error(`Out of sync integration: ${to}`);mismatches++;}}
 }
+const manifest=JSON.parse(await readFile(path.join(source,'package.json'),'utf8')),targetManifestPath=path.join(target,'package.json'),targetManifest=JSON.parse(await readFile(targetManifestPath,'utf8'));
+const dependencyMatch=JSON.stringify(targetManifest.dependencies)===JSON.stringify(manifest.dependencies)&&JSON.stringify(targetManifest.devDependencies)===JSON.stringify(manifest.devDependencies);
+if(write){targetManifest.dependencies=manifest.dependencies;targetManifest.devDependencies=manifest.devDependencies;await writeFile(targetManifestPath,JSON.stringify(targetManifest,null,2)+'\n');const lock=JSON.parse(await readFile(path.join(source,'package-lock.json'),'utf8'));lock.name=targetManifest.name;lock.packages[''].name=targetManifest.name;await writeFile(path.join(target,'package-lock.json'),JSON.stringify(lock,null,2)+'\n');}else if(!dependencyMatch){console.error('Out of sync: shared runtime dependencies');mismatches++;}
 if(mismatches){console.error(`${mismatches} shared files differ. Run --write after reviewing website changes.`);process.exitCode=1;}
 else console.log(`${write?'Synchronized':'Verified'} ${files.length} shared files: ${target}`);

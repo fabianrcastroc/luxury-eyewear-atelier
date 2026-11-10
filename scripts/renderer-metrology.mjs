@@ -47,10 +47,18 @@ try{
        close((Math.max(...zs)-Math.min(...zs))*25,stock);
        close((Math.min(...zs)+tz)*25,0);close((Math.max(...zs)+tz)*25,stock);
       }else{
-       // Every swept rectangle has four corners. A whole temple bounding box
-       // includes its curvature and cannot measure its local slab thickness.
-       if(extras.sectionVertexCount!==4||points.length%4)throw new Error('Unexpected temple section topology');
-       for(let i=0;i<points.length;i+=4)close((points[i+1][0]-points[i][0])*25,stock);
+       const n=extras.sectionVertexCount;
+       if(n!==24||points.length%n||extras.continuous!==true)throw new Error('Unexpected rounded continuous temple topology');
+       for(let start=0;start<points.length;start+=n){
+        let diameter=0;for(let a=0;a<n;a++)for(let b=a+1;b<n;b++)diameter=Math.max(diameter,Math.hypot(...points[start+a].map((v,k)=>v-points[start+b][k]))*25);
+        if(!Number.isFinite(diameter)||diameter<=0)throw new Error('Invalid swept section');
+       }
+       // The joint is locally machined to sit inside the rim; the shaft reaches
+       // the requested full sheet thickness further behind the hinge.
+       const row=64,center=k=>[0,1,2].map(axis=>points.slice(k*n,(k+1)*n).reduce((sum,p)=>sum+p[axis],0)/n),before=center(row-1),after=center(row+1),origin=center(row),tangent=after.map((v,k)=>v-before[k]),len=Math.hypot(...tangent);for(let k=0;k<3;k++)tangent[k]/=len;
+       const axis=[1-tangent[0]*tangent[0],-tangent[0]*tangent[1],-tangent[0]*tangent[2]],axisLength=Math.hypot(...axis);for(let k=0;k<3;k++)axis[k]/=axisLength;
+       const projection=points.slice(row*n,(row+1)*n).map(p=>p.reduce((sum,v,k)=>sum+(v-origin[k])*axis[k],0));close((Math.max(...projection)-Math.min(...projection))*25,stock);
+       for(const primitive of json.meshes[node.mesh].primitives){const material=json.materials[primitive.material];if(material.alphaMode==='BLEND'||material.pbrMetallicRoughness?.baseColorFactor?.[3]<1)throw new Error('Acetate must remain fully opaque');}
       }
       stockParts++;
      }
@@ -62,10 +70,10 @@ try{
      }
      if(extras.materialClass==='hardware-placeholder'){if(extras.manufacturingValidated!==false)throw new Error('Hardware must remain identified as illustrative');hardware++;}
     }
-    if(stockParts<9||addedPads!==2||hardware!==4)throw new Error('Expected stock/laminate/hardware classification missing');
-    const rims=json.nodes.filter(node=>node.extras?.part==='rim');
-    const extents=rims.map(node=>{const tx=translation(node)[0],xs=positions(node).map(point=>point[0]+tx);return [Math.min(...xs),Math.max(...xs)];});
-    close(extents[0][0],-extents[1][1]);close(extents[0][1],-extents[1][0]);
+    if(stockParts!==3||addedPads!==2||hardware!==4)throw new Error('Expected stock/laminate/hardware classification missing');
+    const front=json.nodes.find(node=>node.extras?.part==='front');if(!front)throw new Error('Missing connected front solid');
+    const xs=positions(front).map(point=>point[0]);close(Math.min(...xs),-Math.max(...xs));
+    const frontMesh=json.meshes[front.mesh];if(frontMesh.primitives.length>2)throw new Error('Material groups must be batched, not one draw per triangle');
     const before=viewer.getCameraState();viewer.setDisplay({grid:true,wireframe:true,axes:true});viewer.update({...design,model,materialDepth:stock,thickness:8});
     viewer.getCameraState().forEach((value,index)=>close(value,before[index]));
     runs.push({model,stock,stockParts});
@@ -74,5 +82,5 @@ try{
   return runs;
  },defaultDesign);
  assert.equal(runs.length,20);assert.deepEqual(errors,[]);
- console.log('PASS renderer metrology: 20 model/stock combinations; GLB binary scale, actual 2/3/4/6/8 mm stock and endpieces, swept sections, separate 3 mm added nasal laminates, hardware scope, mirrored rims and front/lateral camera axes.');
+ console.log('PASS renderer metrology: 20 model/stock combinations; GLB binary scale, actual 2/3/4/6/8 mm stock, continuous rounded sections, separate 3 mm added nasal laminates, hardware scope, mirrored rims and front/lateral camera axes.');
 }finally{await browser.close();}

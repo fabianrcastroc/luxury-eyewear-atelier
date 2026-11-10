@@ -1,26 +1,27 @@
-import {frameDimensions,frameContour,lensCenters,designMeasurements,bridgeGeometry,templePlan,templeWidthLimit,nasalPads,templeSection,normalizeContour} from './frame-geometry.js';
+import {frameDimensions,frameContour,lensCenters,designMeasurements,bridgeGeometry,templePlan,templeWidthLimit,nasalPads,templeSection,normalizeContour,lensContour} from './frame-geometry.js';
 export const iconicModels = [
  {id:'recto',name:'Recto',description:'Rectangular proporcionado y de esquinas suaves.',price:209000,rounding:35},
  {id:'redondo',name:'Redondo',description:'Curva circular estable. Equilibrio clásico.',price:209000,rounding:100,lockRounding:true},
  {id:'ovalado',name:'Ovalado',description:'Óvalo en gota de inspiración aviador, sin doble puente.',price:209000,rounding:100,lockRounding:true},
- {id:'curvo',name:'Curvo',description:'Browline en acetato, aro inferior ligero y brazos planos.',price:209000,rounding:50}
+ {id:'curvo',name:'Curvo',description:'Curva integral en acetato, adaptable a contornos CatEye.',price:209000,rounding:50}
 ];
 export const bridgeTypes=[{id:'clasico',name:'Clásico'},{id:'doble',name:'Doble puente'},{id:'herradura',name:'Herradura'}];
 export const bridgeHeights=[{id:'alto',name:'Alto'},{id:'medio',name:'Medio'},{id:'bajo',name:'Bajo'}];
-export const frameColors=[{id:'miel',name:'Miel',hex:'#a76c32'},{id:'carey',name:'Tabaco',hex:'#68422e'},{id:'negro',name:'Obsidiana',hex:'#252622'},{id:'oliva',name:'Oliva',hex:'#697350'},{id:'marfil',name:'Marfil',hex:'#dfd5ba'},{id:'burdeos',name:'Borgoña',hex:'#6d3541'}];
+export const frameColors=[{id:'negro',name:'Negro',hex:'#20211f'},{id:'carey',name:'Carey',hex:'#68422e'},{id:'amarillo',name:'Amarillo',hex:'#dfbb31'},{id:'marfil',name:'Marfil',hex:'#dfd5ba'},{id:'azul-marmol',name:'Azul piedra marmolado',hex:'#577b99'},{id:'gris',name:'Gris',hex:'#808585'},{id:'rojo',name:'Rojo italiano',hex:'#a63437'}];
 export const lensColors=[{id:'humo',name:'Gris humo',hex:'#434a4b'},{id:'cafe',name:'Café',hex:'#7c5637'},{id:'verde',name:'Verde mineral',hex:'#526552'},{id:'azul',name:'Azul profundo',hex:'#435c78'},{id:'rosa',name:'Rosa mineral',hex:'#a97b77'}];
 export const photoColors=[{id:'gris',name:'Gris negro',hex:'#414348'},{id:'cafe',name:'Café',hex:'#79573d'},{id:'lila',name:'Lila',hex:'#897496'}];
 export const armStyles=[{id:'clasico',name:'Clásico'},{id:'fino',name:'Filiforme'},{id:'escultural',name:'Escultural'},{id:'sable',name:'Sable'},{id:'curvo',name:'Ondulado'},{id:'gancho',name:'Perfil envolvente'}];
 export const lensTypes=[{id:'mono',name:'Monofocales',price:45000},{id:'bi',name:'Bifocales',price:85000},{id:'multi',name:'Multifocales',price:145000}];
-export const defaultDesign={model:'recto',frameSize:'media',templeLength:140,rounding:35,bridgeThickness:5,bridgeNasalCurve:45,bridgeType:'clasico',bridgeHeight:'medio',thickness:4,armWidth:6,nasalProjection:35,armStyle:'clasico',armStyleRight:'clasico',rimColor:'negro',bridgeColor:'negro',armColor:'negro',use:'sol',lensType:'mono',blue:false,photo:false,ar:false,sunOptical:false,lensColor:'humo',photoColor:'gris'};
+export const defaultDesign={wallMode:'inward',hingeMode:'hidden',nasalAngle:0,temporalLift:0,temporalReach:0,armBendAngle:20,tipShape:'round',tipSize:4,materialDepth:6,model:'recto',frameSize:'media',templeLength:140,rounding:35,bridgeThickness:5,bridgeNasalCurve:45,bridgeType:'clasico',bridgeHeight:'medio',thickness:4,armWidth:6,nasalProjection:35,armStyle:'clasico',armStyleRight:'clasico',rimColor:'negro',bridgeColor:'negro',armColor:'negro',use:'sol',lensType:'mono',blue:false,photo:false,ar:false,sunOptical:false,lensColor:'humo',photoColor:'gris'};
 const valid=(list,id,fallback)=>list.some(x=>x.id===id)?id:fallback;
 const decimal=(v,min,max,fallback)=>Number.isFinite(Number(v))?Math.max(min,Math.min(max,Math.round(Number(v)*100)/100)):fallback;
 const clamp=(v,min,max,fallback)=>Number.isFinite(Number(v))?Math.min(max,Math.max(min,Math.round(Number(v)))):fallback;
 export function normalizeDesign(raw={}){
  const d={...defaultDesign,...raw},aliases={rectangular:'recto',panto:'redondo',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo','cat-eye':'recto'};
  const model=valid(iconicModels,aliases[d.model]||d.model,'recto'),template=iconicModels.find(m=>m.id===model),optical=d.use==='optico',solar=optical&&d.sunOptical===true;
- const customContour=normalizeContour(d.customContour);
- return {...(d.model==='wayfarer'||d.migratedFrom==='wayfarer'?{migratedFrom:'wayfarer',referenceStatus:'unverified'}:{}),...(customContour?{customContour}:{}),...(d.lensWidth!=null?{lensWidth:decimal(d.lensWidth,40,65,52)}:{}),...(d.bridgeWidth!=null?{bridgeWidth:decimal(d.bridgeWidth,14,24,17)}:{}),materialDepth:decimal(d.materialDepth,2,12,6),contourAspectScale:decimal(d.contourAspectScale,.85,1.15,1),model,frameSize:['estrecha','media','amplia'].includes(d.frameSize)?d.frameSize:'media',templeLength:[135,140,145,150].includes(Number(d.templeLength))?Number(d.templeLength):140,rounding:template.lockRounding?template.rounding:clamp(d.rounding,0,100,template.rounding),bridgeThickness:clamp(d.bridgeThickness,5,12,5),bridgeNasalCurve:clamp(d.bridgeNasalCurve??d.bridgeCurve,0,100,45),bridgeType:valid(bridgeTypes,d.bridgeType,'clasico'),bridgeHeight:valid(bridgeHeights,d.bridgeHeight,'medio'),thickness:clamp(d.thickness,3,8,4),armWidth:clamp(d.armWidth,4,templeWidthLimit({...d,model,rounding:template.rounding,thickness:clamp(d.thickness,3,8,4)}),6),nasalProjection:clamp(d.nasalProjection,0,100,35),armStyle:valid(armStyles,d.armStyle,'clasico'),armStyleRight:valid(armStyles,d.armStyle,'clasico'),rimColor:valid(frameColors,d.rimColor,defaultDesign.rimColor),bridgeColor:valid(frameColors,d.bridgeColor,defaultDesign.bridgeColor),armColor:valid(frameColors,d.armColor,defaultDesign.armColor),use:optical?'optico':'sol',lensType:valid(lensTypes,d.lensType,'mono'),blue:optical&&!solar&&d.blue===true,photo:optical&&!solar&&d.photo===true,ar:optical&&!solar&&d.ar===true,sunOptical:solar,lensColor:valid(lensColors,d.lensColor,defaultDesign.lensColor),photoColor:valid(photoColors,d.photoColor,'gris')};
+ const customContour=normalizeContour(d.customContour),colorAliases={miel:'amarillo',oliva:'gris',burdeos:'rojo'};
+ for(const key of ['rimColor','bridgeColor','armColor'])d[key]=colorAliases[d[key]]||d[key];
+ return {note:typeof d.note==='string'?d.note.slice(0,1000):'',wallMode:d.wallMode==='fixed-lens'?'fixed-lens':'inward',hingeMode:d.hingeMode==='box'?'box':'hidden',nasalAngle:decimal(d.nasalAngle,0,15,0),temporalLift:decimal(d.temporalLift,0,12,0),temporalReach:decimal(d.temporalReach,0,8,0),armBendAngle:decimal(d.armBendAngle,0,45,20),tipShape:['round','square','diamond','triangle'].includes(d.tipShape)?d.tipShape:'round',tipSize:decimal(d.tipSize,3,12,4),...(d.model==='wayfarer'||d.migratedFrom==='wayfarer'?{migratedFrom:'wayfarer',referenceStatus:'unverified'}:{}),...(customContour?{customContour}:{}),...(d.lensWidth!=null?{lensWidth:decimal(d.lensWidth,40,65,52)}:{}),...(d.bridgeWidth!=null?{bridgeWidth:decimal(d.bridgeWidth,14,26,17)}:{}),materialDepth:decimal(d.materialDepth,2,8,6),contourAspectScale:decimal(d.contourAspectScale,.85,1.15,1),model,frameSize:['estrecha','media','amplia'].includes(d.frameSize)?d.frameSize:'media',templeLength:decimal(d.templeLength,120,160,140),rounding:template.lockRounding?template.rounding:clamp(d.rounding,0,100,template.rounding),bridgeThickness:4,bridgeNasalCurve:0,bridgeType:valid(bridgeTypes,d.bridgeType,'clasico'),bridgeHeight:'medio',thickness:decimal(d.thickness,3,8,4),armWidth:decimal(d.armWidth,4,templeWidthLimit({...d,model,rounding:template.rounding,thickness:decimal(d.thickness,3,8,4)}),6),nasalProjection:clamp(d.nasalProjection,0,100,35),armStyle:valid(armStyles,d.armStyle,'clasico'),armStyleRight:valid(armStyles,d.armStyle,'clasico'),rimColor:valid(frameColors,d.rimColor,defaultDesign.rimColor),bridgeColor:valid(frameColors,d.bridgeColor,defaultDesign.bridgeColor),armColor:valid(frameColors,d.armColor,defaultDesign.armColor),use:optical?'optico':'sol',lensType:valid(lensTypes,d.lensType,'mono'),blue:optical&&!solar&&d.blue===true,photo:optical&&!solar&&d.photo===true,ar:optical&&!solar&&d.ar===true,sunOptical:solar,lensColor:valid(lensColors,d.lensColor,defaultDesign.lensColor),photoColor:valid(photoColors,d.photoColor,'gris')};
 }
 export function designQuote(raw){
  const d=normalizeDesign(raw);
@@ -42,7 +43,7 @@ export function framePreview(raw,view='perspectiva'){
  const tinted=d.use==='sol'||d.photo||d.sunOptical,lens=d.photo?photoColors.find(c=>c.id===d.photoColor).hex:lensColors.find(c=>c.id===d.lensColor).hex;
  const path=points=>points.map((p,i)=>`${i?'L':'M'}${project(p).join(' ')}`).join(' ')+'Z';
  const transform=view==='frente'?'':view==='lateral'?'translate(65 0) skewX(-16) scale(.8 1)':'rotate(-6 340 185)';
- const rings=[-1,1].map((side,i)=>{const points=frameContour(d,side).map(([x,y])=>[x+centers[i],y]);return `<path d="${path(points)}" fill="url(#${id})" stroke="${d.model==='curvo'?'#bbaa7a':rim}" stroke-width="${d.model==='curvo'?2:5}"/>${d.model==='curvo'?`<path d="${path(points.slice(0,65))}" fill="none" stroke="${rim}" stroke-width="7"/>`:''}`;}).join('');
+ const rings=[-1,1].map((side,i)=>{const points=frameContour(d,side).map(([x,y])=>[x+centers[i],y]),aperture=lensContour(d,side).map(([x,y])=>[x+centers[i],y]);return `<path d="${path(points)} ${path(aperture.slice().reverse())}" fill="${rim}" fill-rule="evenodd"/><path d="${path(aperture)}" fill="url(#${id})"/>`;}).join('');
  const bridges=bridgeGeometry(d).bands.map(b=>`<path d="${path(b.outline)}" fill="${bridge}"/>`).join('');
  const pads=[-1,1].map(side=>`<path d="${path(nasalPads(d,side).outline)}" fill="${rim}" opacity=".75"/>`).join('');
  const arms=view==='frente'?'':[-1,1].map(side=>{const p=templePlan(d,side,side===-1?d.armStyle:d.armStyleRight);const projectArm=([x,y,z])=>[x-z*.22,y-z*.25],widths=[p.shaftWidth,p.shaftWidth,p.shaftWidth*.4+p.hookWidth*.6,p.hookWidth];
@@ -69,4 +70,9 @@ export function prescriptionSignature(bytes,file){
  if(!file)return Object.values(signatures).some(Boolean);
  let extension=file.name.split('.').pop().toLowerCase();if(extension==='jpeg')extension='jpg';
  return signatures[extension]===true;
+}
+
+export function migrateStoredDesign(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))return normalizeDesign(defaultDesign);
+ return normalizeDesign({...raw,wallMode:raw.wallMode??'fixed-lens'});
 }

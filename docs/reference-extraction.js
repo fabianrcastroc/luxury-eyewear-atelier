@@ -78,7 +78,7 @@ export function analyzeRGBA({data,width,height}){
  const gray=new Uint8Array(width*height);let borderSum=0,borderCount=0;
  for(let i=0;i<gray.length;i++){const a=data[i*4+3]/255;gray[i]=Math.round((.2126*data[i*4]+.7152*data[i*4+1]+.0722*data[i*4+2])*a+255*(1-a));const x=i%width,y=Math.floor(i/width);if(x<3||y<3||x>=width-3||y>=height-3){borderSum+=gray[i];borderCount++;}}
  if(borderSum/borderCount<205)fail('No se reconoce un fondo claro alrededor de la montura.');
- const threshold=histogramThreshold(gray),thresholds=[threshold,80,110,140,170,200,225,240].filter((x,i,a)=>x>=30&&x<=245&&a.indexOf(x)===i);
+ const threshold=histogramThreshold(gray),thresholds=[threshold,40,55,70,80,110,140,170,200,225,240].filter((x,i,a)=>x>=30&&x<=245&&a.indexOf(x)===i);
  let selected=null;
  for(const threshold of thresholds){
   const background=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)background[i]=gray[i]>threshold?1:0;

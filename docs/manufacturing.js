@@ -1,12 +1,14 @@
-import {MM,frameContour,lensContour,lensCenters,bridgeGeometry,designMeasurements} from './frame-geometry.js';
+import {unionPolygons} from './planar-kernel.js';
+import {MM,frameContour,lensContour,lensCenters,bridgeGeometry,designMeasurements,hingeGeometry,nasalPads} from './frame-geometry.js';
 import {normalizeDesign} from './designer-model.js';
-import {flatTemple,templeSections} from './temple-development.js';
+import {flatTemple} from './temple-development.js';
+import {printPaper,printPapers} from './print-paper.js';
+export {printPapers};
 
 const EPS=1e-7;
 const f=n=>Number(n.toFixed(4));
 const cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
-const close=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1])<1e-5;
 const signedArea=poly=>poly.reduce((a,p,i)=>a+cross(p,poly[(i+1)%poly.length]),0)/2;
 const bounds=points=>({minX:Math.min(...points.map(p=>p[0])),maxX:Math.max(...points.map(p=>p[0])),minY:Math.min(...points.map(p=>p[1])),maxY:Math.max(...points.map(p=>p[1]))});
 const path=points=>`M${points.map(p=>`${f(p[0])},${f(p[1])}`).join('L')}Z`;
@@ -14,18 +16,43 @@ const linePath=points=>`M${points.map(p=>`${f(p[0])},${f(p[1])}`).join('L')}`;
 const text=(x,y,value,extra='')=>`<text x="${f(x)}" y="${f(y)}" ${extra}>${value}</text>`;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-export function manufacturingIssues(raw={}){
- const d=normalizeDesign(raw),center=lensCenters(d)[1]/MM,right=frameContour(d,1).map(([x,y])=>[x/MM+center,y/MM]);
- const gap=Math.min(...right.map(p=>p[0]))*2,issues=[];
- if(d.model==='curvo'&&!d.customContour)issues.push('Curvo combina ceja de acetato y aro metálico. Falta un plano separado de materiales y herrajes; no se emitirá un patrón de acetato que no corresponde al 3D. Elige un modelo íntegro de acetato o importa un perfil para ese material.');
- if(raw.customContour&&!d.customContour)issues.push('El contorno importado no es válido. Corrige su cierre, convexidad y proporciones antes de imprimir.');
- if(gap<2-1e-5)issues.push(`La abertura nasal mínima es ${f(gap)} mm y debe ser al menos 2 mm. Aumenta DBL o reduce el ancho radial del aro o la pronunciación nasal.`);
- const lens=lensContour(d,1).map(([x,y])=>[x/MM,y/MM]),outerBounds=bounds(right),lensBounds=bounds(lens);
- const frontHeight=outerBounds.maxY-outerBounds.minY,lensHeight=lensBounds.maxY-lensBounds.minY;
- if(Math.max(143,48+frontHeight+15)+9+lensHeight+11>253)issues.push('El frontal y las lunetas exceden una hoja A4 a escala 1:1. Reduce la altura del contorno, A o el ancho radial; no se reducirá la escala automáticamente.');
- if((Math.max(...right.map(p=>p[0]))+3.25)*2>186)issues.push('El frontal excede el ancho útil A4 a escala 1:1. Reduce A o DBL.');
- if(d.armWidth>76)issues.push('El ancho de las patillas excede el espacio para ambas piezas en una hoja A4. Reduce el ancho de patilla a 76 mm o menos para conservar la escala 1:1.');
- return issues;
+function projectParts(d){
+ const centers=lensCenters(d),polygons=[],apertures=[],pads=[];
+ for(const side of [-1,1]){
+  const center=centers[side===-1?0:1];
+  polygons.push(frameContour(d,side).map(([x,y])=>[(x+center)/MM,y/MM]));
+  apertures.push(lensContour(d,side).map(([x,y])=>[(x+center)/MM,y/MM]));
+  const hinge=hingeGeometry(d,side);if(hinge.boxOutline?.length)polygons.push(hinge.boxOutline.map(([x,y])=>[x/MM,y/MM]));
+  const pad=nasalPads(d,side);pads.push({side,depth:pad.depth/MM,outline:pad.outline.map(([x,y])=>[x/MM,y/MM])});
+ }
+ polygons.push(...bridgeGeometry(d).bands.map(b=>b.outline.map(([x,y])=>[x/MM,y/MM])));
+ return {polygons,apertures,pads,centers};
+}
+function frontLayout(parts,paper,includeLensTemplates=false){
+ const frontBounds=bounds(parts.polygons.flat()),frontWidth=frontBounds.maxX-frontBounds.minX,frontHeight=frontBounds.maxY-frontBounds.minY;
+ if(frontWidth>paper.width-28)throw new Error(`El frontal excede el ancho útil de ${paper.name} a escala 1:1. Reduce la amplitud o elige otro papel; no se reducirá la escala.`);
+ const frontX=paper.width/2-(frontBounds.minX+frontBounds.maxX)/2,frontY=47+frontBounds.maxY,frontBottom=47+frontHeight;
+ const padHeading=frontBottom+15,padTop=padHeading+8,padBounds=parts.pads.map(p=>bounds(p.outline)),padHeight=Math.max(...padBounds.map(b=>b.maxY-b.minY)),padBottom=padTop+padHeight;
+ let lensLayout=null,lastBottom=padBottom+12;
+ if(includeLensTemplates){
+  const shapes=parts.apertures.map((points,i)=>points.map(([x,y])=>[x-parts.centers[i]/MM,y])),rawBounds=shapes.map(bounds),span=(paper.width-42)/2;
+  const rotate=rawBounds.every(b=>b.maxY-b.minY<=span)&&Math.max(...rawBounds.map(b=>b.maxY-b.minY))>Math.max(...rawBounds.map(b=>b.maxX-b.minX));
+  const transformed=shapes.map(points=>points.map(([x,y])=>rotate?[-y,x]:[x,y])),bs=transformed.map(bounds),height=Math.max(...bs.map(b=>b.maxY-b.minY));
+  if(bs.some(b=>b.maxX-b.minX>span))throw new Error(`Las plantillas ópticas adicionales no caben en ${paper.name}. Desactiva esas plantillas o elige Oficio; los apoyos nasales sí se conservan.`);
+  const heading=lastBottom+10,top=heading+7;lensLayout={shapes:transformed,bounds:bs,height,heading,top,rotation:rotate?90:0};lastBottom=top+height+11;
+ }
+ if(lastBottom>paper.height-43)throw new Error(`Las piezas de la hoja 1 no caben en ${paper.name} a escala 1:1. Elige Oficio, reduce la altura o desactiva las plantillas ópticas adicionales.`);
+ return {frontBounds,frontWidth,frontHeight,frontX,frontY,frontBottom,padHeading,padTop,padBounds,padBottom,lensLayout};
+}
+
+export function manufacturingIssues(raw={},options={}){
+ try{
+  const paper=printPaper(options),d=normalizeDesign(raw),parts=projectParts(d),right=frameContour(d,1).map(([x,y])=>[x/MM+parts.centers[1]/MM,y/MM]),gap=Math.min(...right.map(p=>p[0]))*2,issues=[];
+  if(raw.customContour&&!d.customContour)issues.push('El contorno importado no es válido. Corrige su cierre, convexidad y proporciones antes de imprimir.');
+  if(gap<2-1e-5)issues.push(`La abertura nasal mínima es ${f(gap)} mm y debe ser al menos 2 mm. Aumenta el puente o corrige el contorno exterior.`);
+  try{frontLayout(parts,paper,options.includeLensTemplates===true);}catch(error){issues.push(error.message);}
+  return issues;
+ }catch(error){return [error.message];}
 }
 
 function pointInside(p,poly){
@@ -52,95 +79,79 @@ function boundariesCross(a,b){
  return a.some((p,i)=>b.some((q,j)=>intersects(p,a[(i+1)%a.length],q,b[(j+1)%b.length])));
 }
 
-// Union of the finite straight segments used by the design model. Split at
-// intersections, discard interior boundaries, then reconnect exterior loops.
-// It removes bridge/rim construction seams from the actual cutting outline.
-function unionPolygons(input){
- const polygons=input.map(p=>signedArea(p)>0?p:p.slice().reverse());
- const edges=polygons.flatMap((poly,index)=>poly.map((a,i)=>({a,b:poly[(i+1)%poly.length],index,ts:[0,1]})));
- for(let i=0;i<edges.length;i++)for(let j=i+1;j<edges.length;j++){
-  const e=edges[i],o=edges[j];if(e.index===o.index)continue;
-  const r=sub(e.b,e.a),s=sub(o.b,o.a),delta=sub(o.a,e.a),den=cross(r,s);
-  if(Math.abs(den)<EPS)continue;
-  const t=cross(delta,s)/den,u=cross(delta,r)/den;
-  if(t>=-EPS&&t<=1+EPS&&u>=-EPS&&u<=1+EPS){e.ts.push(Math.max(0,Math.min(1,t)));o.ts.push(Math.max(0,Math.min(1,u)));}
- }
- const kept=[];
- for(const edge of edges){
-  const ts=[...new Set(edge.ts.map(t=>Math.round(t*1e10)/1e10))].sort((a,b)=>a-b),delta=sub(edge.b,edge.a),at=t=>edge.a.map((v,i)=>v+delta[i]*t);
-  for(let i=1;i<ts.length;i++){
-   if(ts[i]-ts[i-1]<EPS)continue;
-   const mid=at((ts[i]+ts[i-1])/2);
-   if(polygons.some((poly,j)=>j!==edge.index&&pointInside(mid,poly)))continue;
-   const a=at(ts[i-1]),b=at(ts[i]);if(!kept.some(e=>close(e.a,a)&&close(e.b,b)))kept.push({a,b});
-  }
- }
- const loops=[];
- while(kept.length){
-  const first=kept.shift(),loop=[first.a],start=first.a;let end=first.b,guard=0;
-  while(!close(end,start)){
-   loop.push(end);const index=kept.findIndex(e=>close(e.a,end));
-   if(index<0||++guard>edges.length*4)throw new Error('El frontal no forma un contorno de corte cerrado. Revisa el puente.');
-   end=kept.splice(index,1)[0].b;
-  }
-  if(loop.length>=3&&Math.abs(signedArea(loop))>EPS)loops.push(loop);
- }
- return loops;
+// Shared by the 3D solid and the printable cutting plan. Coordinates are mm
+// in the model's frontal XY plane, before any paper placement or rotation.
+export function frontCutGeometry(raw={}){
+ const d=normalizeDesign(raw),parts=projectParts(d),loops=unionPolygons(parts.polygons),outerLoops=loops.filter(loop=>signedArea(loop)>0),bridgeVoids=loops.filter(loop=>signedArea(loop)<0);
+ if(outerLoops.length!==1)throw new Error('El frontal contiene piezas desconectadas. Revisa el puente y la caja de bisagra.');
+ return {outerLoops,holes:[...parts.apertures,...bridgeVoids],apertures:parts.apertures,bridgeVoids,frontBounds:bounds(loops.flat()),unit:'mm'};
 }
+export const frontSolidPolygons=frontCutGeometry;
 
 function dimension(x1,x2,y,label){
  return `<g class="dimension"><path d="M${f(x1)},${f(y-2)}v4M${f(x2)},${f(y-2)}v4M${f(x1)},${f(y)}H${f(x2)}"/>${text((x1+x2)/2,y-1.5,escape(label),'text-anchor="middle"')}</g>`;
 }
-function calibration(){return `<g class="calibration">${text(20,261,'CONTROL DE ESCALA · verificar regla y cuadrado en ambos ejes')}${dimension(20,120,267,'100 mm')}<path data-calibration="square" d="M170,264h20v20h-20Z"/>${text(180,261,'20 × 20 mm','text-anchor="middle"')}${text(20,276,'Imprimir al 100 % / tamaño real. Desactivar «ajustar a página».')}${text(20,282,'Verificar ambos ejes antes de recortar. Sin compensación de mecanizado.')}</g>`;}
-function page(number,title,content,d){
- return `<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297" data-sheet="${number}" role="img" aria-label="${escape(title)}"><title>${escape(title)}</title><style>text{font:3px Arial,sans-serif;fill:#172126}path{fill:none;stroke:#172126;stroke-width:.15;stroke-linejoin:round;stroke-linecap:round}.heading{font-size:5px;font-weight:bold}.caption{font-size:2.6px}.center{stroke:#6e7b80;stroke-width:.12;stroke-dasharray:2 1}.dimension path{stroke-width:.12}.dimension text,.calibration text{font-size:2.5px}.lens{stroke:#172126}.sheet-label{font-size:3.5px;font-weight:bold}</style>${text(15,17,'MISCANTE / PATRÓN PLANO PRELIMINAR','class="heading"')}${text(15,25,escape(title),'class="sheet-label"')}${text(15,32,`${d.customContour?'Perfil importado regularizado':escape(d.model)} · ${escape(designMeasurements(d).code)} · Escala vectorial 1:1 · A4`)}${text(15,38,`Placa: ${f(d.materialDepth)} mm · ancho radial del aro: ${f(d.thickness)} mm`,'class="caption"')}${content}${calibration()}${text(195,289,`${number} / 2`,'text-anchor="end"')}</svg>`;
+function verticalDimension(x,y1,y2,label){
+ return `<g class="dimension"><path d="M${f(x-2)},${f(y1)}h4M${f(x-2)},${f(y2)}h4M${f(x)},${f(y1)}V${f(y2)}"/>${text(x-1.5,(y1+y2)/2,escape(label),`text-anchor="middle" transform="rotate(-90 ${f(x-1.5)} ${f((y1+y2)/2)})"`)}</g>`;
+}
+function calibration(paper){const y=paper.height;return `<g class="calibration">${text(18,y-31,'CONTROL DE ESCALA · verificar regla y cuadrado en ambos ejes')}${dimension(18,118,y-25,'100 mm')}<path data-calibration="square" d="M${f(paper.width-40)},${f(y-28)}h20v20h-20Z"/>${text(paper.width-30,y-31,'20 × 20 mm','text-anchor="middle"')}${text(18,y-16,'Imprimir al 100 % / tamaño real, sin ajustar, márgenes ni encabezados.')}${text(18,y-10,'Comprobar ambos ejes antes de cortar. Sin compensación de mecanizado.')}</g>`;}
+function page(number,title,content,d,paper){
+ const m=designMeasurements(d),mode=m.wallMode==='inward'?'aro hacia dentro':'cristal fijo';
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="${paper.width}mm" height="${paper.height}mm" viewBox="0 0 ${paper.width} ${paper.height}" data-sheet="${number}" role="img" aria-label="${escape(title)}"><title>${escape(title)}</title><style>text{font:3px Arial,sans-serif;fill:#172126}path{fill:none;stroke:#172126;stroke-width:.15;stroke-linejoin:round;stroke-linecap:round}.heading{font-size:4.5px;font-weight:bold}.caption{font-size:2.5px}.center{stroke:#6e7b80;stroke-width:.12;stroke-dasharray:2 1}.dimension path{stroke-width:.12}.dimension text,.calibration text{font-size:2.4px}.sheet-label{font-size:3.4px;font-weight:bold}.bend{stroke:#386473;stroke-width:.18;stroke-dasharray:1 .7}</style>${text(14,16,'MISCANTE / PATRONES PLANOS DE TU DISEÑO','class="heading"')}${text(14,24,escape(title),'class="sheet-label"')}${text(14,31,`${d.customContour?'Perfil importado regularizado':escape(d.model)} · abertura actual ${escape(m.code)} · 1:1 · ${paper.name}`)}${text(14,37,`Base ${m.nominalLens??m.lens} □ ${m.nominalBridge??m.bridge} · ${mode} · placa ${f(d.materialDepth)} mm · ancho radial ${f(d.thickness)} mm`,'class="caption"')}${content}${calibration(paper)}${text(paper.width-14,paper.height-4,`${number} / 2`,'text-anchor="end"')}</svg>`;
+}
+function closedSimple(points){
+ if(points.length<3||Math.abs(signedArea(points))<1e-6)return false;
+ for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++){
+  if(j===i+1||(i===0&&j===points.length-1))continue;
+  if(intersects(points[i],points[(i+1)%points.length],points[j],points[(j+1)%points.length]))return false;
+ }
+ return true;
 }
 
-export function manufacturingDocument(raw={}){
- const issues=manufacturingIssues(raw);if(issues.length)throw new Error(issues.join(' '));
- const d=normalizeDesign(raw),centers=lensCenters(d),polygons=[];
- const apertures=[];
- for(const side of [-1,1]){
-  const center=centers[side===-1?0:1];
-  polygons.push(frameContour(d,side).map(([x,y])=>[(x+center)/MM,y/MM]));
-  apertures.push(lensContour(d,side).map(([x,y])=>[(x+center)/MM,y/MM]));
-  // Same projected rectangular endpiece as the 3D renderer.
-  const p=templeSections(d,side).stem[0].point,x=(p[0]-side*.05)/MM,y=p[1]/MM;
-  polygons.push([[x-2,y-1.75],[x+2,y-1.75],[x+2,y+1.75],[x-2,y+1.75]]);
- }
- polygons.push(...bridgeGeometry(d).bands.map(b=>b.outline.map(([x,y])=>[x/MM,y/MM])));
+export function manufacturingDocument(raw={},options={}){
+ const paper=printPaper(options),issues=manufacturingIssues(raw,options);if(issues.length)throw new Error(issues.join(' '));
+ const d=normalizeDesign(raw),parts=projectParts(d),layout=frontLayout(parts,paper,options.includeLensTemplates===true),{polygons,apertures,pads,centers}=parts;
  const outerLoops=unionPolygons(polygons);
- if(outerLoops.filter(loop=>signedArea(loop)>0).length!==1)throw new Error('El frontal contiene piezas desconectadas; no se puede emitir un patrón de corte único.');
+ if(outerLoops.filter(loop=>signedArea(loop)>0).length!==1)throw new Error('El frontal contiene piezas desconectadas. Revisa el puente y la caja de bisagra antes de imprimir.');
  const exterior=outerLoops.find(loop=>signedArea(loop)>0),holes=[...apertures,...outerLoops.filter(loop=>signedArea(loop)<0)];
- if(holes.some(hole=>hole.some(p=>!pointInside(p,exterior))||boundariesCross(hole,exterior)))throw new Error('Un vaciado sale del frontal o toca su borde exterior. Aumenta el ancho radial del aro o corrige el contorno antes de imprimir.');
- for(let i=0;i<holes.length;i++)for(let j=i+1;j<holes.length;j++)if(boundariesCross(holes[i],holes[j])||pointInside(holes[i][0],holes[j])||pointInside(holes[j][0],holes[i]))throw new Error('Los vaciados de lunetas o puente se superponen. Ajusta DBL, el puente o el contorno antes de imprimir.');
- const frontBounds=bounds(outerLoops.flat()),frontWidth=frontBounds.maxX-frontBounds.minX;
- const frontY=48+frontBounds.maxY,frontBottom=48+frontBounds.maxY-frontBounds.minY,frontMap=([x,y])=>[105+x,frontY-y];
- const lensHeading=Math.max(143,frontBottom+15),lensShapes=[-1,1].map(side=>lensContour(d,side).map(([x,y])=>[x/MM,y/MM])),lensMaxY=Math.max(...lensShapes.flat().map(p=>p[1])),lensMinY=Math.min(...lensShapes.flat().map(p=>p[1])),lensY=lensHeading+9+lensMaxY,lensBottom=lensY-lensMinY;
- if(lensBottom+11>253)throw new Error('Los contornos exceden la hoja 1 a escala 1:1. Reduce la altura de la luneta, A o el ancho radial.');
- let front=`${text(105,43,'FRONTAL · línea continua = corte y vaciado / discontinua = alineación','text-anchor="middle" class="caption"')}<g data-part="front"><path d="${outerLoops.map(loop=>path(loop.map(frontMap))).join('')}"/>${apertures.map(p=>`<path d="${path(p.map(frontMap))}"/>`).join('')}</g><path class="center" d="M105,46V${f(frontBottom+2)}"/>${dimension(105+frontBounds.minX,105+frontBounds.maxX,frontBottom+7,`${f(frontWidth)} mm · ancho frontal del patrón`)}`;
- front+=text(105,lensHeading,'LUNETAS / PLANTILLAS DE LA ABERTURA','text-anchor="middle" class="sheet-label"');
- for(const [i,side] of [-1,1].entries()){
-  const points=lensShapes[i],b=bounds(points),cx=i?143:67,cy=lensY;
-  front+=`<path class="lens" data-part="lens-${side}" data-origin-x="${cx}" data-origin-y="${f(cy)}" d="${path(points.map(([x,y])=>[cx+x,cy-y]))}"/><path class="center" data-registration="lens-${side}" d="M${cx-2},${f(cy)}h4M${cx},${f(cy-2)}v4"/>${text(cx,lensBottom+5,i?'Derecha':'Izquierda','text-anchor="middle"')}${dimension(cx+b.minX,cx+b.maxX,lensBottom+11,`${f(b.maxX-b.minX)} mm`)}`;
+ if(holes.some(hole=>hole.some(p=>!pointInside(p,exterior))||boundariesCross(hole,exterior)))throw new Error('Un vaciado sale del frontal o toca su borde exterior. Corrige el contorno o el ancho radial del aro.');
+ for(let i=0;i<holes.length;i++)for(let j=i+1;j<holes.length;j++)if(boundariesCross(holes[i],holes[j])||pointInside(holes[i][0],holes[j])||pointInside(holes[j][0],holes[i]))throw new Error('Los vaciados del cristal o puente se superponen. Corrige el puente o el contorno.');
+ if(pads.some(p=>!closedSimple(p.outline)))throw new Error('El apoyo nasal no forma una pieza de corte simple. Corrige el contorno nasal o amplía el puente.');
+ const {frontBounds,frontX,frontY,frontBottom,padHeading,padTop,padBounds,padBottom,lensLayout}=layout,frontMap=([x,y])=>[frontX+x,frontY-y];
+ let front=`${text(paper.width/2,43,'FRONTAL · continua = corte / discontinua = alineación','text-anchor="middle" class="caption"')}<g data-part="front" data-origin-x="${f(frontX)}" data-origin-y="${f(frontY)}"><path d="${outerLoops.map(loop=>path(loop.map(frontMap))).join('')}"/>${apertures.map(p=>`<path d="${path(p.map(frontMap))}"/>`).join('')}</g><path class="center" d="M${f(frontX)},45V${f(frontBottom+2)}"/>${dimension(frontX+frontBounds.minX,frontX+frontBounds.maxX,frontBottom+6,`${f(layout.frontWidth)} mm · ancho frontal`)}${verticalDimension(frontX+frontBounds.minX-5,47,frontBottom,`${f(layout.frontHeight)} mm`)}`;
+ front+=text(paper.width/2,padHeading,'LUNETAS NASALES · DOS APOYOS PARA LAMINAR','text-anchor="middle" class="sheet-label"');
+ for(const [i,pad] of pads.entries()){
+  const b=padBounds[i],cx=paper.width*(i?.68:.32),x=cx-(b.minX+b.maxX)/2,y=padTop+b.maxY,map=([px,py])=>[x+px,y-py];
+  front+=`<path data-part="nasal-pad-${pad.side}" data-origin-x="${f(x)}" data-origin-y="${f(y)}" d="${path(pad.outline.map(map))}"/>${dimension(x+b.minX,x+b.maxX,padBottom+6,`${f(b.maxX-b.minX)} mm`)}${text(cx,padBottom+12,`${i?'Derecha':'Izquierda'} · lámina ${f(pad.depth)} mm`,'text-anchor="middle" class="caption"')}${verticalDimension(x+b.minX-4,padTop,padTop+b.maxY-b.minY,`${f(b.maxY-b.minY)} mm`)}`;
  }
- front+=text(105,257,'No incluye apoyos nasales laminados, herrajes, bisel ni tolerancia de montaje.','text-anchor="middle" class="caption"');
- let arms='';const templePatterns=[];
+ if(lensLayout){
+  front+=text(paper.width/2,lensLayout.heading,'PLANTILLAS ÓPTICAS ADICIONALES · NO SON APOYOS NASALES','text-anchor="middle" class="caption"');
+  for(const [i,points] of lensLayout.shapes.entries()){
+   const b=lensLayout.bounds[i],cx=paper.width*(i?.73:.27),x=cx-(b.minX+b.maxX)/2,y=lensLayout.top+b.maxY;
+   front+=`<path data-part="optical-lens-${i?1:-1}" data-origin-x="${f(x)}" data-origin-y="${f(y)}" data-rotation="${lensLayout.rotation}" d="${path(points.map(([px,py])=>[x+px,y-py]))}"/>${dimension(x+b.minX,x+b.maxX,lensLayout.top+lensLayout.height+7,`${f(b.maxX-b.minX)} mm`)}${text(cx,lensLayout.top+lensLayout.height+11,i?'Cristal derecho':'Cristal izquierdo','text-anchor="middle" class="caption"')}`;
+  }
+ }
+ front+=text(paper.width/2,paper.height-39,'Los apoyos se pegan y pulen. Herrajes, bisel y tolerancias requieren especificación de taller.','text-anchor="middle" class="caption"');
+ let arms='',cursor=45;const templePatterns=[];
  for(const [i,side] of [-1,1].entries()){
-  const flat=flatTemple(d,side),b=bounds(flat.outline),x=23,y=86+i*96;
-  if(b.maxX-b.minX>175+1e-5||b.maxY-b.minY>76+1e-5)throw new Error('La patilla excede el área útil de una hoja A4 a escala 1:1. Reduce el ancho de patilla o el largo B.');
+  const flat=flatTemple(d,side),b=bounds(flat.outline),width=b.maxX-b.minX,height=b.maxY-b.minY;
+  if(!closedSimple(flat.outline))throw new Error('El terminal o la patilla se cruza a sí mismo. Ajusta su forma, tamaño o inclinación.');
+  if(width>paper.width-28)throw new Error(`La patilla excede el ancho útil de ${paper.name} a escala 1:1. Reduce B o elige otro papel.`);
+  const top=cursor+5,bottom=top+height,x=14-b.minX,y=top-b.minY;
+  if(bottom+14>paper.height-52)throw new Error(`Ambas patillas no caben en ${paper.name} a escala 1:1. Elige Oficio o reduce el ancho o el terminal; no se modificará la escala.`);
   templePatterns.push(flat);
-  arms+=`${text(x,y-41,`PATILLA ${i?'DERECHA':'IZQUIERDA'} · ${escape(d.armStyle)}`,'class="sheet-label"')}<path data-part="temple-${side}" d="${path(flat.outline.map(([px,py])=>[x+px,y+py]))}"/><path class="center" d="${linePath(flat.centerline.map(([px,py])=>[x+px,y+py]))}"/><path class="center" data-registration="temple-${side}" d="M${x-1.25},${y}h2.5M${x},${y-1.25}v2.5"/>${dimension(x,x+b.maxX,y+b.maxY+7,`${f(b.maxX)} mm · proyección del patrón`)}${text(x,y+b.maxY+12,`Largo desarrollado del eje: ${f(flat.developedLength)} mm · ancho inicial: ${f(flat.centerline.length?flat.outline[0][1]*-2:0)} mm`,'class="caption"')}`;
+  arms+=`${text(14,cursor,`BRAZO ${i?'DERECHO':'IZQUIERDO'} · ${escape(d.armStyle)}`,'class="sheet-label"')}<path data-part="temple-${side}" d="${path(flat.outline.map(([px,py])=>[x+px,y+py]))}"/><path class="center" d="${linePath(flat.centerline.map(([px,py])=>[x+px,y+py]))}"/>${dimension(x+b.minX,x+b.maxX,bottom+6,`${f(width)} mm · proyección`)}${text(14,bottom+11,`B desarrollado del eje: ${f(flat.developedLength)} mm · ancho inicial: ${f(Number(d.armWidth))} mm · placa ${d.materialDepth} mm`,'class="caption"')}`;
+  if(flat.bendStart){const [bx,by]=flat.bendStart;arms+=`<path class="bend" data-part="bend-start-${side}" d="M${f(x+bx)},${f(y+by-3)}v6"/>`;}
+  cursor=bottom+18;
  }
- arms+=`${text(20,243,'Eje discontinuo · conserva la curva de terminal y la longitud desarrollada.')}${text(20,249,'Conformado, bisagras, alma, bisel y contracción requieren un plano de proceso.')}${text(20,255,'Validar espesor, herrajes, apoyos y tolerancias antes de cortar material definitivo.','class="caption"')}`;
- const pages=[page(1,'Hoja 1 · frontal y dos lunetas',front,d),page(2,'Hoja 2 · ambas patillas',arms,d)];
- const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Miscante · patrón plano preliminar 1:1 · dos hojas</title><style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}body{margin:0;background:#dfe3e4}.print-actions{padding:16px;text-align:center;font:14px Arial}.sheet{width:210mm;height:297mm;margin:0 auto;background:white;break-after:page;page-break-after:always;overflow:hidden}.sheet:last-child{break-after:auto;page-break-after:auto}.sheet svg{display:block;width:210mm;height:297mm}@media print{body{background:white}.print-actions{display:none}.sheet{margin:0}}</style></head><body><div class="print-actions"><button onclick="window.print()">Imprimir las dos hojas / guardar PDF</button><p>Selecciona A4, tamaño real 100 %, sin márgenes ni encabezados. Comprueba los 100 mm antes de cortar.</p></div>${pages.map(svg=>`<section class="sheet">${svg}</section>`).join('')}</body></html>`;
- return {html,pages,source:{type:d.customContour?'imported-regularized':'parametric',verifiedReference:false,sourcePointCount:d.customContour?.length||null,aperturePointCounts:lensShapes.map(p=>p.length)},measurements:{...designMeasurements(d),materialDepth:d.materialDepth,radialWidth:d.thickness,frontPatternWidth:frontWidth,nasalClearance:Math.min(...frameContour(d,1).map(p=>(p[0]+centers[1])/MM))*2,templeDevelopedLengths:templePatterns.map(p=>p.developedLength)},checks:{pageCount:2,scale:'1:1',unit:'mm',frontConnected:true,frontComponentCount:1,frontVoidCount:holes.length,lensTemplateCount:2,templeCount:2,closedCutContourCount:7+outerLoops.filter(loop=>signedArea(loop)<0).length,excludedParts:['added-laminated-nasal-pads','hinges-and-drillings','lens-bevel-and-groove'],holesDisjoint:true,holesContained:true,printerCalibrationRequired:true,manufacturingValidated:false}};
+ arms+=`${text(14,paper.height-47,'Discontinuo = eje · marca transversal = inicio de curva · sin compensación térmica.','class="caption"')}${text(14,paper.height-41,'No se inventan taladros ni centros de bisagra: deben definirse con el herraje real.','class="caption"')}`;
+ const pages=[page(1,'Hoja 1 · frontal y lunetas nasales',front,d,paper),page(2,'Hoja 2 · ambos brazos',arms,d,paper)],size=`${paper.width}mm ${paper.height}mm`;
+ const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Miscante · patrones 1:1 · ${paper.name} · dos hojas</title><style>@page{size:${size};margin:0}*{box-sizing:border-box}body{margin:0;background:#dfe3e4}.print-actions{padding:16px;text-align:center;font:14px Arial}.sheet{width:${paper.width}mm;height:${paper.height}mm;margin:0 auto;background:white;break-after:page;page-break-after:always;overflow:hidden}.sheet:last-child{break-after:auto;page-break-after:auto}.sheet svg{display:block;width:${paper.width}mm;height:${paper.height}mm}@media print{body{background:white}.print-actions{display:none}.sheet{margin:0}}</style></head><body><div class="print-actions"><button onclick="window.print()">Imprimir dos hojas / guardar PDF</button><p>${paper.name} (${paper.width} × ${paper.height} mm), tamaño real 100 %, sin márgenes ni encabezados. Verifica la regla y el cuadrado.</p></div>${pages.map(svg=>`<section class="sheet">${svg}</section>`).join('')}</body></html>`;
+ return {html,pages,paper:{...paper},source:{type:d.customContour?'imported-regularized':'parametric',verifiedReference:false,sourcePointCount:d.customContour?.length||null,aperturePointCounts:apertures.map(p=>p.length)},measurements:{...designMeasurements(d),materialDepth:d.materialDepth,radialWidth:d.thickness,frontPatternWidth:layout.frontWidth,nasalPadDepths:pads.map(p=>p.depth),nasalClearance:Math.min(...frameContour(d,1).map(p=>(p[0]+centers[1])/MM))*2,templeDevelopedLengths:templePatterns.map(p=>p.developedLength)},checks:{pageCount:2,scale:'1:1',unit:'mm',frontConnected:true,frontComponentCount:1,frontVoidCount:holes.length,nasalPadCount:2,lensTemplateCount:options.includeLensTemplates?2:0,templeCount:2,closedCutContourCount:7+outerLoops.filter(loop=>signedArea(loop)<0).length+(options.includeLensTemplates?2:0),excludedParts:['hinges-and-drillings','lens-bevel-and-groove'],holesDisjoint:true,holesContained:true,printerCalibrationRequired:true,manufacturingValidated:false}};
 }
 
-export function openManufacturingPrint(raw){
- const document=manufacturingDocument(raw),preview=window.open('','_blank');
+export function openManufacturingPrint(raw,options={}){
+ const document=manufacturingDocument(raw,options),preview=window.open('','_blank');
  if(!preview)throw new Error('Permite abrir la ventana de impresión para ver las dos hojas.');
- preview.document.open();preview.document.write(document.html);preview.document.close();
- return document;
+ preview.document.open();preview.document.write(document.html);preview.document.close();return document;
 }

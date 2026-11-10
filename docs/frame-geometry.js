@@ -1,3 +1,4 @@
+import {offsetSingleContour,isSimpleContour,polygonArea} from './planar-kernel.js';
 // Nominal millimetres; the render is a design preview, not manufacturing CAD.
 export const MM=.04;
 export const frameSizes=[
@@ -5,7 +6,7 @@ export const frameSizes=[
  {id:'media',name:'Media',lens:52,bridge:17,temple:140},
  {id:'amplia',name:'Amplia',lens:56,bridge:18,temple:145}
 ];
-const sizeOf=d=>{const base=frameSizes.find(s=>s.id===d.frameSize)||frameSizes[1];return {...base,lens:d.lensWidth==null?base.lens:finite(d.lensWidth,40,65,base.lens),bridge:d.bridgeWidth==null?base.bridge:finite(d.bridgeWidth,14,24,base.bridge)};};
+const sizeOf=d=>{const base=frameSizes.find(s=>s.id===d.frameSize)||frameSizes[1];return {...base,lens:d.lensWidth==null?base.lens:finite(d.lensWidth,40,65,base.lens),bridge:d.bridgeWidth==null?base.bridge:finite(d.bridgeWidth,14,26,base.bridge)};};
 const finite=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
 const modelOf=d=>({rectangular:'recto',panto:'redondo',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo'}[d.model]||d.model);
 // Imported apertures use the same constrained, millimetre-based geometry.
@@ -16,18 +17,9 @@ export function normalizeContour(raw){
  const xs=raw.map(p=>p[0]),ys=raw.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),width=maxX-minX,aspect=(maxY-minY)/width;
  if(width<1e-6||aspect<.45||aspect>1.25)return null;
  const points=raw.map(([x,y])=>[(x-(minX+maxX)/2)*2/width,(y-(minY+maxY)/2)*2/width]);
- let area=0;
- for(let i=0;i<points.length;i++){
-  const a=points[i],b=points[(i+1)%points.length],c=points[(i+2)%points.length];
-  if(Math.hypot(b[0]-a[0],b[1]-a[1])<1e-5)return null;
-  const cross=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);
-  if(cross< -1e-7)return null;
-  // Every vertex must remain on the interior side of every edge. This also
-  // rules out multiply-wound stars whose local turns can all be positive.
-  if(points.some(p=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0])< -1e-7))return null;
-  area+=a[0]*b[1]-b[0]*a[1];
- }
- return area>1e-4?points:null;
+ if(!isSimpleContour(points))return null;
+ const signed=polygonArea(points);
+ return Math.abs(signed)>1e-4?(signed>0?points:points.reverse()):null;
 }
 export function frameDimensions(d){
  const custom=normalizeContour(d.customContour);if(custom)return {rx:1,ry:Math.max(...custom.map(p=>p[1]))};
@@ -46,94 +38,103 @@ function profile(d,side){
    // Fixed aviator-derived drop: broad upper half, rounded narrowing below.
    const lower=Math.max(0,-s);x*=1-lower*.22;y-=lower*.075;
   }
-  if(model==='curvo'){x*=.9+.1*(y/ry+1)/2;y+=Math.max(0,x*side)*.035;}
+  if(model==='curvo'){x*=.9+.1*(y/ry+1)/2;y+=Math.max(0,x)*.07;}
   points.push([x,y]);
  }
  // A is the boxing width of the actual aperture, including tapered profiles.
  // Keep the silhouette but normalise its horizontal bounding box so A/DBL
  // labels, optical centres and vector templates refer to the same dimensions.
  const xs=points.map(p=>p[0]),lo=Math.min(...xs),hi=Math.max(...xs),mid=(lo+hi)/2;
- return points.map(([x,y])=>[(x-mid)*2/(hi-lo),y]);
+ const normalized=points.map(([x,y])=>[(x-mid)*2/(hi-lo),y]);
+ return side===-1?normalized.map(([x,y])=>[-x,y]).reverse():normalized;
 }
-export function lensContour(d,side){const half=sizeOf(d).lens/2*MM,aspect=finite(d.contourAspectScale,.85,1.15,1);return profile(d,side).map(([x,y])=>[x*half,y*half*aspect]);}
-// Offset the actual aperture rather than scaling it: scaling a superellipse
-// changes the wall gauge at corners and deforms narrow/rounded silhouettes.
-export function offsetContour(points,distance){
- if(!Array.isArray(points)||points.length<3||!Number.isFinite(distance)||distance<0)throw new RangeError('Contorno o distancia no válidos.');
- const area=points.reduce((sum,p,i)=>{const q=points[(i+1)%points.length];return sum+p[0]*q[1]-q[0]*p[1];},0);
- const orientation=area>=0?1:-1;
- const normals=points.map((p,i)=>{const q=points[(i+1)%points.length],dx=q[0]-p[0],dy=q[1]-p[1],length=Math.hypot(dx,dy);if(!length||!p.every(Number.isFinite))throw new RangeError('Contorno degenerado.');return [orientation*dy/length,-orientation*dx/length];});
- return points.map((p,i)=>{const a=normals[(i+points.length-1)%points.length],b=normals[i],denominator=1+a[0]*b[0]+a[1]*b[1];if(denominator<1e-6)throw new RangeError('El contorno contiene una esquina incompatible.');return [p[0]+distance*(a[0]+b[0])/denominator,p[1]+distance*(a[1]+b[1])/denominator];});
+// Convex envelope operations keep an inward wall from folding or crossing
+// itself. Geometry uses scene units (.04 = 1 millimetre), not display pixels.
+const area=points=>points.reduce((sum,p,i)=>{const q=points[(i+1)%points.length];return sum+p[0]*q[1]-q[0]*p[1];},0)/2;
+function hull(points){
+ const sorted=points.map(p=>p.slice()).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+ const turn=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+ const lower=[],upper=[];
+ for(const p of sorted){while(lower.length>1&&turn(lower.at(-2),lower.at(-1),p)<=1e-12)lower.pop();lower.push(p);}
+ for(const p of sorted.slice().reverse()){while(upper.length>1&&turn(upper.at(-2),upper.at(-1),p)<=1e-12)upper.pop();upper.push(p);}
+ return [...lower.slice(0,-1),...upper.slice(0,-1)];
+}
+export function offsetContour(input,distance){
+ const result=offsetSingleContour(input,distance);
+ if(Math.abs(polygonArea(result))<4*MM*MM)throw new RangeError('El ancho radial deja una abertura de cristal insuficiente. Reduce el ancho del aro.');
+ return result;
+}
+function baselineLens(d,side){const half=sizeOf(d).lens/2*MM,aspect=finite(d.contourAspectScale,.85,1.15,1);return profile(d,side).map(([x,y])=>[x*half,y*half*aspect]);}
+function detailedOuter(d,side,wall=4){
+ const half=sizeOf(d).lens/2*MM,outer=offsetContour(baselineLens(d,side),wall*MM),angle=finite(d.nasalAngle,0,15,0)*Math.PI/180,lift=finite(d.temporalLift,0,12,0)*MM,reach=finite(d.temporalReach,0,8,0)*MM;
+ if(!angle&&!lift&&!reach)return outer;
+ const h=Math.max(...outer.map(p=>Math.abs(p[1]))),w=Math.max(...outer.map(p=>Math.abs(p[0]))),nasalPivot=Math.min(...outer.map(p=>p[0]*side));
+ const shaped=outer.map(([x,y])=>{
+  const temporal=x*side/w,upper=Math.max(0,y/h),nasal=Math.max(0,-x*side/w),lower=Math.max(0,-y/h);
+  // These supports are confined to their named quadrants. Upper-nasal and
+  // lower-temporal edges never receive another control's displacement.
+  const temporalWeight=Math.max(0,temporal)**3*upper**.7;
+  let nx=x,ny=y;if(angle&&x*side<0&&y<0){const phi=Math.atan2(-y,-x*side),theta=angle*Math.sin(2*phi)**2,vx=x*side-nasalPivot;nx=side*(nasalPivot+vx*Math.cos(theta)-y*Math.sin(theta));ny=vx*Math.sin(theta)+y*Math.cos(theta);}
+  return [nx+side*reach*temporalWeight,ny+lift*temporalWeight];
+ });
+ return shaped;
 }
 export function frameContour(d,side,scale=1){
- const thickness=finite(d.thickness,3,8,4)*MM,{ry}=frameDimensions(d),half=sizeOf(d).lens/2*MM;
- const outer=offsetContour(lensContour(d,side),thickness),center=lensCenters(d)[1];
- return outer.map(([x,y])=>{
-  // Localised nasal material is limited by the centre clearance. The aperture
-  // and remaining wall retain their original shape under every bridge edit.
-  const nasal=Math.max(0,-x*side/(half+thickness)),vertical=Math.exp(-(((y/(half*ry)+.2)/.48)**4));
-  const requested=finite(d.nasalProjection,0,100,35)/100*3*MM*nasal**5*vertical;
-  const relief=Math.min(requested,Math.max(0,center+x*side-4*MM));
-  return [(x-side*relief)*scale,y*scale];
- });
+ // In envelope mode every radial-width edit consumes the INNER aperture.
+ // The baseline 4 mm external envelope never grows towards the nose/temples.
+ const outer=detailedOuter(d,side,d.wallMode==='fixed-lens'?finite(d.thickness,3,8,4):4);
+ return outer.map(([x,y])=>[x*scale,y*scale]);
 }
-export function lensCenters(d){
- const size=sizeOf(d),actualBridge=size.bridge;
- const center=(size.lens+actualBridge)/2*MM;
- return [-center,center];
+export function lensContour(d,side){
+ if(d.wallMode==='fixed-lens')return baselineLens(d,side);
+ return offsetContour(detailedOuter(d,side),-finite(d.thickness,3,8,4)*MM);
+}
+export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge)/2*MM;return [-center,center];}
+export function hingeGeometry(d,side){
+ const outer=frameContour({...d,temporalLift:0,temporalReach:0,nasalAngle:0},side),center=lensCenters(d)[side===-1?0:1],stock=finite(d.materialDepth,2,8,6)*MM,mode=d.hingeMode==='box'?'box':'hidden';
+ const top=Math.max(...outer.map(p=>p[1])),bottom=Math.min(...outer.map(p=>p[1])),y=bottom+(top-bottom)*.6;
+ // Locate the true temporal envelope at hinge height, not its unrelated maxX.
+ const crossings=[];
+ for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}
+ const edge=center+(crossings.length?(side===1?Math.max(...crossings):Math.min(...crossings)):side*Math.max(...outer.map(p=>Math.abs(p[0]))));
+ const extension=mode==='box'?4*MM:0,anchor=[edge+side*(extension-1.5*MM),y,-1*MM];
+ const boxOutline=mode==='box'?[[edge-side*2*MM,y-2.5*MM],[edge+side*extension,y-2.5*MM],[edge+side*extension,y+2.5*MM],[edge-side*2*MM,y+2.5*MM]]:[];
+ if(boxOutline.length&&area(boxOutline)<0)boxOutline.reverse();
+ return {mode,anchor,boxOutline,jointHalfDepth:Math.min(stock/2,1.25*MM),hardware:{center:[anchor[0],y,-.5*MM],size:[2*MM,3*MM,2*MM]}};
 }
 export function designMeasurements(d){
- const s=sizeOf(d),temple=finite(d.templeLength,135,150,s.temple);
- const outer=frameContour(d,1),center=lensCenters(d)[1],endpiece=2.75*MM;
- const width=(center+Math.max(...outer.map(p=>p[0]))+endpiece)*2/MM;
- return {lens:s.lens,bridge:s.bridge,temple,front:Math.round(width*100)/100,code:`${s.lens} □ ${s.bridge}–${temple}`,size:s.id};
+ const s=sizeOf(d),temple=finite(d.templeLength,120,160,s.temple),centers=lensCenters(d),left=lensContour(d,-1),right=lensContour(d,1),round=x=>Math.round(x*100)/100;
+ const lens=(Math.max(...right.map(p=>p[0]))-Math.min(...right.map(p=>p[0])))/MM;
+ const bridge=(centers[1]+Math.min(...right.map(p=>p[0]))-centers[0]-Math.max(...left.map(p=>p[0])))/MM;
+ const envelope=[...frameContour(d,1).map(([x,y])=>[x+centers[1],y]),...hingeGeometry(d,1).boxOutline];
+ const width=2*Math.max(...envelope.map(p=>p[0]))/MM;
+ return {lens:round(lens),bridge:round(bridge),temple,front:round(width),nominalLens:s.lens,nominalBridge:s.bridge,code:`${round(lens)} □ ${round(bridge)}–${temple}`,size:s.id,wallMode:d.wallMode==='fixed-lens'?'fixed-lens':'inward'};
 }
 function nasalX(d,y){
  const contour=frameContour(d,1),crossings=[];
- for(let i=0;i<contour.length;i++){
-  const a=contour[i],b=contour[(i+1)%contour.length];
-  if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){
-   if(Math.abs(b[1]-a[1])<1e-9)continue;
-   crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));
-  }
- }
- const inner=crossings.length?Math.min(...crossings):-Math.max(...contour.map(p=>Math.abs(p[0])));
- return lensCenters(d)[1]+inner+.025;
+ for(let i=0;i<contour.length;i++){const a=contour[i],b=contour[(i+1)%contour.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}
+ return lensCenters(d)[1]+(crossings.length?Math.min(...crossings):-Math.max(...contour.map(p=>Math.abs(p[0]))))+.8*MM;
 }
 export function bridgeGeometry(d){
- const halfHeight=sizeOf(d).lens/2*MM*frameDimensions(d).ry*finite(d.contourAspectScale,.85,1.15,1);
- const height=({alto:.59,medio:.33,bajo:.1}[d.bridgeHeight]??.33)*halfHeight;
- const kind=d.bridgeType||'clasico',thickness=finite(d.bridgeThickness,5,12,5)*MM;
- const curve=Math.max(0,Math.min(100,Number(d.bridgeNasalCurve??45)))/100;
- function band(base,topRise,gauge,nasal){
-  const x=nasalX(d,base),lowerX=nasalX(d,base-gauge),upper=[],lower=[];
-  for(let i=0;i<=32;i++){
-   const t=i/32,px=-x+2*x*t,bump=Math.sin(Math.PI*t),top=base+topRise*bump;
-   upper.push([px,top]);lower.push([-lowerX+2*lowerX*t,top-gauge+nasal*gauge*.5*bump*bump]);
-  }
-  return {upper,lower,outline:[...upper,...lower.slice().reverse()]};
- }
- const primary=band(height,kind==='herradura'?.12:.022,thickness,curve);
- const bands=[primary];
- if(kind==='doble'){
-  const second=Math.min(height+.22,halfHeight*.9);
-  bands.push(band(second,.018,Math.min(thickness*.45,Math.max(.04,second-height-.065)),0));
- }
- return {bands,anchorHeight:height,type:kind};
+ const outer=frameContour(d,1),top=Math.max(...outer.map(p=>p[1])),kind=['clasico','doble','herradura'].includes(d.bridgeType)?d.bridgeType:'clasico';
+ const base=top*.42,gauge=4*MM,rise=kind==='herradura'?5*MM:1.5*MM;
+ function band(y,up,thickness){const upper=[],lower=[],x=nasalX(d,y),lowerX=nasalX(d,y-thickness);for(let i=0;i<=48;i++){const t=i/48,bump=Math.sin(Math.PI*t);upper.push([-x+2*x*t,y+up*bump]);lower.push([-lowerX+2*lowerX*t,y-thickness+up*bump]);}return {upper,lower,outline:[...upper,...lower.slice().reverse()]};}
+ const bands=[band(base,rise,gauge)];if(kind==='doble')bands.push(band(Math.min(top*.83,base+8*MM),.6*MM,2*MM));
+ return {bands,anchorHeight:base,type:kind};
 }
 export function templePlan(d,side,style='clasico'){
  const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1];
- const x=center+side*(Math.max(...outer.map(p=>p[0]*side))+2*MM),y=.16;
- const base=finite(d.templeLength,135,150,sizeOf(d).temple);
+ const hinge=hingeGeometry(d,side),x=hinge.anchor[0],y=hinge.anchor[1];
+ const base=finite(d.templeLength,120,160,sizeOf(d).temple);
  // One fixed ear curve for every shaft style; placement follows nominal B only.
  const local=[[0,0,0],[-.02*side,-.03,-.28],[-.1*side,-.22,-.63],[-.18*side,-.5,-.85]];
  const hookLength=local.slice(1).reduce((sum,p,i)=>sum+Math.hypot(...p.map((v,j)=>v-local[i][j])),0);
  const stemLength=base*MM-hookLength;
  const lateral=style==='curvo'?.13:style==='escultural'?.1:style==='sable'?.07:style==='gancho'?.16:.025;
- const frontY=(Math.max(...outer.map(p=>p[1]))+Math.min(...outer.map(p=>p[1])))/2;
- const stem=[[x,frontY,0],[x+side*.04,y,-.55],[x+side*lateral,y+(style==='sable'?.05:0),-stemLength*.56],[x,y,-stemLength]];
+ const frontY=y;
+ const stem=[[x,frontY,hinge.anchor[2]],[x+side*.04,y,-.55],[x+side*lateral,y+(style==='sable'?.05:0),-stemLength*.56],[x,y,-stemLength]];
  const join=stem.at(-1),hook=local.map(p=>p.map((v,i)=>v+join[i]));
- return {stem,hook,hookLocal:local,join,stemLength,hookLength,nominalLength:base,shaftWidth:finite(d.armWidth,4,templeWidthLimit(d),6)*MM,hookWidth:.12,depth:style==='fino'?.045:.075};
+ return {stem,hook,hookLocal:local,join,stemLength,hookLength,nominalLength:base,jointHalfDepth:hinge.jointHalfDepth,shaftWidth:finite(d.armWidth,4,templeWidthLimit(d),6)*MM,hookWidth:.12,depth:style==='fino'?.045:.075};
 }
 export function templeWidthLimit(d){
  const points=frameContour(d,1);return Math.floor((Math.max(...points.map(p=>p[1]))-Math.min(...points.map(p=>p[1])))/MM);
@@ -145,16 +146,15 @@ export function templeSection(d,centerY,height){
  return {bottom:center-h/2,top:center+h/2,center,height:h};
 }
 export function nasalPads(d,side){
- d={...d,nasalProjection:0};
- const center=lensCenters(d)[side===-1?0:1],outer=frameContour(d,side),arc=[];
- // Continuous crescent following the nasal rim, on the face-facing side.
- for(let i=0;i<outer.length;i++){
-  const p=outer[i];if(p[0]*side<0&&p[1]<.2&&p[1]>-.56)arc.push([p[0]+center,p[1]]);
+ const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1],back=[],nose=[],height=12*MM,cy=-6*MM;
+ function nasalBoundary(y){const crosses=[];for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crosses.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}return center+(side===1?Math.min(...crosses):Math.max(...crosses));}
+ // A bonded half-moon follows the rear nasal wall. Its front boundary overlaps
+ // the parent acetate, avoiding a detached oval or a floating clip-on pad.
+ for(let i=0;i<=48;i++){
+  const t=i/48,y=cy+height/2-height*t,boundary=nasalBoundary(y),bump=Math.sin(Math.PI*t),available=Math.max(0,boundary*side-2*MM);
+  back.push([boundary+side*.8*MM*bump,y]);nose.push([boundary-side*Math.min(2.5*MM,available)*bump,y]);
  }
- arc.sort((a,b)=>b[1]-a[1]);
- const attachment=d.model==='curvo'?Number(d.thickness??4)-.5:-1.4;
- const inner=arc.map(([x,y])=>[side*Math.max(3*MM,side*x+attachment*MM),y]);
- return {outline:[...arc,...inner.reverse()],depth:3*MM};
+ return {outline:[...back,...nose.slice(1,-1).reverse()],depth:3*MM,rearZ:-3*MM,kind:'bonded-nasal-halfmoon'};
 }
 export function recommendFrameSize(faceWidth,d){
  const width=Number(faceWidth);if(!Number.isFinite(width)||width<80||width>190)return null;

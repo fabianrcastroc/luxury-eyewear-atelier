@@ -9,11 +9,12 @@
     "build": "node build.js",
     "test": "node --test",
     "test:browser": "node scripts/smoke-browser.mjs",
-    "test:designer": "npm run build && node scripts/designer-browser.mjs",
+    "test:designer": "npm run build && node scripts/cad-acceptance.mjs",
     "render:previews": "node scripts/render-model-previews.mjs",
     "test:collection": "node scripts/collection-lenses-browser.mjs",
     "test:workbench": "node scripts/workbench-browser.mjs",
-    "test:metrology": "node scripts/renderer-metrology.mjs"
+    "test:metrology": "node scripts/renderer-metrology.mjs",
+    "test:cad": "node scripts/cad-acceptance.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -24,6 +25,7 @@
     "sharp": "^0.35.5"
   },
   "dependencies": {
+    "clipper-lib": "6.4.2",
     "three": "^0.183.2"
   }
 }

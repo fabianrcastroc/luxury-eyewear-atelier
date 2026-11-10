@@ -1,12 +1,12 @@
 import {products,money,totals,glasses,cartProduct,itemQuote} from './catalog.js';
 import {initCollectionLenses} from './collection-lenses.js';
 import {initDesigner} from './designer.js';
-import {normalizeDesign,designQuote,designSummary,framePreview,frameColors,prescriptionError,prescriptionSignature} from './designer-model.js';
+import {normalizeDesign,migrateStoredDesign,designQuote,designSummary,framePreview,frameColors,prescriptionError,prescriptionSignature} from './designer-model.js';
 import {designMeasurements} from './frame-geometry.js';
 const $ = s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 let cart=read('miscante-cart',[]);
-cart=Array.isArray(cart)?cart.filter(i=>i&&Number.isInteger(i.qty)&&i.qty>0&&i.qty<=10&&(products.some(p=>p.id===i.id)||i.custom===true&&/^custom-[a-f0-9-]{36}$/.test(i.id)||products.some(p=>p.id===i.productId)&&/^configured-[a-f0-9-]{36}$/.test(i.id))).map(i=>i.custom?{id:i.id,custom:true,config:normalizeDesign(i.config),qty:i.qty}:i.productId?{id:i.id,productId:i.productId,config:normalizeDesign(i.config),qty:i.qty}:{id:i.id,qty:i.qty}):[];
+cart=Array.isArray(cart)?cart.filter(i=>i&&Number.isInteger(i.qty)&&i.qty>0&&i.qty<=10&&(products.some(p=>p.id===i.id)||i.custom===true&&/^custom-[a-f0-9-]{36}$/.test(i.id)||products.some(p=>p.id===i.productId)&&/^configured-[a-f0-9-]{36}$/.test(i.id))).map(i=>i.custom?{id:i.id,custom:true,config:migrateStoredDesign(i.config),qty:i.qty}:i.productId?{id:i.id,productId:i.productId,config:migrateStoredDesign(i.config),qty:i.qty}:{id:i.id,qty:i.qty}):[];
 const cartRecipes=new Map();
 const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let favorites=read('miscante-favorites',[]); favorites=Array.isArray(favorites)?favorites.filter(id=>products.some(p=>p.id===id)):[];
