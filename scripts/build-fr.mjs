@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 import {readFile,mkdir,writeFile,cp,rm,access} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
@@ -11,8 +12,8 @@ export async function buildFR(){
  const source=new URL('public/',root),templates=new URL('software-fr/',root);
  const entry=await readFile(new URL('app.js',templates),'utf8');
  const common={bundle:true,write:false,define:{__CAD_STYLE_VERSION__:JSON.stringify(hash(await readFile(new URL('cad-workspace.css',source))))},format:'esm',target:'es2022',minify:true,legalComments:'eof'};
- const bundle=await build({...common,stdin:{contents:entry,sourcefile:'software-fr/app.js',resolveDir:source.pathname,loader:'js'}});
- const worker=await build({...common,entryPoints:[new URL('reference-extraction.js',source).pathname]});
+ const bundle=await build({...common,stdin:{contents:entry,sourcefile:'software-fr/app.js',resolveDir:fileURLToPath(source),loader:'js'}});
+ const worker=await build({...common,entryPoints:[fileURLToPath(new URL('reference-extraction.js',source))]});
  const code=bundle.outputFiles[0].text,workerCode=worker.outputFiles[0].text;
  const style=await readFile(new URL('style.css',source)),standalone=await readFile(new URL('standalone.css',templates));
  const html=(await readFile(new URL('index.html',templates),'utf8'))

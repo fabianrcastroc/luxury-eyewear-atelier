@@ -34,7 +34,7 @@ try{
  console.log('project saved');
  const glbPath=await download('studio-glb'),glb=await readFile(glbPath);assert.equal(glb.readUInt32LE(0),0x46546c67);assert.equal(glb.readUInt32LE(8),glb.length);
  console.log('GLB saved');
- const popupEvent=app.waitForEvent('window');await page.locator('#studio-print').click();const popup=await popupEvent;await popup.waitForLoadState('domcontentloaded');assert.equal(await popup.locator('.sheet').count(),2);assert.equal(await popup.locator('[data-part^="nasal-pad-"]').count(),2);
+ const popupEvent=app.waitForEvent('window');await page.locator('#studio-print').click();const popup=await popupEvent;await popup.setViewportSize({width:1000,height:820});await popup.waitForLoadState('domcontentloaded');assert.equal(await popup.locator('.sheet').count(),2);assert.equal(await popup.locator('[data-part^="nasal-pad-"]').count(),2);
  await popup.evaluate(()=>{window.__printInvoked=false;window.print=()=>{window.__printInvoked=true;};});await popup.locator('button').first().click();assert.equal(await popup.evaluate(()=>window.__printInvoked),true);
  const encodedPDF=await app.evaluate(async({BrowserWindow})=>{const printWindow=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL()==='about:blank');return (await printWindow.webContents.printToPDF({preferCSSPageSize:true,printBackground:true})).toString('base64');});const pdf=Buffer.from(encodedPDF,'base64');await writeFile(path.join(output,'offline-patterns.pdf'),pdf);assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
  await page.screenshot({path:path.join(output,'offline-editor.png')});assert.deepEqual(errors,[]);assert.deepEqual(http,[]);

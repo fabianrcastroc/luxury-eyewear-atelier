@@ -1,9 +1,10 @@
+import {fileURLToPath} from 'node:url';
 import {readFile,mkdir,writeFile,cp,rm} from 'node:fs/promises';
 import {build} from 'esbuild';
 import {createHash} from 'node:crypto';
 import {buildFR} from './scripts/build-fr.mjs';
 const root=new URL('./',import.meta.url);
-const bundle=await build({entryPoints:[new URL('./public/app.js',root).pathname],bundle:true,write:false,define:{__CAD_STYLE_VERSION__:JSON.stringify(createHash('sha256').update(await readFile(new URL('./public/cad-workspace.css',root))).digest('hex').slice(0,12))},format:'esm',target:'es2022',minify:true,legalComments:'eof'});
+const bundle=await build({entryPoints:[fileURLToPath(new URL('./public/app.js',root))],bundle:true,write:false,define:{__CAD_STYLE_VERSION__:JSON.stringify(createHash('sha256').update(await readFile(new URL('./public/cad-workspace.css',root))).digest('hex').slice(0,12))},format:'esm',target:'es2022',minify:true,legalComments:'eof'});
 const scriptVersion=createHash('sha256').update(bundle.outputFiles[0].text).digest('hex').slice(0,12);
 const cssVersion=createHash('sha256').update(await readFile(new URL('./public/style.css',root))).digest('hex').slice(0,12);
 for(const dir of ['docs','dist']){
