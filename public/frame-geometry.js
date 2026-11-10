@@ -152,7 +152,7 @@ export function nasalPads(d,side){
  // the parent acetate, avoiding a detached oval or a floating clip-on pad.
  for(let i=0;i<=48;i++){
   const t=i/48,y=cy+height/2-height*t,boundary=nasalBoundary(y),bump=Math.sin(Math.PI*t),available=Math.max(0,boundary*side-2*MM);
-  back.push([boundary+side*.8*MM*bump,y]);nose.push([boundary-side*Math.min(2.5*MM,available)*bump,y]);
+  back.push([boundary+side*2.5*MM*bump,y]);nose.push([boundary-side*Math.min(2.5*MM,available)*bump,y]);
  }
  return {outline:[...back,...nose.slice(1,-1).reverse()],depth:3*MM,rearZ:-3*MM,kind:'bonded-nasal-halfmoon'};
 }

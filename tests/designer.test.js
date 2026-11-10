@@ -1,3 +1,4 @@
+import {offsetSingleContour,intersectPolygons,subtractPolygons,polygonArea} from '../public/planar-kernel.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,templeWidthLimit,nasalPads,templeSection,hingeGeometry,MM} from '../public/frame-geometry.js';
@@ -151,3 +152,11 @@ test('paleta disponible y migración de colores anteriores',()=>{
  test('decimales de pared y brazo no se redondean a milímetros enteros',()=>{const d=normalizeDesign({thickness:4.3,armWidth:7.6});assert.equal(d.thickness,4.3);assert.equal(d.armWidth,7.6);});
 
 test('proyectos anteriores conservan abertura de cristal y los nuevos guardan su política de pared',()=>{const legacy=migrateStoredDesign({model:'recto',thickness:6});assert.equal(legacy.wallMode,'fixed-lens');const saved=normalizeDesign({wallMode:'inward',thickness:4.3,note:'Revisar apoyo nasal'});assert.deepEqual(migrateStoredDesign(JSON.parse(JSON.stringify(saved))),saved);assert.equal(normalizeDesign({note:'x'.repeat(2000)}).note.length,1000);});
+
+test('las lunetas conservan superficie real de pegado tras redondear los bordes del aro y del apoyo',()=>{
+ for(const materialDepth of [2,3,4,6,8])for(const side of [-1,1]){
+  const d=normalizeDesign({materialDepth,thickness:3}),center=lensCenters(d)[side===-1?0:1],bevel=Math.min(.8,d.thickness*.22,materialDepth*.24)*MM;
+  const outer=frameContour(d,side).map(([x,y])=>[x+center,y]),inner=lensContour(d,side).map(([x,y])=>[x+center,y]),pad=nasalPads(d,side);
+  const contact=intersectPolygons([offsetSingleContour(outer,-bevel)],[offsetSingleContour(pad.outline,-.7*MM)]),bond=subtractPolygons(contact,[offsetSingleContour(inner,bevel)]),area=bond.reduce((sum,p)=>sum+polygonArea(p),0)/(MM*MM);assert.ok(area>1,`pegado ${area} mm²`);
+ }
+});
