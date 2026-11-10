@@ -1,0 +1,39 @@
+appId: studio.freyewear.desktop
+productName: FR eyewear studio
+artifactName: FR-eyewear-studio-${version}-${os}-${arch}.${ext}
+asar: true
+npmRebuild: false
+files:
+  - desktop/main.cjs
+  - dist/**
+  - package.json
+  - "!node_modules/**"
+extraMetadata:
+  main: desktop/main.cjs
+  description: Estudio de diseño de gafas FR con edición y patrones de taller sin conexión.
+directories:
+  output: installers
+  buildResources: desktop/resources
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: FR eyewear studio
+linux:
+  target:
+    - target: deb
+      arch: [x64]
+  category: Graphics
+  executableName: fr-eyewear-studio
+  synopsis: Diseño paramétrico de gafas y patrones de taller sin conexión
+  maintainer: FR eyewear studio
+mac:
+  target: [dmg]
+  category: public.app-category.graphics-design

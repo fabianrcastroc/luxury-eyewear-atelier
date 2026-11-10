@@ -31,7 +31,7 @@ export function finishedTemple(rows){
   if(i<count-1)for(let j=0;j<sectionCount;j++){const a=i*sectionCount+j,b=i*sectionCount+(j+1)%sectionCount,c=(i+1)*sectionCount+j,d=(i+1)*sectionCount+(j+1)%sectionCount;indices.push(a,c,b,b,c,d);}
  }
  const first=roundSection(rows[0].depth,rows[0].height).map(p=>new Vector2(...p)),last=roundSection(rows.at(-1).depth,rows.at(-1).height).map(p=>new Vector2(...p));
- for(const triangle of ShapeUtils.triangulateShape(first,[]))indices.push(...triangle.slice().reverse());
- const end=(count-1)*sectionCount;for(const triangle of ShapeUtils.triangulateShape(last,[]))indices.push(...triangle.map(i=>i+end));
+ for(const triangle of ShapeUtils.triangulateShape(first,[]))indices.push(...triangle);
+ const end=(count-1)*sectionCount;for(const triangle of ShapeUtils.triangulateShape(last,[]))indices.push(...triangle.slice().reverse().map(i=>i+end));
  const geometry=new BufferGeometry();geometry.setAttribute('position',new Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();const uv=[];let travel=0;for(let i=0;i<rows.length;i++){if(i)travel+=Math.hypot(...rows[i].point.map((v,j)=>v-rows[i-1].point[j]));for(let j=0;j<sectionCount;j++)uv.push(travel/(10*MM),j/sectionCount);}geometry.setAttribute('uv',new Float32BufferAttribute(uv,2));geometry.userData={sectionVertexCount:sectionCount,sectionCount:count,continuous:true};return geometry;
 }

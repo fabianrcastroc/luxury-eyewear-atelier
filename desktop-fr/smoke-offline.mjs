@@ -1,0 +1,43 @@
+import {_electron as electron} from 'playwright-core';
+import assert from 'node:assert/strict';
+import {mkdir,readFile,writeFile,readdir,stat,rm} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+const root=fileURLToPath(new URL('../',import.meta.url));
+const output=process.env.FR_SMOKE_OUTPUT||'/tmp/fr-desktop-smoke';await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});
+const executable=process.env.FR_ELECTRON_EXECUTABLE||path.join(root,'node_modules/electron/dist',process.platform==='win32'?'electron.exe':process.platform==='darwin'?'Electron.app/Contents/MacOS/Electron':'electron');
+const appPath=process.env.FR_INSTALLED_APP?'':root;
+const args=[...(process.platform==='linux'?['--no-sandbox','--ozone-platform=headless']:[]),...(appPath?[appPath]:[]),'--headless-test','--download-dir='+output];
+const app=await electron.launch({executablePath:executable,args,env:{...process.env,XDG_CACHE_HOME:process.env.XDG_CACHE_HOME||'/tmp/fr-smoke-cache',XDG_CONFIG_HOME:process.env.XDG_CONFIG_HOME||'/tmp/fr-smoke-config'},timeout:60000});
+app.process().stdout.on('data',data=>console.log(data.toString()));
+let result;
+try{
+ const page=await app.firstWindow(),errors=[],http=[];await page.setViewportSize({width:1540,height:1000});
+ page.on('console',m=>{if(m.type()==='error')console.log('renderer error',m.text());});page.on('pageerror',error=>{errors.push(error.message);console.log('pageerror',error.message);});page.on('request',request=>{if(/^https?:/.test(request.url()))http.push(request.url());});
+ await page.waitForFunction(()=>document.querySelector('#disena')?.dataset.renderer==='webgl',{},{timeout:60000});
+ assert.match(page.url(),/^fr:\/\/studio\//);
+ console.log('renderer ready');
+ const security=await app.evaluate(({BrowserWindow})=>{const preferences=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {contextIsolation:preferences.contextIsolation,nodeIntegration:preferences.nodeIntegration,sandbox:preferences.sandbox};});
+ assert.deepEqual(security,{contextIsolation:true,nodeIntegration:false,sandbox:true});
+ await page.locator('[data-panel="1"]').click();await page.locator('#precision-depth').fill('8');await page.locator('#precision-depth').dispatchEvent('change');
+ await page.waitForFunction(()=>JSON.parse(document.querySelector('#disena').dataset.design).materialDepth===8);
+ await page.locator('.cad-stage-tabs [data-stage="2d"]').click();assert.equal(await page.locator('#studio-plan svg').isVisible(),true);
+ await page.locator('.cad-stage-tabs [data-stage="3d"]').click();
+ // A real local File must reach the packaged Web Worker without HTTP access.
+ await page.evaluate(async()=>{const canvas=document.createElement('canvas');canvas.width=480;canvas.height=200;const c=canvas.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,480,200);c.fillStyle='#111';for(const x of [140,340]){c.beginPath();c.ellipse(x,100,75,50,0,0,Math.PI*2);c.fill();}c.fillRect(210,80,60,12);c.fillStyle='#777';for(const x of [140,340]){c.beginPath();c.ellipse(x,100,65,40,0,0,Math.PI*2);c.fill();}const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'offline-frontal.png',{type:'image/png'}));const input=document.querySelector('#studio-extract-file');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));});
+ await page.waitForFunction(()=>!document.querySelector('#studio-apply-reference').disabled,{},{timeout:30000});await page.locator('#studio-apply-reference').click();
+ await page.waitForFunction(()=>JSON.parse(document.querySelector('#design-preview').dataset.config).customContour?.length>30);
+ const download=async id=>{const before=new Set(await readdir(output));await page.locator('#'+id).click();let found;for(let count=0;count<200;count++){for(const name of await readdir(output)){if(!before.has(name)&&!name.endsWith('.crdownload')&&(await stat(path.join(output,name))).size>0)found=path.join(output,name);}if(found)break;await new Promise(resolve=>setTimeout(resolve,100));}assert.ok(found,'download completed: '+id);return found;};
+ const projectPath=await download('studio-project-save'),project=JSON.parse(await readFile(projectPath,'utf8'));assert.equal(project.units,'mm');assert.ok(project.design.customContour.length>30);
+ await page.locator('#precision-depth').fill('6');await page.locator('#precision-depth').dispatchEvent('change');await page.locator('#studio-project-open').setInputFiles(projectPath);await page.waitForFunction(()=>JSON.parse(document.querySelector('#disena').dataset.design).materialDepth===8);
+ console.log('project saved');
+ const glbPath=await download('studio-glb'),glb=await readFile(glbPath);assert.equal(glb.readUInt32LE(0),0x46546c67);assert.equal(glb.readUInt32LE(8),glb.length);
+ console.log('GLB saved');
+ const popupEvent=app.waitForEvent('window');await page.locator('#studio-print').click();const popup=await popupEvent;await popup.waitForLoadState('domcontentloaded');assert.equal(await popup.locator('.sheet').count(),2);assert.equal(await popup.locator('[data-part^="nasal-pad-"]').count(),2);
+ await popup.evaluate(()=>{window.__printInvoked=false;window.print=()=>{window.__printInvoked=true;};});await popup.locator('button').first().click();assert.equal(await popup.evaluate(()=>window.__printInvoked),true);
+ const encodedPDF=await app.evaluate(async({BrowserWindow})=>{const printWindow=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL()==='about:blank');return (await printWindow.webContents.printToPDF({preferCSSPageSize:true,printBackground:true})).toString('base64');});const pdf=Buffer.from(encodedPDF,'base64');await writeFile(path.join(output,'offline-patterns.pdf'),pdf);assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
+ await page.screenshot({path:path.join(output,'offline-editor.png')});assert.deepEqual(errors,[]);assert.deepEqual(http,[]);
+ result={success:true,platform:process.platform,url:page.url(),security,webgl:true,localWorker:true,projectRoundtrip:true,glb:true,pdfPages:2,externalHTTPRequests:http,errors};
+ console.log(JSON.stringify(result));
+}finally{await app.close();if(result)await writeFile(path.join(output,'offline-smoke.json'),JSON.stringify(result,null,2)+'\n');}

@@ -40,3 +40,10 @@ La ejecución sobre FR compilado terminó con código 0. Pasaron las comprobacio
 Se imprimieron realmente los tres papeles. PyMuPDF verificó dos páginas por archivo y el rótulo «LUNETAS NASALES» en la primera. Barra de 100 mm: A4 99,998321 mm; Carta 99,999989 mm; Oficio 99,999994 mm. Los cuadrados de 20 × 20 mm quedaron dentro de 0,00035 mm de la dimensión digital. Esto mide la conversión del navegador al PDF, no una impresión física. Archivo de evidencia local: `/tmp/cad-acceptance/pdf-independent-metrology.json`.
 
 Las capturas muestran cantos redondeados y un frente continuo, sin las cajas flotantes exteriores del prototipo inicial. Las vistas nominales ahora usan proyección ortográfica. La geometría sigue siendo un modelo paramétrico poligonal: esta revisión no certifica equivalencia con un núcleo industrial de CAD, una luneta comercial auténtica ni el ajuste de un herraje real.
+
+
+## Revisión 10 de noviembre: puentes, nasal y terminales
+
+Capturas inspeccionadas: comparativa frontal 4×3 puentes; seis perfiles de brazo; modelo 3D frontal/lateral/perspectiva y editor de cuatro vistas. La silla clásica tiene hombros y concavidad inferior; la herradura abre una bóveda; el doble conserva dos barras y ventana. Las curvas distales son continuas y el afinado de espesor evita terminales sobredimensionados de stock completo.
+
+Aceptación ejecutada sobre dist/fr con WebGL real: 63 pruebas unitarias; matriz GLB de 20 modelos/stock; edición y exportación real a tres PDF de dos hojas. Los datos calculados de zona nasal son cotas del modelo, no una recomendación clínica o antropométrica.

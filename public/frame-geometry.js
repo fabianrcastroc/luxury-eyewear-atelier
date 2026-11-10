@@ -65,28 +65,29 @@ export function offsetContour(input,distance){
  return result;
 }
 function baselineLens(d,side){const half=sizeOf(d).lens/2*MM,aspect=finite(d.contourAspectScale,.85,1.15,1);return profile(d,side).map(([x,y])=>[x*half,y*half*aspect]);}
-function detailedOuter(d,side,wall=4){
+function detailedOuter(d,side,wall=finite(d.envelopeWall,3,8,4)){
  const half=sizeOf(d).lens/2*MM,outer=offsetContour(baselineLens(d,side),wall*MM),angle=finite(d.nasalAngle,0,15,0)*Math.PI/180,lift=finite(d.temporalLift,0,12,0)*MM,reach=finite(d.temporalReach,0,8,0)*MM;
  if(!angle&&!lift&&!reach)return outer;
- const h=Math.max(...outer.map(p=>Math.abs(p[1]))),w=Math.max(...outer.map(p=>Math.abs(p[0]))),nasalPivot=Math.min(...outer.map(p=>p[0]*side));
+ const h=Math.max(...outer.map(p=>Math.abs(p[1]))),w=Math.max(...outer.map(p=>Math.abs(p[0])));
+ const smooth=(value,a,b)=>{const t=Math.max(0,Math.min(1,(value-a)/(b-a)));return t*t*(3-2*t);};
  const shaped=outer.map(([x,y])=>{
-  const temporal=x*side/w,upper=Math.max(0,y/h),nasal=Math.max(0,-x*side/w),lower=Math.max(0,-y/h);
-  // These supports are confined to their named quadrants. Upper-nasal and
-  // lower-temporal edges never receive another control's displacement.
+  const temporal=x*side/w,upper=Math.max(0,y/h),nasal=Math.max(0,-x*side/w);
   const temporalWeight=Math.max(0,temporal)**3*upper**.7;
-  let nx=x,ny=y;if(angle&&x*side<0&&y<0){const phi=Math.atan2(-y,-x*side),theta=angle*Math.sin(2*phi)**2,vx=x*side-nasalPivot;nx=side*(nasalPivot+vx*Math.cos(theta)-y*Math.sin(theta));ny=vx*Math.sin(theta)+y*Math.cos(theta);}
-  return [nx+side*reach*temporalWeight,ny+lift*temporalWeight];
+  // Opening is a lateral flare of the LOWER nasal edge. Its vertical station
+  // stays fixed: rotating whole points previously lifted/twisted the nose wall.
+  // The upper nasal edge and lower temporal edge remain exactly unchanged.
+  const nasalShift=y<0&&x*side<0?Math.min(3*MM,Math.tan(angle)*(-y)*smooth(nasal,.12,.85)):0;
+  return [x+side*(reach*temporalWeight+nasalShift),y+lift*temporalWeight];
  });
  return shaped;
 }
 export function frameContour(d,side,scale=1){
  // In envelope mode every radial-width edit consumes the INNER aperture.
  // The baseline 4 mm external envelope never grows towards the nose/temples.
- const outer=detailedOuter(d,side,d.wallMode==='fixed-lens'?finite(d.thickness,3,8,4):4);
+ const outer=detailedOuter(d,side);
  return outer.map(([x,y])=>[x*scale,y*scale]);
 }
 export function lensContour(d,side){
- if(d.wallMode==='fixed-lens')return baselineLens(d,side);
  return offsetContour(detailedOuter(d,side),-finite(d.thickness,3,8,4)*MM);
 }
 export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge)/2*MM;return [-center,center];}
@@ -108,7 +109,7 @@ export function designMeasurements(d){
  const bridge=(centers[1]+Math.min(...right.map(p=>p[0]))-centers[0]-Math.max(...left.map(p=>p[0])))/MM;
  const envelope=[...frameContour(d,1).map(([x,y])=>[x+centers[1],y]),...hingeGeometry(d,1).boxOutline];
  const width=2*Math.max(...envelope.map(p=>p[0]))/MM;
- return {lens:round(lens),bridge:round(bridge),temple,front:round(width),nominalLens:s.lens,nominalBridge:s.bridge,code:`${round(lens)} □ ${round(bridge)}–${temple}`,size:s.id,wallMode:d.wallMode==='fixed-lens'?'fixed-lens':'inward'};
+ return {lens:round(lens),bridge:round(bridge),temple,front:round(width),nominalLens:s.lens,nominalBridge:s.bridge,code:`${round(lens)} □ ${round(bridge)}–${temple}`,size:s.id,wallMode:'inward'};
 }
 function nasalX(d,y){
  const contour=frameContour(d,1),crossings=[];
@@ -117,11 +118,48 @@ function nasalX(d,y){
 }
 export function bridgeGeometry(d){
  const outer=frameContour(d,1),top=Math.max(...outer.map(p=>p[1])),kind=['clasico','doble','herradura'].includes(d.bridgeType)?d.bridgeType:'clasico';
- const base=top*.42,gauge=4*MM,rise=kind==='herradura'?5*MM:1.5*MM;
- function band(y,up,thickness){const upper=[],lower=[],x=nasalX(d,y),lowerX=nasalX(d,y-thickness);for(let i=0;i<=48;i++){const t=i/48,bump=Math.sin(Math.PI*t);upper.push([-x+2*x*t,y+up*bump]);lower.push([-lowerX+2*lowerX*t,y-thickness+up*bump]);}return {upper,lower,outline:[...upper,...lower.slice().reverse()]};}
- const bands=[band(base,rise,gauge)];if(kind==='doble')bands.push(band(Math.min(top*.83,base+8*MM),.6*MM,2*MM));
- return {bands,anchorHeight:base,type:kind};
+ const samples=64,mm=n=>n*MM;
+ function band(y,rise,gauge){
+  const x=nasalX(d,y),lowerX=nasalX(d,y-gauge),upper=[],lower=[];
+  for(let i=0;i<=samples;i++){const t=i/samples,bump=4*t*(1-t);upper.push([-x+2*x*t,y+rise*bump]);lower.push([-lowerX+2*lowerX*t,y-gauge+rise*bump]);}
+  return {upper,lower,outline:[...upper,...lower.slice().reverse()]};
+ }
+ let bands,section;
+ if(kind==='herradura'){
+  // A true open horseshoe/keyhole arch: circular nose vault and rounded
+  // shoulders, rather than the same shallow strip with a different rise.
+  let base=top*.28;
+  let radius=Math.max(mm(3.5),nasalX(d,base)-mm(.8));
+  const gauge=mm(3.5);
+  base=Math.min(base,top-radius-gauge-mm(.8));
+  radius=Math.max(mm(3.5),nasalX(d,base)-mm(.8));
+  const outerRadius=radius+gauge,upper=[],lower=[];
+  for(let i=0;i<=samples;i++){const theta=Math.PI-i/samples*Math.PI;upper.push([outerRadius*Math.cos(theta),base+outerRadius*Math.sin(theta)]);lower.push([radius*Math.cos(theta),base+radius*Math.sin(theta)]);}
+  bands=[{upper,lower,outline:[...upper,...lower.slice().reverse()]}];
+  section={kind:'round-keyhole-vault',vaultRadiusMM:radius/MM,wallMM:gauge/MM,baseMM:base/MM};
+ }else if(kind==='doble'){
+  const lowerY=top*.32,upperY=Math.max(top*.8,lowerY+mm(8));
+  bands=[band(lowerY,mm(1.3),mm(2.4)),band(Math.min(upperY,top-mm(.8)),mm(.15),mm(2))];
+  section={kind:'separate-saddle-and-brow-bar',lowerGaugeMM:2.4,upperGaugeMM:2,clearanceMM:(bands[1].lower[Math.floor(samples/2)][1]-Math.max(...bands[0].upper.map(p=>p[1])))/MM};
+ }else{
+  // Traditional integral acetate saddle: flatter upper brow and a rounded,
+  // rising underside. Broad shoulders are blended by the front polygon union.
+  const y=top*.58,x=nasalX(d,y),lowerY=y-mm(6),lowerX=nasalX(d,lowerY),upper=[],lower=[];
+  for(let i=0;i<=samples;i++){const t=i/samples,bump=4*t*(1-t);upper.push([-x+2*x*t,y+mm(.7)*bump]);lower.push([-lowerX+2*lowerX*t,lowerY+mm(2.5)*Math.sin(Math.PI*t)]);}
+  bands=[{upper,lower,outline:[...upper,...lower.slice().reverse()]}];
+  section={kind:'integral-acetate-saddle',centerGaugeMM:4.2,shoulderGaugeMM:6};
+ }
+ return {bands,anchorHeight:bands[0].upper[0][1],type:kind,section};
 }
+
+// Measured construction dimensions, not a medical or manufacturer fit standard.
+export function noseZoneMeasurements(d){
+ const right=frameContour(d,1),center=lensCenters(d)[1];
+ function gapAt(mm){const y=mm*MM,cross=[];for(let i=0;i<right.length;i++){const a=right[i],b=right[(i+1)%right.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)cross.push(center+a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}return cross.length?Math.min(...cross)*2/MM:null;}
+ const stations=[0,-3,-6,-9,-12].map(y=>({heightMM:y,widthMM:gapAt(y)})),pad=nasalPads(d,1),minimumPadGapMM=Math.min(...pad.outline.map(p=>p[0]))*2/MM;
+ return {stations,minimumOuterGapMM:Math.min(...stations.filter(s=>s.widthMM!=null).map(s=>s.widthMM)),minimumPadGapMM,openingAngleDegrees:finite(d.nasalAngle,0,15,0),maximumFlarePerSideMM:3,clinicalFitValidated:false,source:'measured-parametric-construction'};
+}
+
 export function templePlan(d,side,style='clasico'){
  const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1];
  const hinge=hingeGeometry(d,side),x=hinge.anchor[0],y=hinge.anchor[1];

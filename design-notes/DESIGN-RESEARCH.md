@@ -46,7 +46,7 @@ El análisis debe trabajar a resolución acotada, detectar regiones y aberturas 
 
 ## Dos hojas para el taller
 
-**Hoja 1:** frontal completo, contornos de las dos aberturas de cristal y lunetas separadas, con indicación de izquierda/derecha, ejes y cotas A, altura de apertura, DBL y ancho frontal. Las lunetas reproducen el perfil nominal del cristal; la ranura/bisel y su compensación requieren datos de fabricación adicionales.
+**Hoja 1:** frontal completo, contornos de las dos aberturas de cristal y lunetas separadas, con indicación de izquierda/derecha, ejes y cotas A, altura de apertura, DBL y ancho frontal. Las lunetas son los dos apoyos nasales interiores para laminar, como aclaró el usuario. No son los cristales ni sus plantillas. La ranura/bisel óptico requiere datos adicionales.
 
 **Hoja 2:** ambos brazos identificados y sus perfiles de corte desarrollados, largo del eje y cotas de anchura, con información de dónde empieza el tramo destinado al curvado. Una proyección de una patilla curva no es automáticamente su desarrollo plano. Debe declararse el método de desarrollo y comprobar su longitud.
 
@@ -84,3 +84,12 @@ Para una plantilla fiel hace falta recuperar un archivo de trazador o una planti
 Si no se dispone de ese archivo, se puede ofrecer una propuesta paramétrica con dimensiones 50 □ 22 claramente identificada como **aproximación**, manteniendo pendiente la validación de correspondencia con RB2140. El flujo automático de importación debe utilizar el archivo auténtico cuando se consiga, sin exigir al usuario dibujar de nuevo la luneta.
 
 Para completar esta búsqueda se requiere habilitar los dominios anteriores en la configuración de red del entorno. Las redirecciones y dominios de descarga se deben añadir solo después de observarlos. Habilitar un dominio permite investigar la fuente; no garantiza que publique una plantilla descargable ni sustituye comprobar procedencia y escala.
+
+
+## Revisión del 10 de noviembre de 2026
+
+La referencia visual adicional de esta revisión son las fotografías y observaciones del PDF aportado. Los catálogos de Ray-Ban y Frame Stock siguen rechazados por la política de red (403); no se presentan parámetros inferidos como cotas oficiales del fabricante.
+
+El clásico usa una silla integral con hombros; la herradura una bóveda semicircular abierta inferiormente; el doble dos barras separadas con ventana independiente. La matriz automatizada verifica una única unión frontal y vaciados separados para cuatro siluetas y cinco espesores. La apertura nasal actúa lateralmente solo en el cuadrante inferior y tiene límite constructivo de 3 mm por lado. No representa una certificación clínica. Las cotas de espacio frontal y entre apoyos se calculan del modelo.
+
+La pared consume únicamente la apertura interior y conserva la envolvente almacenada, también al migrar proyectos antiguos. Los brazos comparten contorno desarrollado y secciones 3D, mantienen B y una estación de curva a B−32 mm; el ángulo final es una tangente real. El afinado distal se declara como mecanizado adicional y no como espesor de stock.

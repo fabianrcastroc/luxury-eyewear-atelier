@@ -22,3 +22,5 @@
 .cad-workspace .cad-statusbar{flex-direction:row;flex-wrap:nowrap}
 
 .cad-mobile-models:empty{display:none}.cad-mobile-models .model-grid{padding:14px;gap:10px}.cad-mobile-models .model-option{background:#303a46;border-color:#596b79;color:#dce8ec}.cad-mobile-models .model-option[aria-pressed=true]{border-color:#8ad8c9}.cad-mobile-models .model-option strong{color:#dce8ec}.cad-mobile-models .model-thumb{height:100px}.cad-mobile-models .model-option small{display:none}.cad-mobile-models .cad-reference-import{padding:0 14px 18px}
+
+.cad-workspace .cad-logo{letter-spacing:-1px}.cad-workspace .cad-logo>span{font-size:11px;letter-spacing:.5px;font-weight:400}.cad-nose-metrics{margin-top:14px;padding:10px;background:#202b34;border-left:2px solid #8ad8c9;font-size:11px}.cad-nose-metrics strong{display:block;font-size:11px;margin-bottom:5px}.cad-nose-metrics>span{display:flex;justify-content:space-between;padding:3px 0;color:#b9cbd4}.cad-nose-metrics b{font-weight:500;color:#e2eeee}.cad-nose-metrics small{display:block;font-size:10px;margin-top:7px;line-height:1.6;color:#aabdc5}

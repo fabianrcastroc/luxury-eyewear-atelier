@@ -1,0 +1,28 @@
+{
+  "name": "fr-eyewear-studio-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "package:win": "electron-builder --config desktop/electron-builder.yml --win nsis --x64 --publish never",
+    "smoke": "node desktop/smoke-offline.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "playwright-core": "1.64.1",
+    "sharp": "^0.35.5"
+  },
+  "dependencies": {},
+  "main": "desktop/main.cjs",
+  "description": "FR eyewear studio: dise\u00f1o y patrones de gafas sin conexi\u00f3n",
+  "author": "FR eyewear studio",
+  "homepage": "https://fabianrcastroc.github.io/luxury-eyewear-atelier/fr/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fabianrcastroc/luxury-eyewear-atelier.git"
+  }
+}

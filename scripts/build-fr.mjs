@@ -30,11 +30,11 @@ export async function buildFR(){
   await cp(new URL('THIRD_PARTY_NOTICES.txt',source),new URL('THIRD_PARTY_NOTICES.txt',out));
   await writeFile(new URL('standalone.css',out),standalone);
   await mkdir(new URL('assets/',out),{recursive:true});
-  await cp(new URL('assets/favicon.svg',source),new URL('assets/favicon.svg',out));
+  await cp(new URL('favicon.svg',templates),new URL('assets/favicon.svg',out));
   await cp(new URL('assets/forms/',source),new URL('assets/forms/',out),{recursive:true});
   // Fail the Pages build rather than deploy a missing entry or broken worker.
   for(const path of ['index.html','app.js','reference-extraction.js','style.css','cad-workspace.css','standalone.css','assets/favicon.svg','assets/forms/recto.webp','assets/forms/redondo.webp','assets/forms/ovalado.webp','assets/forms/curvo.webp'])await access(new URL(path,out));
-  if(!html.includes('FR · Eyewear Studio')||!html.includes('id="disena"')||!code.length||!workerCode.includes('onmessage'))throw new Error(`FR output incomplete in ${directory}`);
+  if(!html.includes('FR eyewear studio')||!html.includes('id="disena"')||!code.length||!workerCode.includes('onmessage'))throw new Error(`FR output incomplete in ${directory}`);
  }
  console.log('FR · Eyewear Studio generado en docs/fr/ y dist/fr/, con análisis local de imagen.');
 }

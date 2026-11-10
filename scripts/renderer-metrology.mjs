@@ -26,7 +26,7 @@ try{
     const buffer=await viewer.exportGLB(),view=new DataView(buffer);
     if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2||view.getUint32(8,true)!==buffer.byteLength)throw new Error('Invalid binary glTF header');
     const jsonLength=view.getUint32(12,true),json=JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,20,jsonLength))),binOffset=20+jsonLength+8;
-    const root=json.nodes.find(node=>node.name==='Miscante eyewear');
+    const root=json.nodes.find(node=>node.name==='FR eyewear studio');
     const scale=root.scale||(root.matrix?[root.matrix[0],root.matrix[5],root.matrix[10]]:[]);
     if(scale.length!==3)throw new Error('Missing metre conversion');scale.forEach(value=>close(value,.025));
     if(!/preview/i.test(root.extras.purpose))throw new Error('Export must identify its design-preview scope');

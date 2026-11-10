@@ -1,7 +1,8 @@
+import {frontCutGeometry} from '../public/manufacturing.js';
 import {offsetSingleContour,intersectPolygons,subtractPolygons,polygonArea} from '../public/planar-kernel.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,templeWidthLimit,nasalPads,templeSection,hingeGeometry,MM} from '../public/frame-geometry.js';
+import {frameSizes,lensContour,frameContour,lensCenters,bridgeGeometry,templePlan,designMeasurements,recommendFrameSize,templeWidthLimit,nasalPads,templeSection,hingeGeometry,noseZoneMeasurements,MM} from '../public/frame-geometry.js';
 import {iconicModels,defaultDesign,normalizeDesign,designQuote,prescriptionError,prescriptionSignature,armStyles,photoColors,framePreview,frameColors,migrateStoredDesign} from '../public/designer-model.js';
 import {totals} from '../public/catalog.js';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} ≈ ${b}`);
@@ -123,9 +124,10 @@ test('PDF: el ancho radial nunca desplaza envolvente, frente, bisagras ni arranq
   for(const thickness of [3,5,8]){const d=normalizeDesign({...base,thickness});assert.deepEqual(frameContour(d,1),outer);assert.deepEqual(hingeGeometry(d,1),hinge);assert.equal(designMeasurements(d).front,front);assert.deepEqual(templePlan(d,1).stem[0],stem);assert.notEqual(designMeasurements(d).lens,designMeasurements(base).lens);}
  }
 });
-test('cristal fijo es un modo explícito y conserva el contorno al modificar aro',()=>{
- const base=normalizeDesign({wallMode:'fixed-lens',lensWidth:50,bridgeWidth:22}),inner=lensContour(base,1);
- for(const thickness of [3,8]){const d=normalizeDesign({...base,thickness});assert.deepEqual(lensContour(d,1),inner);assert.equal(designMeasurements(d).lens,50);assert.equal(designMeasurements(d).bridge,22);assert.notDeepEqual(frameContour(d,1),frameContour(base,1));}
+test('la política radial permanece hacia dentro incluso con indicadores históricos',()=>{
+ const base=normalizeDesign({wallMode:'fixed-lens',lensWidth:50,bridgeWidth:22}),outer=frameContour(base,1);
+ assert.equal(base.wallMode,'inward');
+ for(const thickness of [3,8]){const d=normalizeDesign({...base,thickness});assert.deepEqual(frameContour(d,1),outer);assert.notDeepEqual(lensContour(d,1),lensContour(base,1));}
 });
 test('controles locales no mueven los otros cuadrantes y conservan simetría',()=>{
  const d=normalizeDesign({model:'curvo'}),base=frameContour(d,1),nasal=frameContour({...d,nasalAngle:15},1),temporal=frameContour({...d,temporalLift:12,temporalReach:8},1);
@@ -151,12 +153,34 @@ test('paleta disponible y migración de colores anteriores',()=>{
 });
  test('decimales de pared y brazo no se redondean a milímetros enteros',()=>{const d=normalizeDesign({thickness:4.3,armWidth:7.6});assert.equal(d.thickness,4.3);assert.equal(d.armWidth,7.6);});
 
-test('proyectos anteriores conservan abertura de cristal y los nuevos guardan su política de pared',()=>{const legacy=migrateStoredDesign({model:'recto',thickness:6});assert.equal(legacy.wallMode,'fixed-lens');const saved=normalizeDesign({wallMode:'inward',thickness:4.3,note:'Revisar apoyo nasal'});assert.deepEqual(migrateStoredDesign(JSON.parse(JSON.stringify(saved))),saved);assert.equal(normalizeDesign({note:'x'.repeat(2000)}).note.length,1000);});
+test('la migración congela la envolvente histórica y conserva el nuevo formato',()=>{
+ const legacy=migrateStoredDesign({model:'recto',thickness:6});assert.equal(legacy.wallMode,'inward');assert.equal(legacy.envelopeWall,6);assert.equal(legacy.tipSize,10);assert.equal(legacy.tipMetric,'length');assert.equal(legacy.bendMetric,'tangent-degrees');
+ assert.ok(Math.abs(legacy.armBendAngle-Math.atan(.9+.8*Math.tan(20*Math.PI/180))*180/Math.PI)<.0051);
+ const outer=frameContour(legacy,1);assert.deepEqual(frameContour(normalizeDesign({...legacy,thickness:3}),1),outer);
+ const saved=normalizeDesign({thickness:4.3,note:'Revisar apoyo nasal'});assert.deepEqual(migrateStoredDesign(JSON.parse(JSON.stringify(saved))),saved);assert.equal(normalizeDesign({note:'x'.repeat(2000)}).note.length,1000);
+});
+
+test('la apertura nasal solo ensancha la zona inferior sin levantarla ni deformar el resto',()=>{
+ for(const model of iconicModels){
+  const d=normalizeDesign({model:model.id}),base=frameContour(d,1),opened=frameContour({...d,nasalAngle:15},1);
+  assert.equal(base.length,opened.length);
+  for(let i=0;i<base.length;i++){assert.equal(base[i][1],opened[i][1]);if(base[i][0]>=0||base[i][1]>=0)assert.deepEqual(base[i],opened[i]);else {assert.ok(opened[i][0]>=base[i][0]);assert.ok(opened[i][0]-base[i][0]<=3*MM+1e-9);}}
+  const a=noseZoneMeasurements(d),b=noseZoneMeasurements({...d,nasalAngle:15});assert.equal(a.clinicalFitValidated,false);assert.ok(b.minimumOuterGapMM>=a.minimumOuterGapMM-1e-6);
+ }
+});
 
 test('las lunetas conservan superficie real de pegado tras redondear los bordes del aro y del apoyo',()=>{
  for(const materialDepth of [2,3,4,6,8])for(const side of [-1,1]){
   const d=normalizeDesign({materialDepth,thickness:3}),center=lensCenters(d)[side===-1?0:1],bevel=Math.min(.8,d.thickness*.22,materialDepth*.24)*MM;
   const outer=frameContour(d,side).map(([x,y])=>[x+center,y]),inner=lensContour(d,side).map(([x,y])=>[x+center,y]),pad=nasalPads(d,side);
   const contact=intersectPolygons([offsetSingleContour(outer,-bevel)],[offsetSingleContour(pad.outline,-.7*MM)]),bond=subtractPolygons(contact,[offsetSingleContour(inner,bevel)]),area=bond.reduce((sum,p)=>sum+polygonArea(p),0)/(MM*MM);assert.ok(area>1,`pegado ${area} mm²`);
+ }
+});
+
+test('puentes: la unión real sigue siendo un frontal y el doble conserva su ventana independiente',()=>{
+ for(const model of iconicModels)for(const bridgeType of ['clasico','herradura','doble'])for(const materialDepth of [2,3,4,6,8]){
+  const d=normalizeDesign({model:model.id,bridgeType,materialDepth}),cut=frontCutGeometry(d),section=bridgeGeometry(d).section;
+  assert.equal(cut.outerLoops.length,1);assert.equal(cut.apertures.length,2);assert.equal(cut.bridgeVoids.length,bridgeType==='doble'?1:0);
+  if(bridgeType==='doble')assert.ok(section.clearanceMM>3);else if(bridgeType==='herradura')assert.ok(section.vaultRadiusMM>=3.5);
  }
 });

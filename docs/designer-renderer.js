@@ -137,7 +137,7 @@ export function createDesignRenderer(container){
   const snapshot=group.clone(true);
   // glTF declares metres; each scene unit is 1 / MM millimetres.
   snapshot.scale.multiplyScalar(.001/MM);
-  snapshot.name='Miscante eyewear';
+  snapshot.name='FR eyewear studio';
   snapshot.userData={...snapshot.userData,units:'metres',design:JSON.parse(container.dataset.config||'{}'),purpose:'Parametric design preview; validate manufacturing fit separately'};
   return new GLTFExporter().parseAsync(snapshot,{binary:true,onlyVisible:false});
  }
