@@ -39,10 +39,11 @@ export function createDesignRenderer(container){
   if(!['#68422e','#577b99'].includes(hex))return null;
   if(!materialTextures.has(hex)){
    const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const ctx=canvas.getContext('2d'),img=ctx.createImageData(256,256),marble=hex==='#577b99';
+   const noise=(x,y,period)=>{const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,s=t=>t*t*(3-2*t),hash=(a,b)=>{const v=Math.sin(((a%period+period)%period)*127.1+((b%period+period)%period)*311.7)*43758.5453;return v-Math.floor(v);};const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1),u=s(fx),v=s(fy);return (a+(b-a)*u)*(1-v)+(c+(d-c)*u)*v;};
    for(let y=0;y<256;y++)for(let x=0;x<256;x++){
     const n=Math.sin(x*.037+Math.cos(y*.051)*2)+.5*Math.sin(x*.113+y*.079)+.22*Math.cos(x*.25-y*.18),i=(y*256+x)*4;
     let rgb;if(marble){const vein=Math.pow(Math.max(0,1-Math.abs(Math.sin((x*.033+y*.018)+n*.8))),12),stone=(Math.sin(x*.1+y*.05+n)*.5+.5);rgb=[57+36*stone+116*vein,83+41*stone+100*vein,106+44*stone+80*vein];}
-    else{const amber=Math.max(0,Math.min(1,(n+.5)*.55)),fleck=Math.pow(Math.max(0,Math.sin(x*.073-y*.041+n)),7);rgb=[26+132*amber+29*fleck,23+65*amber+20*fleck,19+20*amber+7*fleck];}
+    else{const cloud=.55*noise(x/64,y/64,4)+.3*noise(x/32,y/32,8)+.15*noise(x/16,y/16,16),t=Math.max(0,Math.min(1,(cloud-.31)/.4)),amber=t*t*(3-2*t);rgb=[23+125*amber,17+70*amber,12+28*amber];}
     img.data[i]=rgb[0];img.data[i+1]=rgb[1];img.data[i+2]=rgb[2];img.data[i+3]=255;
    }
    ctx.putImageData(img,0,0);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());materialTextures.set(hex,texture);

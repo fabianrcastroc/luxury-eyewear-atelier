@@ -17,3 +17,6 @@
 @media(max-width:760px){.cad-menubar{height:auto;min-height:42px;flex-basis:auto;flex-wrap:wrap;gap:0;padding:4px 8px}.cad-menubar nav{flex:1;min-width:0;justify-content:flex-end;flex-wrap:wrap}.cad-logo>span{display:none}.cad-logo{font-size:20px;margin-right:4px}.cad-menu summary{padding:6px;font-size:10px}.cad-menu>div{left:auto;right:0;max-width:calc(100vw - 20px)}.cad-workspace .cad-shell,body[data-page=designer]:not(.standalone-studio) .cad-shell{height:auto;min-height:860px}.cad-version{display:none}}
 
 .cad-workspace textarea{display:block;width:100%;max-width:100%;margin-top:6px;padding:8px;background:#1d2833;border:1px solid #536574;color:#dce8ec;border-radius:3px;font:12px/1.5 Arial,sans-serif;resize:vertical}
+
+.cad-workspace .cad-statusbar>div{flex:0 1 auto;width:auto;flex-wrap:nowrap;justify-content:flex-start;min-height:0}.cad-workspace .cad-statusbar>div span{margin:0;flex:0 1 auto;font-size:10px;color:inherit}.cad-workspace .cad-statusbar .cad-status-led{flex:0 0 6px;background:#8ad8c9}.cad-workspace .cad-statusbar .cad-status-values{margin-left:auto;max-width:65%}@media(max-width:760px){.cad-workspace .cad-statusbar>div span{font-size:9px}.cad-workspace .cad-statusbar .cad-status-values{max-width:55%}}
+.cad-workspace .cad-statusbar{flex-direction:row;flex-wrap:nowrap}
