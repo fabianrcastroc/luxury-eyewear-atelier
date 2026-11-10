@@ -48,7 +48,7 @@ export function planSVG(design,options={}){
 }
 
 export function initWorkbench({root,getDesign,applyDesign,getViewer,notify}){
- const css=new URL('./cad-workspace.css',import.meta.url).href;if(!document.querySelector('link[data-cad-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href=css;link.dataset.cadStyle='true';document.head.append(link);}
+ const cssURL=new URL('./cad-workspace.css',import.meta.url);cssURL.searchParams.set('v',typeof __CAD_STYLE_VERSION__==='undefined'?'dev':__CAD_STYLE_VERSION__);const css=cssURL.href;if(!document.querySelector('link[data-cad-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href=css;link.dataset.cadStyle='true';document.head.append(link);}
  root.classList.add('cad-workspace');root.dataset.tool='select';root.dataset.layout='3d';
  let attachedViewer=null;
  let history=[],cursor=-1,restoring=false,transaction=false,mode='3d',selected='rims',referenceResult=null,loadRun=0,tool='select',measurement=[],drag=null,paper='a4',planBox=null,lastGood=null;
