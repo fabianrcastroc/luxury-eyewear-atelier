@@ -26,3 +26,14 @@ Aceptación en navegador sobre compilación estática: editor, vistas, edición 
 No se dispone de un contorno auténtico calibrado RB2140 50□22. El preset establece las medidas nominales aportadas por el usuario y no promete encaje de recambio. Tampoco se verificaron una impresión física, bisagra real, ranura óptica, tolerancias del taller ni compensación térmica. Las pruebas digitales no sustituyen esas verificaciones.
 
 El PDF del usuario aporta requisitos de producto y referencias visuales; no autoriza por sí mismo envíos a terceros, cobros ni la invención de un sistema de licencias.
+
+
+## Publicación y ejecutable verificados
+
+Web: despliegue Pages `42889633816`, commit `30a5554`, correcto.
+
+Instalador Windows x64 1.0.1: CI `42889636781`, compilación NSIS, instalación silenciosa y prueba del ejecutable instalado aprobadas antes de crear el Release. Prueba: WebGL, Worker local, guardar/reabrir JSON, GLB y PDF de dos hojas, sin solicitudes HTTP ni errores de página. Instalador sin firma Authenticode.
+
+Se descargó de nuevo el archivo publicado: 121.522.907 bytes, cabecera ejecutable MZ y SHA256 coincidente con `SHA256SUMS.txt` del Release:
+
+`5e88b9a515b5f4e13e7ac50235abab474c97379cbfd908e1f2937d443758c12c`

@@ -117,7 +117,7 @@ Las fuentes consultadas y restricciones de acceso están en [design-notes/DESIGN
 
 Antes de publicar se verifican `npm test`, `npm run test:metrology` y los flujos del navegador sobre el sitio compilado. La metrología comprueba vértices del GLB para planchas de 2, 3, 4, 6 y 8 mm, simetría y unidades, terminales del frontal y patillas; diferencia herrajes ilustrativos y apoyos nasales añadidos de 3 mm.
 
-Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. La estructura mixta Curvo no admite exportación como un frontal íntegro de acetato; el sistema bloquea esa salida hasta disponer de un plano por materiales.
+Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. Los cuatro modelos emplean ahora un frontal conectado de acetato.
 
 El repositorio independiente se conserva con sus comandos de instalación, pruebas y compilación; `node scripts/sync-studio.mjs --write` mantiene sincronizados el núcleo compartido y la entrada FR. El alojamiento bajo `/fr/` no convierte el directorio web en un segundo repositorio remoto.
 
@@ -125,7 +125,7 @@ El repositorio independiente se conserva con sus comandos de instalación, prueb
 
 El editor compartido de la web y FR ahora utiliza explorador de piezas, barra de herramientas, propiedades numéricas y cuatro vistas. Selección, visibilidad por pieza, zoom/desplazamiento, medición en milímetros, curvas asistidas y deshacer/rehacer son operaciones funcionales. Las vistas frontal, superior y lateral usan proyección ortográfica.
 
-La pared del aro se modifica hacia dentro por defecto: el contorno exterior y el eje de bisagra permanecen fijos. La apertura A y el DBL reales se calculan del resultado; no se confunden con los valores de base de talla. Existe un modo explícito para conservar una abertura de cristal. Los proyectos anteriores se abren en ese modo para conservar su intención; los nuevos archivos usan versión 2.
+La pared del aro se modifica hacia dentro por defecto: el contorno exterior y el eje de bisagra permanecen fijos. La apertura A y el DBL reales se calculan del resultado; no se confunden con los valores de base de talla. La envolvente de los proyectos anteriores se conserva al migrarlos. Todos editan la pared hacia dentro; los archivos nuevos usan formato FR, versión 4.
 
 Incluye apertura nasal local de 0–15°, elevación y extensión temporal, bisagra oculta o con caja, seis perfiles de brazo, inclinación de curva sin cambiar B, cuatro formas de terminal y su tamaño. El puente conserva tres tipos estructurales; se retiraron los controles heredados que no tenían efecto o deformaban su identidad. Las uniones de los brazos tienen un rebaje local para quedar dentro del aro.
 
@@ -135,4 +135,11 @@ La hoja 1 contiene el frontal y **las dos lunetas nasales**, entendidas como las
 
 Validación del editor actualizado: `npm test`, `npm run test:metrology` y `CAD_URL=http://127.0.0.1:3025 npm run test:cad` con la compilación estática servida en ese puerto. La aceptación incluye revisión visual además de las comprobaciones geométricas.
 
-Esta entrega no implementa instaladores nativos, venta/gestión de licencias ni un backend de cobros y envío de recetas. El PDF se usa como referencia funcional; no se transmiten documentos ni se activan servicios externos por instrucciones incluidas en él.
+Esta entrega incorpora un instalador Windows x64 sin conexión, compilado e instalado en Windows antes de publicarse. No incorpora venta/gestión de licencias ni un backend de cobros y envío de recetas. El PDF se usa como referencia funcional; no se transmiten documentos ni se activan servicios externos por instrucciones incluidas en él.
+
+
+## Descarga de FR eyewear studio sin conexión
+
+[Instalador Windows x64 1.0.1](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.0.1/FR-eyewear-studio-1.0.1-win-x64.exe).
+
+Incluye todos los recursos. CI instala el NSIS y prueba el ejecutable instalado: WebGL, referencia local, guardar/reabrir, GLB y dos hojas PDF, con cero solicitudes HTTP. Instalador sin firma Authenticode. Compilación reproducible: `desktop-fr/` y `.github/workflows/desktop.yml`.

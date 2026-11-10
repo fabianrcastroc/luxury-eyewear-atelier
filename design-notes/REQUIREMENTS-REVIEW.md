@@ -36,7 +36,7 @@ La plancha es profundidad de material en Z. El espesor de pared del aro es una d
 | Programa ejecutable multiplataforma; p. 9 | Aplicación de navegador en directorio `/fr` y repo local separado, sin instaladores nativos. | Distribuciones y pruebas por plataforma antes de afirmar Windows/Linux/iOS. Una web adaptable no es por sí sola un ejecutable nativo. |
 | Licencias de usuario, permisos y plazos; p. 9 | No hay backend de identidad, panel de cuentas ni licencias. | Autenticación real, revocación y vencimiento probados en servidor, con gestión segura de cuentas. No añadir un formulario local que solo aparente proteger el producto. |
 
-## Dos modos que resuelven una incompatibilidad física
+## Restricciones físicas y decisión de esta revisión
 
 No es posible conservar simultáneamente **todo el contorno exterior**, **el contorno exacto del cristal** y **variar la pared entre ambos** en la misma sección del aro. La distancia entre dos curvas fijas también queda fija. Presentar tres bloqueos simultáneos mientras cambia una de esas curvas sería engañoso.
 
@@ -44,7 +44,7 @@ No es posible conservar simultáneamente **todo el contorno exterior**, **el con
 
 **Modo cristal fijo, necesario para una luneta RB2140 auténtica:** bloquear el perfil de cristal y su colocación nominal; la pared crece hacia fuera dentro de límites de separación nasal y asiento de bisagra. El frontal exterior cambia y debe indicarse. Si se exige conservar también el exterior, el espesor de pared deja de ser editable; se puede cambiar profundidad de plancha sin cambiar los contornos XY.
 
-El usuario debe poder ver el modo y sus bloqueos antes de editar, con medidas resultantes y deshacer. El programa no decide en silencio cuál restricción romper. Una forma genérica con A/DBL iguales solo es una aproximación dimensional, nunca el trazado exacto solicitado.
+La revisión actual implementa únicamente envolvente fija, conforme a la prioridad del usuario. El modo cristal fijo se describe aquí como alternativa física, no como una opción actual. Las cotas reales se actualizan explícitamente. Una forma genérica con A/DBL iguales solo es una aproximación dimensional, nunca el trazado exacto solicitado.
 
 ## Inspección visual independiente del punto de partida
 
