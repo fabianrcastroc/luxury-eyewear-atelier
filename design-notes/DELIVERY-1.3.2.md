@@ -109,3 +109,5 @@ ese configurador. El estudio completo permanece dentro del paquete de escritorio
 f2a14a73143777fe30195821fe8996526c3268dd87921a1fad75b59ee7355d62  FR-eyewear-studio-1.3.2-mac-arm64.dmg
 cfb077a1dacc3bca47b838ccdc56d38593bc7f3f00550c4ee14ea044271dd1e5  FR-eyewear-studio-1.3.2-win-x64.exe
 ```
+
+La publicación Pages inicial superó las 96 pruebas y el build, pero deploy-pages v4 no encontró el artefacto aunque figuraba en la ejecución. Se actualizan upload-pages-artifact y deploy-pages a v5 (servicio de artefactos y Node 24 vigentes) para repetir el despliegue.
