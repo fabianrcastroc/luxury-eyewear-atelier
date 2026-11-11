@@ -4,9 +4,11 @@ artifactName: FR-eyewear-studio-${version}-${os}-${arch}.${ext}
 asar: true
 npmRebuild: false
 files:
-  - desktop/main.cjs
+  - desktop/*.cjs
+  - desktop/license-public.pem
   - dist/**
   - package.json
+  - LICENSE.txt
   - "!node_modules/**"
 extraMetadata:
   main: desktop/main.cjs
@@ -20,6 +22,7 @@ win:
       arch: [x64]
   signAndEditExecutable: false
 nsis:
+  license: LICENSE.txt
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -37,4 +40,7 @@ linux:
   maintainer: FR eyewear studio
 mac:
   target: [dmg]
+  icon: desktop/resources/icon.png
+  identity: null
+  hardenedRuntime: false
   category: public.app-category.graphics-design

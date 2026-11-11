@@ -20,6 +20,13 @@ function components(mask,width,height,wanted=1){
  return {labels,items};
 }
 
+function healSinglePixelGaps(mask,width,height){
+ const eroded=new Uint8Array(mask.length),healed=new Uint8Array(mask.length);
+ for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const p=y*width+x;eroded[p]=mask[p]&&mask[p-1]&&mask[p+1]&&mask[p-width]&&mask[p+width]?1:0;}
+ for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const p=y*width+x;healed[p]=eroded[p]||eroded[p-1]||eroded[p+1]||eroded[p-width]||eroded[p+width]?1:0;}
+ return healed;
+}
+
 function histogramThreshold(gray){
  const histogram=new Uint32Array(256);let total=0,sum=0;
  for(const v of gray){histogram[v]++;sum+=v;total++;}
@@ -66,17 +73,18 @@ function samplePerimeter(poly,count=128){
  return out;
 }
 
-export function analyzeRGBA({data,width,height}){
+export function analyzeRGBA({data,width,height,threshold:requestedThreshold,cleanThinLines=false}){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<80||height<40||width>1200||height>1200||!data||data.length!==width*height*4)fail('La imagen debe tener dimensiones entre 80 × 40 y 1200 × 1200 píxeles.');
  const gray=new Uint8Array(width*height);let borderSum=0,borderCount=0;
  for(let i=0;i<gray.length;i++){const a=data[i*4+3]/255;gray[i]=Math.round((.2126*data[i*4]+.7152*data[i*4+1]+.0722*data[i*4+2])*a+255*(1-a));const x=i%width,y=Math.floor(i/width);if(x<3||y<3||x>=width-3||y>=height-3){borderSum+=gray[i];borderCount++;}}
- const backgroundLevel=borderSum/borderCount;if(backgroundLevel<140)fail('No se reconoce un fondo claro o gris neutro alrededor de la montura.');
- const threshold=histogramThreshold(gray),thresholds=[threshold,40,55,70,80,110,140,170,200,225,240].filter((x,i,a)=>x>=20&&x<backgroundLevel-12&&x<=245&&a.indexOf(x)===i);
+ let backgroundLevel=borderSum/borderCount;if(backgroundLevel<140){for(let i=0;i<gray.length;i++)gray[i]=255-gray[i];backgroundLevel=255-backgroundLevel;}
+ const threshold=histogramThreshold(gray),thresholds=(Number.isFinite(requestedThreshold)?[requestedThreshold]:[threshold,40,55,70,80,110,140,170,200,225,240]).filter((x,i,a)=>x>=20&&x<backgroundLevel-12&&x<=245&&a.indexOf(x)===i);
  let selected=null;
  for(const threshold of thresholds){
-  const background=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)background[i]=gray[i]>threshold?1:0;
-  const {labels,items}=components(background,width,height),pair=choosePair(items,width,height);
-  if(pair&&(!selected||pair.score>selected.pair.score))selected={labels,pair,threshold};
+  let background=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)background[i]=gray[i]>threshold?1:0;
+  if(cleanThinLines){const inverse=background.map(v=>1-v),cleaned=healSinglePixelGaps(inverse,width,height);background=cleaned.map(v=>1-v);}
+  let {labels,items}=components(background,width,height),pair=choosePair(items,width,height),gapRepairApplied=false;if(!pair){const fixed=components(healSinglePixelGaps(background,width,height),width,height);const proposal=choosePair(fixed.items,width,height);if(proposal){labels=fixed.labels;items=fixed.items;pair=proposal;gapRepairApplied=true;}}
+  if(pair&&(!selected||pair.score>selected.pair.score))selected={labels,pair,threshold,gapRepairApplied};
  }
  if(!selected)fail('No se detectaron dos huecos de cristal cerrados y simétricos con suficiente confianza.');
  const {pair,labels}=selected,leftRadii=componentRadii(pair.left,labels,width,height,true),rightRadii=componentRadii(pair.right,labels,width,height),radii=leftRadii.map((r,i)=>(r+rightRadii[i])/2);
@@ -87,27 +95,27 @@ export function analyzeRGBA({data,width,height}){
  const customContour=sampled.map(([x,y])=>[(x-cx)/half,(y-cy)/half]),widthPixels=maxX-minX,heightPixels=(pair.left.height+pair.right.height)/2;
  const apertures=[[pair.left,leftRadii,'left',true],[pair.right,rightRadii,'right',false]].map(([component,radii,side,mirror])=>({side,bounds:{x:component.minX,y:component.minY,width:component.width,height:component.height},contour:imageContour(component,leftRadii.map((r,i)=>(r+rightRadii[i])/2),mirror)}));
  const errors=[...leftRadii.rawRadii.map((r,i)=>Math.abs(r-radii[i])),...rightRadii.rawRadii.map((r,i)=>Math.abs(r-radii[i]))];
- return {traceErrorPixels:{maximum:Math.max(...errors)+.5,rms:Math.sqrt(errors.reduce((sum,e)=>sum+e*e,0)/errors.length),pixelQuantization:.5},customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,gapPixels:pair.right.minX-pair.left.maxX-1,requiresKnownDimension:true},regularization:'radial-mirrored',diagnostics:['Dos huecos detectados automáticamente; perfiles simetrizados con suavizado local, sin envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el perfil simétrico que se aplicará; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
+ return {gapRepairApplied:selected.gapRepairApplied,threshold:selected.threshold,traceErrorPixels:{maximum:Math.max(...errors)+.5,rms:Math.sqrt(errors.reduce((sum,e)=>sum+e*e,0)/errors.length),pixelQuantization:.5},customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,gapPixels:pair.right.minX-pair.left.maxX-1,requiresKnownDimension:true},regularization:'radial-mirrored',diagnostics:['Dos huecos detectados automáticamente; perfiles simetrizados con suavizado local, sin envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el perfil simétrico que se aplicará; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
 }
 
-export async function extractReferenceImage(file){
+export async function extractReferenceImage(file,options={}){
  if(!file||!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size===0||file.size>10*1024*1024)fail('Selecciona una imagen PNG, JPG o WebP válida de hasta 10 MB.');
  let bitmap;
  try{bitmap=await createImageBitmap(file);}catch{fail('No se pudo decodificar la imagen.');}
  try{
   if(bitmap.width<80||bitmap.height<40||bitmap.width>16000||bitmap.height>16000)fail('La resolución de la imagen no es adecuada.');
-  const scale=Math.min(1,960/Math.max(bitmap.width,bitmap.height)),width=Math.round(bitmap.width*scale),height=Math.round(bitmap.height*scale),canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-  const context=canvas.getContext('2d',{willReadFrequently:true});if(!context)fail('No está disponible el análisis de imagen en este navegador.');context.fillStyle='#fff';context.fillRect(0,0,width,height);context.drawImage(bitmap,0,0,width,height);
+  const crop=options.crop||{x:0,y:0,width:1,height:1},sx=Math.max(0,crop.x)*bitmap.width,sy=Math.max(0,crop.y)*bitmap.height,sw=Math.min(1-crop.x,crop.width)*bitmap.width,sh=Math.min(1-crop.y,crop.height)*bitmap.height;if(sw<80||sh<40)fail('El recorte es demasiado pequeño.');const scale=Math.min(1,1100/Math.max(sw,sh)),width=Math.round(sw*scale),height=Math.round(sh*scale),canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const context=canvas.getContext('2d',{willReadFrequently:true});if(!context)fail('No está disponible el análisis de imagen en este navegador.');context.fillStyle='#fff';context.fillRect(0,0,width,height);context.drawImage(bitmap,sx,sy,sw,sh,0,0,width,height);
   const image=context.getImageData(0,0,width,height);
   // Thresholding and connected-component analysis run off the UI thread.
-  const previewDataURL=canvas.toDataURL('image/png');if(typeof Worker==='undefined')return {...analyzeRGBA(image),previewDataURL};
+  const previewDataURL=canvas.toDataURL('image/png');if(typeof Worker==='undefined')return {...analyzeRGBA({...image,data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines}),previewDataURL};
   const result=await new Promise((resolve,reject)=>{
    const worker=new Worker(new URL('./reference-extraction.js',import.meta.url),{type:'module'});
    const timer=setTimeout(()=>{worker.terminate();reject(new Error('El análisis tardó demasiado. Prueba con un recorte frontal más simple.'));},20000);
    const finish=()=>{clearTimeout(timer);worker.terminate();};
    worker.onmessage=({data})=>{finish();if(data.error)reject(new Error(data.error));else resolve(data.result);};
    worker.onerror=()=>{finish();reject(new Error('No se pudo iniciar el análisis local de imagen. Recarga la página e inténtalo nuevamente.'));};
-   worker.postMessage({data:image.data,width,height},[image.data.buffer]);
+   worker.postMessage({data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines},[image.data.buffer]);
   });return {...result,previewDataURL};
  }finally{bitmap.close();}
 }

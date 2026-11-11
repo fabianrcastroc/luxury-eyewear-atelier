@@ -60,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          gh release create $tag .desktop-build/installers/FR-eyewear-studio-*-win-x64.exe .desktop-build/installers/SHA256SUMS.txt --title "FR eyewear studio $($tag.Replace('fr-desktop-v','')) — Windows offline" --notes 'Instalador Windows x64 sin conexión. Incluye modelador, importación asistida local, proyectos, exportación GLB y dos hojas de fabricación. Instalación y funcionamiento verificados en CI. Instalador sin firma Authenticode.'
+          gh release create $tag .desktop-build/installers/FR-eyewear-studio-*-win-x64.exe .desktop-build/installers/SHA256SUMS.txt --title "FR eyewear studio $($tag.Replace('fr-desktop-v','')) — Desktop offline" --notes 'Instalador Windows x64 sin conexión. Incluye modelador, importación asistida local, proyectos, exportación GLB y dos hojas de fabricación. Instalación y funcionamiento verificados en CI. Instalador sin firma Authenticode.'
   linux:
     needs: windows
     runs-on: ubuntu-latest
@@ -107,3 +107,61 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload '${{ github.ref_name }}' .desktop-build/installers/*.deb .desktop-build/installers/SHA256SUMS-linux.txt
+  macos:
+    needs: windows
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-fr/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci --prefix desktop-fr
+      - run: node desktop-fr/stage.mjs
+      - run: npm ci
+        working-directory: .desktop-build
+      - run: npm run package:mac -- --${{ matrix.arch }}
+        working-directory: .desktop-build
+      - name: Mount, copy and verify the application from the DMG
+        run: |
+          dmg=$(find .desktop-build/installers -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$dmg"
+          mkdir -p /tmp/fr-mount /tmp/fr-mac-installed
+          hdiutil attach "$dmg" -nobrowse -mountpoint /tmp/fr-mount
+          ditto '/tmp/fr-mount/FR eyewear studio.app' '/tmp/fr-mac-installed/FR eyewear studio.app'
+          hdiutil detach /tmp/fr-mount
+          FR_INSTALLED_APP=1 FR_ELECTRON_EXECUTABLE='/tmp/fr-mac-installed/FR eyewear studio.app/Contents/MacOS/FR eyewear studio' FR_SMOKE_OUTPUT=/tmp/fr-mac-smoke node .desktop-build/desktop/smoke-offline.mjs
+          cd .desktop-build/installers
+          shasum -a 256 *.dmg > SHA256SUMS-macos-${{ matrix.arch }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fr-macos-verification-${{ matrix.arch }}
+          path: /tmp/fr-mac-smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fr-macos-installer-${{ matrix.arch }}
+          path: |
+            .desktop-build/installers/*.dmg
+            .desktop-build/installers/SHA256SUMS-macos-*.txt
+      - name: Attach verified macOS installer
+        if: startsWith(github.ref, 'refs/tags/fr-desktop-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload '${{ github.ref_name }}' .desktop-build/installers/*.dmg .desktop-build/installers/SHA256SUMS-macos-*.txt

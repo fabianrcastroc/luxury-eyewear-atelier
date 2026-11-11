@@ -41,6 +41,14 @@ export function offsetSingleContour(points,distance,options){
  if(paths.length!==1)throw new RangeError(paths.length?'El espesor divide el contorno en varias piezas. Reduce el ancho del aro.':'El espesor elimina la apertura. Reduce el ancho del aro.');
  return paths[0];
 }
+// Offset a material region with its signed hole contours, preserving winding.
+// Unlike offsetSingleContour, this can represent disconnected regions and holes.
+export function offsetRegion(paths,distance,{arcTolerance=.01}={}){
+ const kernel=new ClipperLib.ClipperOffset(2,Math.max(1,arcTolerance*SCALE));
+ kernel.AddPaths(paths.map(integerPath),ClipperLib.JoinType.jtRound,ClipperLib.EndType.etClosedPolygon);
+ const solution=new ClipperLib.Paths();kernel.Execute(solution,distance*SCALE);
+ return solution.map(coordinates).filter(p=>p.length>=3&&Math.abs(area(p))>1e-12);
+}
 export function isSimpleContour(points){
  try{
   const path=integerPath(points),simplified=ClipperLib.Clipper.SimplifyPolygon(path,ClipperLib.PolyFillType.pftNonZero);

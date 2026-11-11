@@ -17,7 +17,7 @@ export function finishedExtrusion(outer,holes,depth,radius=.65*MM){
  // the exact surface normal is also the cap's +/-Z normal.
  const position=smooth.attributes.position,normal=smooth.attributes.normal;
  for(let i=0;i<position.count;i++){const z=position.getZ(i);if(Math.abs(z)<1e-7)normal.setXYZ(i,0,0,-1);else if(Math.abs(z-depth)<1e-7)normal.setXYZ(i,0,0,1);}
- normal.needsUpdate=true;const uv=[];for(let i=0;i<position.count;i++)uv.push(position.getX(i)/(10*MM),position.getY(i)/(10*MM));smooth.setAttribute('uv',new Float32BufferAttribute(uv,2));return smooth;
+ normal.needsUpdate=true;const uv=[];for(let i=0;i<position.count;i++)uv.push(position.getX(i)/(10*MM),position.getY(i)/(10*MM));smooth.setAttribute('uv',new Float32BufferAttribute(uv,2));smooth.userData.capDepth=depth;return smooth;
 }
 
 /** A bonded laminate is polished towards its ends, not a uniform vertical fin.
@@ -59,7 +59,7 @@ export function finishedNasalLaminate(outer,depth){
  * not a prescription surface or a claimed commercial replacement contour. */
 export function finishedLens(outer,thickness){
  const geometry=finishedExtrusion(outer,[],thickness,Math.min(.12*MM,thickness*.18));
- geometry.userData={closedLensBlank:true,nominalThicknessMM:thickness/MM,opticalPrescription:false};return geometry;
+ geometry.userData={...geometry.userData,closedLensBlank:true,nominalThicknessMM:thickness/MM,opticalPrescription:false};return geometry;
 }
 
 function compound(parts){

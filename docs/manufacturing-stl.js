@@ -1,3 +1,4 @@
+import {formGeometry} from './front-forming.js';
 import {Shape,Path,Vector2,ExtrudeGeometry} from 'three';
 import {normalizeDesign} from './designer-model.js';
 import {frontCutGeometry} from './manufacturing.js';
@@ -36,6 +37,7 @@ export function manufacturingSTL(raw,part='front'){
   geometry=part.startsWith('temple')?finishedTemple(templeSections(d,side).rows):finishedNasalLaminate(nasalPads(d,side).outline,3*MM);
   geometry.scale(1/MM,1/MM,1/MM);
  }else throw new Error('Selecciona frontal, brazo o luneta nasal para exportar STL.');
+ if(d.frontWrap){if(part.startsWith('pad'))geometry.translate(0,0,-3);formGeometry(geometry,d,part,[0,0,0],1);}
  try{return encodeClosedSTL(geometry,`${d.jobName||'Diseño 1'} / ${part}`);}finally{geometry.dispose();}
 }
 

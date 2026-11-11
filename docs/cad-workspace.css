@@ -38,3 +38,15 @@
 @media(min-width:761px){.cad-workspace .studio-tabs{height:41px;flex-shrink:0}.cad-workspace .studio-tabs button{font-size:12px;padding:10px 5px}.cad-property-jumps{top:41px}.cad-property-section{scroll-margin-top:122px}}
 
 @media(max-width:980px){.cad-shortcuts{display:flex;font-size:11px;padding:5px;gap:4px}.cad-shortcuts kbd{display:none}}
+
+/* Neutral technical workplane: independent of the selected acetate colour. */
+.cad-view,.cad-live-view,.cad-plan-view,.cad-top-view,.cad-side-view{background:#3b444d!important;color:#e0e7eb}
+.cad-view-label,.cad-view-help,.cad-projection-note{color:#d1dce5!important}
+.cad-plan-view svg,.cad-top-view svg,.cad-side-view svg{background:#3b444d}
+.cad-axis{stroke:#8394a2!important}.plan-rim{fill:#788b99!important;stroke:#e0e8ed!important}.cad-plan-lens{fill:#9eb4bd33!important;stroke:#a8c8d5!important}.cad-plan-temple{fill:#788b99!important;stroke:#e0e8ed!important}
+.cad-dimensions text,.cad-projection-note,.cad-curve-handles text,.cad-measurement text{fill:#e5eef5!important;paint-order:stroke;stroke:#3b444d;stroke-width:.8px}
+.cad-measurement path{stroke:#ffd786!important;stroke-width:.3}.cad-measurement circle{fill:#ffd786;stroke:#283640;stroke-width:.2}
+.cad-snap-node{fill:#9acfd6;stroke:#20333f;stroke-width:.15;opacity:.85}.cad-snap-node:hover{fill:#ffd786;r:1.3}
+.cad-measure-coordinates{font:11px ui-monospace,monospace;padding:8px;background:#28323b;color:#dbe8ef}
+
+#cad-reference-workspace{width:min(1120px,94vw);max-width:94vw;height:90vh;max-height:90vh;padding:16px;background:#29343e;color:#e5edf3;border:1px solid #778f9e;border-radius:6px}#cad-reference-workspace::backdrop{background:#101a25c9}#cad-reference-workspace header{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px}#cad-reference-workspace button{padding:10px;background:#94c6c2;color:#18343a;border:1px solid #b7d9d6;border-radius:3px}#cad-reference-workspace-body{max-height:calc(90vh - 90px);overflow:auto}#cad-reference-workspace #studio-extract-preview svg{width:100%!important;height:auto!important;max-height:none!important;display:block}#cad-reference-workspace label{display:block;margin:10px 0}#cad-reference-workspace select,#cad-reference-workspace input{max-width:100%;color:#e1ebf1;background:#263946;border:1px solid #8195a3;padding:6px}#cad-reference-workspace p{font-size:13px;line-height:1.5}

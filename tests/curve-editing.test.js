@@ -11,3 +11,8 @@ test('assisted corrections create valid editable mirrored cut profiles without c
 test('nasal correction gestures are limited to one millimetre and malformed input is rejected',()=>{
  const source=normalizeContour(lensContour(defaultDesign,1)),nasal=contourControlIndices(source)[4];assert.deepEqual(correctContour(source,nasal,10,0,52,36.4),correctContour(source,nasal,1,0,52,36.4));assert.throws(()=>correctContour(source,999,1,0,52,36.4));assert.throws(()=>correctContour([],0,1,0,52,36.4));
 });
+
+test('una corrección de 0,1 mm en Cat-eye conserva un frontal fabricable tras redondear la unión',async()=>{
+ const {normalizeDesign}=await import('../public/designer-model.js');const {getFrameProfile}=await import('../public/frame-profiles.js');const {normalizeContour,lensContour,designMeasurements}=await import('../public/frame-geometry.js');const {frontCutGeometry}=await import('../public/manufacturing.js');
+ let d=normalizeDesign({...getFrameProfile('cateye').defaults,model:'cateye',lensHeight:37.5});d=normalizeDesign({...d,customContour:normalizeContour(lensContour(d,1))});const m=designMeasurements(d),index=contourControlIndices(d.customContour)[2],next=normalizeDesign({...d,customContour:correctContour(d.customContour,index,0,.1,m.nominalLens,m.nominalLensHeight)});assert.equal(frontCutGeometry(next).outerLoops.length,1);assert.notDeepEqual(next.customContour,d.customContour);assert.equal(designMeasurements(next).lensHeight,37.5);
+});

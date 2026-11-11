@@ -10,13 +10,21 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## Revisión 1.2.1
+## FR eyewear studio 1.3.0
 
-[Probar online](https://fabianrcastroc.github.io/luxury-eyewear-atelier/fr/?v=1.2.1) · [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.2.1/FR-eyewear-studio-1.2.1-win-x64.exe) · [Linux Debian x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.2.1/FR-eyewear-studio-1.2.1-linux-amd64.deb)
+Estudio de escritorio offline para Windows, Linux y macOS (Intel y Apple Silicon). Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
 
-FR eyewear studio incorpora 14 bases, dos modos de pared (exterior fijo o cristal fijo), controles de puente, STL por pieza en milímetros y nombre de trabajo. Las dos hojas contienen **frontal y cristales**, y **brazos y lunetas nasales**. Las hojas no llevan marca ni instrucciones.
+El estudio completo incluye 20 bases, 27 cristales digitalizados de la tabla de la página 6, edición óptica independiente, conformado frontal 3D, contornos de construcción sin triangulación visible y medición con puntos y ajuste a nodos. Los perfiles Panto, Boston y Recto 2 se revisaron con los dibujos de las páginas 5 y 7; las cotas anotadas se distinguen de las alturas inferidas del trazado. Las fuentes rasterizadas no son CAD de fabricante.
 
-El estudio web puede preparar sus recursos para uso sin conexión. En iPhone/iPad: Safari → Compartir → Añadir a pantalla de inicio; esperar la descarga inicial antes de desconectar. Esto no es un instalador iOS nativo ni una prueba de compatibilidad física en dispositivo. Windows usa NSIS; Linux, un paquete Debian x64. La validación y los límites de esta revisión están en [DELIVERY-1.2.1.md](design-notes/DELIVERY-1.2.1.md). Para probar la caché local: servir `dist/` y ejecutar `CAD_URL=http://127.0.0.1:3040 node scripts/offline-browser.mjs`.
+El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservando los controles. Las solicitudes se descargan como JSON y el cliente puede preparar un correo a **estudiomiscante@gmail.com**; adjunta el archivo y confirma el envío en su cliente de correo. `public/contact-config.js` deja preparado `servicios@miscante.cl` para activarlo cuando reciba correo. No hay recepción automática ni cobros.
+
+Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
+
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.0)
+- El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.0)
+
+El titular conserva la autoridad privada de licencias fuera del repositorio y de los instaladores. Emisión: `node scripts/license-issue.mjs solicitud.json "Cliente" licencia.frlicense /ruta/privada.pem [vencimiento-ISO]`. No regenerar la clave pública si se pierde la privada: restaurar la copia del titular.
 
 ## Desarrollo
 
@@ -37,7 +45,7 @@ Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres pági
 
 ## Estudio personal
 
-- Ocho bases originales: Recto, Redondo, Ovalado, Curvo, Panto, Boston, Cat-eye y Geométrico. Presets de A, altura B, DBL y L, ceja y asientos de bisagra con reserva de material.
+- Veinte bases de construcción, incluidas: Recto, Redondo, Ovalado, Curvo, Panto, Boston, Cat-eye y Geométrico. Presets de A, altura B, DBL y L, ceja y asientos de bisagra con reserva de material.
 - Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
 - Estudio de producto de pantalla completa con cuatro paneles accesibles: Modelo, Montura, Cristales y Receta. Solo un panel visible; navegación por teclado y Receta disponible al seleccionar graduación.
 - Cotas base A, B óptico, DBL y largo L independientes; pared mínima 3–8 mm hacia dentro, exterior protegido y planchas 2/3/4/6/8 mm. Puente clásico, herradura o doble. Apertura nasal localizada y correcciones temporales, seis brazos, cuatro terminales, tramo auricular 20–45 mm y apertura lateral 0–8°. Longitud desarrollada L conservada.
@@ -125,7 +133,7 @@ Las fuentes consultadas y restricciones de acceso están en [design-notes/DESIGN
 
 Antes de publicar se verifican `npm test`, `npm run test:metrology` y los flujos del navegador sobre el sitio compilado. La metrología comprueba vértices del GLB para planchas de 2, 3, 4, 6 y 8 mm, simetría y unidades, terminales del frontal y patillas; diferencia herrajes ilustrativos y apoyos nasales añadidos de 3 mm.
 
-Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. Los ocho modelos emplean ahora un frontal conectado de acetato.
+Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. Las bases emplean un frontal conectado de acetato.
 
 El repositorio independiente se conserva con sus comandos de instalación, pruebas y compilación; `node scripts/sync-studio.mjs --write` mantiene sincronizados el núcleo compartido y la entrada FR. El alojamiento bajo `/fr/` no convierte el directorio web en un segundo repositorio remoto.
 

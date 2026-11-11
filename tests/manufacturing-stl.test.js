@@ -45,3 +45,9 @@ test('cristal fijo conserva incluso la edición nasal al cambiar pared y rechaza
  const inner=lensContour(base,1);for(const thickness of [3,4,6,8])assert.deepEqual(lensContour({...base,thickness},1),inner);
  assert.throws(()=>manufacturingSTL({bridgeWidth:14,wallMode:'outward',thickness:8}),/zona nasal/);
 });
+
+test('conformado cilíndrico conserva el espesor normal y mantiene STL cerrados por pieza',async()=>{
+ const {formingParameters,formPoint}=await import('../public/front-forming.js');const d=normalizeDesign({frontWrap:12}),parameters=formingParameters(d),surface=formPoint([40,0,0],parameters),back=formPoint([40,0,6],parameters);
+ assert.ok(Math.abs(Math.hypot(...surface.map((x,i)=>x-back[i]))-6)<1e-9);
+ for(const part of stlParts){const result=manufacturingSTL(d,part);assert.equal(result.closed,true);assert.ok(result.volumeMM3>1);}
+});

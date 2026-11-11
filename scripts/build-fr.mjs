@@ -20,7 +20,7 @@ export async function buildFR(){
   .replace('./app.js',`./app.js?v=${hash(code)}`)
   .replace('./style.css',`./style.css?v=${hash(style)}`)
   .replace('./standalone.css',`./standalone.css?v=${hash(standalone)}`);
- for(const directory of ['docs/fr/','dist/fr/']){
+ for(const directory of ['dist/fr/']){
   const out=new URL(directory,root);
   await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
   await writeFile(new URL('index.html',out),html);
@@ -32,16 +32,12 @@ export async function buildFR(){
   await writeFile(new URL('standalone.css',out),standalone);
   await mkdir(new URL('assets/',out),{recursive:true});
   await cp(new URL('favicon.svg',templates),new URL('assets/favicon.svg',out));
-  await cp(new URL('manifest.webmanifest',templates),new URL('manifest.webmanifest',out));
-  const sharp=(await import('sharp')).default;
-  for(const size of [192,512])await sharp(fileURLToPath(new URL('favicon.svg',templates))).resize(size,size).png().toFile(fileURLToPath(new URL(`assets/icon-${size}.png`,out)));
   await cp(new URL('assets/forms/',source),new URL('assets/forms/',out),{recursive:true});
-  const cached=['./','./index.html','./app.js','./reference-extraction.js','./style.css','./cad-workspace.css','./standalone.css','./manifest.webmanifest','./assets/favicon.svg','./assets/icon-192.png','./assets/icon-512.png',...(await readdir(new URL('assets/forms/',out))).map(name=>'./assets/forms/'+name)];
-  const workerTemplate=await readFile(new URL('offline-worker.js',templates),'utf8');
-  await writeFile(new URL('sw.js',out),`const CACHE=${JSON.stringify('fr-studio-'+hash(code+workerCode+style+standalone+workerTemplate+html))};const FILES=${JSON.stringify(cached)};\n`+workerTemplate);
+  await cp(new URL('retire-worker.js',templates),new URL('sw.js',out));
   // Fail the Pages build rather than deploy a missing entry or broken worker.
   for(const path of ['index.html','app.js','reference-extraction.js','style.css','cad-workspace.css','standalone.css','assets/favicon.svg','assets/forms/recto.webp','assets/forms/redondo.webp','assets/forms/ovalado.webp','assets/forms/curvo.webp'])await access(new URL(path,out));
   if(!html.includes('FR eyewear studio')||!html.includes('id="disena"')||!code.length||!workerCode.includes('onmessage'))throw new Error(`FR output incomplete in ${directory}`);
  }
- console.log('FR · Eyewear Studio generado en docs/fr/ y dist/fr/, con análisis local de imagen.');
+ const publicEntry=new URL('docs/fr/',root);await mkdir(publicEntry,{recursive:true});await cp(new URL('retire-worker.js',templates),new URL('sw.js',publicEntry));await writeFile(new URL('index.html',publicEntry),'<!doctype html><html lang="es"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=../disena.html"><title>Miscante · Diseño personalizado</title><p><a href="../disena.html">Abrir el configurador de Miscante</a></p></html>');
+ console.log('FR de escritorio generado en dist/fr/. El acceso público /fr/ lleva al configurador Miscante.');
 }

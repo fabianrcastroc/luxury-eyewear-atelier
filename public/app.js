@@ -1,3 +1,4 @@
+import {quoteContact} from './contact-config.js';
 import {products,money,totals,glasses,cartProduct,itemQuote} from './catalog.js';
 import {initCollectionLenses} from './collection-lenses.js';
 import {initDesigner} from './designer.js';
@@ -64,7 +65,7 @@ document.addEventListener('click',e=>{
  if(b.id==='search-toggle'){$('#search-bar').hidden=!$('#search-bar').hidden;if(!$('#search-bar').hidden){$('#coleccion').scrollIntoView();$('#search').focus();}}
  if(b.id==='clear-search'){$('#search').value='';render();}
  if(b.id==='reset-filters'){category='all';$('#search').value='';document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('active',x.dataset.category==='all'));render();}
- if(b.id==='contact-open')show($('#info-dialog'),`${closeButton}<p class="eyebrow">CONVERSEMOS</p><h2>Tu mirada importa.</h2><p>El canal de atención estará disponible cuando se habilite la tienda. Por ahora puedes explorar la colección y probar tu compra sin cargos.</p><button class="button dark" data-close>Entendido</button>`);
+ if(b.id==='contact-open')show($('#info-dialog'),`${closeButton}<p class="eyebrow">CONVERSEMOS</p><h2>Tu mirada importa.</h2><p>Puedes solicitar una cotización de tu diseño personalizado en <a href="mailto:${quoteContact.corporateActive?quoteContact.corporateEmail:quoteContact.activeEmail}">${quoteContact.corporateActive?quoteContact.corporateEmail:quoteContact.activeEmail}</a>. Correo corporativo previsto: ${quoteContact.corporateEmail}. Descarga la solicitud del configurador y adjúntala a tu correo.</p><button class="button dark" data-close>Entendido</button>`);
  if(b.dataset.info)show($('#info-dialog'),`${closeButton}<h2>${b.dataset.info==='privacy'?'Tu privacidad':'Términos de la demostración'}</h2><p>${b.dataset.info==='privacy'?'El carrito, los favoritos y la suscripción de prueba se guardan únicamente en este navegador. No utilizamos analítica ni enviamos formularios a un servidor. Los datos de entrega de prueba solo se mantienen en memoria mientras está abierto el formulario. Las recetas se adjuntan temporalmente en memoria durante esta visita y nunca se envían a un servidor ni se guardan en el navegador. Al recargar o cambiar de página se deben adjuntar nuevamente.':'Los productos, precios y atributos son ilustrativos. Esta web permite probar una experiencia de compra; no cobra, reserva inventario ni genera contratos o pedidos reales. Antes de abrir la venta se deben confirmar los productos, políticas y medios de pago.'}</p><button data-close class="button dark">Entendido</button>`);
 });
 document.addEventListener('submit',e=>{

@@ -66,3 +66,7 @@ test('a shallow nasal indentation survives automatic extraction instead of being
  assert.ok(turns.some(turn=>turn<-.0005),'real local concavity must remain');assert.ok(signedArea(points)>0);assert.ok(normalizeContour(points),'retained contour is valid for the structural pipeline');
  const design=normalizeDesign({customContour:points,lensWidth:50,thickness:4});assert.ok(frameContour(design,1).every(p=>p.every(Number.isFinite)));
 });
+
+test('detecta también fondo oscuro con aro claro tras normalizar polaridad',()=>{
+ const image=fixture();for(let i=0;i<image.data.length;i+=4)for(let c=0;c<3;c++)image.data[i+c]=255-image.data[i+c];const result=analyzeRGBA(image);assert.ok(result.confidence>.9);assert.equal(result.customContour.length,128);
+});

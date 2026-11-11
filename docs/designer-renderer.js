@@ -1,3 +1,5 @@
+import {constructionEdges} from './construction-edges.js';
+import {formGeometry,formingParameters} from './front-forming.js';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
@@ -11,7 +13,7 @@ import {frontCutGeometry} from './manufacturing.js';
 
 export function createDesignRenderer(container){
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power',preserveDrawingBuffer:true});
- renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0xf7f7f4,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0x3b444d,1);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.85;
  renderer.domElement.setAttribute('aria-label','Vista 3D interactiva de tus gafas. Arrastra para girar; botón derecho para desplazar; rueda para acercar.');renderer.domElement.setAttribute('role','img');renderer.domElement.tabIndex=0;
  container.replaceChildren(renderer.domElement);
  const scene=new THREE.Scene();let camera=new THREE.PerspectiveCamera(34,1,.1,100);
@@ -21,8 +23,8 @@ export function createDesignRenderer(container){
  const grid=new THREE.GridHelper(250*MM,50,0xa2ada7,0xd6ddd8);grid.position.y=-2;grid.visible=false;grid.material.transparent=true;grid.material.opacity=.55;scene.add(grid);
  const axes=new THREE.AxesHelper(25*MM);axes.position.set(-3.5,-2,-.1);axes.visible=false;scene.add(axes);
  const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();const env=pmrem.fromScene(room,.04);scene.environment=env.texture;room.dispose();pmrem.dispose();
- scene.add(new THREE.HemisphereLight(0xffffff,0x737373,1.2));
- const light=new THREE.DirectionalLight(0xffffff,2.6);light.position.set(-3,7,5);light.castShadow=true;light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-5;light.shadow.camera.right=5;light.shadow.camera.top=5;light.shadow.camera.bottom=-5;light.shadow.bias=-.001;scene.add(light);
+ scene.add(new THREE.HemisphereLight(0xffffff,0x737373,.85));
+ const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(-3,7,5);light.castShadow=true;light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-5;light.shadow.camera.right=5;light.shadow.camera.top=5;light.shadow.camera.bottom=-5;light.shadow.bias=-.001;scene.add(light);
  const fill=new THREE.DirectionalLight(0xffffff,2);fill.position.set(5,3,-3);scene.add(fill);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({color:0x343434,opacity:.035}));floor.rotation.x=-Math.PI/2;floor.position.y=-2;floor.material.depthWrite=false;floor.receiveShadow=true;scene.add(floor);
  let group=new THREE.Group(),reference=null,initialModelFit=true;scene.add(group);
@@ -50,9 +52,9 @@ export function createDesignRenderer(container){
   }
   const result=materialTextures.get(hex).clone();result.needsUpdate=true;return result;
  }
- function material(hex,metal=false){const map=metal?null:acetateTexture(hex);return new THREE.MeshPhysicalMaterial({color:map?'#ffffff':hex,map,roughness:metal?.26:.27,metalness:metal?.8:0,clearcoat:1,clearcoatRoughness:.16,transmission:0,transparent:false,opacity:1,side:THREE.DoubleSide,thickness:.35,envMapIntensity:.7});}
+ function material(hex,metal=false){const map=metal?null:acetateTexture(hex);return new THREE.MeshPhysicalMaterial({color:map?'#ffffff':hex,map,roughness:metal?.26:.27,metalness:metal?.8:0,clearcoat:.55,clearcoatRoughness:.22,transmission:0,transparent:false,opacity:1,side:THREE.DoubleSide,thickness:.35,envMapIntensity:.7});}
 
- function addMesh(geometry,mat,parent=group){const mesh=new THREE.Mesh(geometry,mat.clone());mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+ function addMesh(geometry,mat,parent=group){const mesh=new THREE.Mesh(geometry,mat.clone());const edge=new THREE.LineSegments(constructionEdges(geometry),new THREE.LineBasicMaterial({color:(mat.color.r+mat.color.g+mat.color.b)>1.5?0x17222c:0xc1cdd5,transparent:true,opacity:.7}));edge.userData.featureEdges=true;edge.visible=display.wireframe;mesh.add(edge);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
  function contours(d,side,scale=1){return frameContour(d,side,scale).map(p=>new THREE.Vector2(...p));}
  function arm(d,side,style,mat){
   const sections=templeSections(d,side,style),geometry=finishedTemple(sections.rows),mesh=addMesh(geometry,mat);
@@ -84,7 +86,7 @@ export function createDesignRenderer(container){
    const mesh=addMesh(finishedNasalLaminate(pad.outline,pad.depth),rim);mesh.position.z=-pad.depth;mesh.name=`nasal-pad-${side}`;mesh.userData={part:'nasal-pad',materialClass:'added-laminate',addedThicknessMM:pad.depth/MM,includedInMainStock:false,manufacturingValidated:false,polishedContinuity:true,finish:'tapered-added-laminate',bondFaceZMM:0};
   }
   container.dataset.nasalPads='2';container.dataset.padConstruction='polished-laminated-crescent';container.dataset.measurements=JSON.stringify(designMeasurements(d));
-  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}render();
+  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);if(d.frontWrap){const forming=formingParameters(d);for(const mesh of group.children){if(!mesh.isMesh)continue;const position=mesh.position.toArray();formGeometry(mesh.geometry,d,mesh.name,position,MM,forming);for(const child of mesh.children)if(child.userData.featureEdges)formGeometry(child.geometry,d,mesh.name,position,MM,forming);mesh.position.set(0,0,0);}}rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}render();
  }
  function fit(){
   const target=controls.target,vector=camera.position.clone().sub(target).normalize(),aspect=Math.max(.15,camera.aspect||1);
@@ -125,7 +127,7 @@ export function createDesignRenderer(container){
   camera.updateProjectionMatrix();controls.update();render();
  }
  function partKey(object){const part=object.userData.part;return part==='front'?'rims':part==='rim'?'rims':part==='lens'?'lenses':part==='temple'?'temples':part==='nasal-pad'?'pads':part==='hinge'||part==='pin'?'hinges':part==='bridge'?'bridge':null;}
- function applyDisplay(){group.traverse(object=>{if(!object.material)return;const key=partKey(object);if(key)object.visible=object.userData.part==='front'?(partVisibility.rims||partVisibility.bridge):partVisibility[key];for(const material of (Array.isArray(object.material)?object.material:[object.material])){const semantic=material.userData.part||key;material.visible=semantic?partVisibility[semantic]:true;if('wireframe' in material)material.wireframe=display.wireframe;if(material.emissive){material.emissive.setHex(selectedPart===semantic?0x28556a:0);material.emissiveIntensity=selectedPart===semantic?.25:1;}}});grid.visible=display.grid;axes.visible=display.axes;}
+ function applyDisplay(){group.traverse(object=>{if(object.userData.featureEdges){object.visible=display.wireframe;return;}if(!object.material)return;const key=partKey(object);if(key)object.visible=object.userData.part==='front'?(partVisibility.rims||partVisibility.bridge):partVisibility[key];for(const material of (Array.isArray(object.material)?object.material:[object.material])){const semantic=material.userData.part||key;material.visible=semantic?partVisibility[semantic]:true;if('wireframe' in material)material.wireframe=false;if(material.emissive){material.emissive.setHex(selectedPart===semantic?0x28556a:0);material.emissiveIntensity=selectedPart===semantic?.25:1;}}});grid.visible=display.grid;axes.visible=display.axes;}
  function setPartVisibility(part,value){if(part in partVisibility){partVisibility[part]=Boolean(value);applyDisplay();render();}}
  function selectPart(part){selectedPart=part in partVisibility?part:null;applyDisplay();render();}
  function setDisplay(settings={}){for(const key of ['wireframe','grid','axes'])if(typeof settings[key]==='boolean')display[key]=settings[key];applyDisplay();render();}
@@ -149,7 +151,7 @@ export function createDesignRenderer(container){
  function showReference(value){if(reference)reference.visible=value;group.visible=!reference?.visible;render();}
  async function exportGLB(){
   if(!group.children.length)throw new Error('Primero crea una montura para exportar.');
-  const snapshot=group.clone(true);
+  const snapshot=group.clone(true),helpers=[];snapshot.traverse(o=>{if(o.userData.featureEdges)helpers.push(o);});helpers.forEach(o=>o.removeFromParent());
   // glTF declares metres; each scene unit is 1 / MM millimetres.
   snapshot.scale.multiplyScalar(.001/MM);
   snapshot.name='FR eyewear studio';
