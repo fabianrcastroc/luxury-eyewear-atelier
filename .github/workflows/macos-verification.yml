@@ -1,0 +1,68 @@
+name: Verify macOS desktop
+on:
+  workflow_dispatch:
+  push:
+    tags: ['fr-macos-check-*']
+permissions:
+  contents: read
+jobs:
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-fr/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci --prefix desktop-fr
+      - run: node desktop-fr/stage.mjs
+      - run: npm ci
+        working-directory: .desktop-build
+      - run: npm run package:mac -- --${{ matrix.arch }}
+        working-directory: .desktop-build
+      - name: Mount, copy and verify the application from the DMG
+        run: |
+          dmg=$(find .desktop-build/installers -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$dmg"
+          mkdir -p /tmp/fr-mount /tmp/fr-mac-installed
+          hdiutil attach "$dmg" -nobrowse -mountpoint /tmp/fr-mount
+          ditto '/tmp/fr-mount/FR eyewear studio.app' '/tmp/fr-mac-installed/FR eyewear studio.app'
+          hdiutil detach /tmp/fr-mount
+          set +e
+          FR_INSTALLED_APP=1 FR_ELECTRON_EXECUTABLE='/tmp/fr-mac-installed/FR eyewear studio.app/Contents/MacOS/FR eyewear studio' FR_SMOKE_OUTPUT=/tmp/fr-mac-smoke node .desktop-build/desktop/smoke-offline.mjs > /tmp/fr-macos-smoke.log 2>&1
+          smoke_status=$?
+          set -e
+          cat /tmp/fr-macos-smoke.log
+          if [ "$smoke_status" -ne 0 ]; then
+            python3 -c 'from pathlib import Path; s=Path("/tmp/fr-macos-smoke.log").read_text()[-14000:]; print("::error::"+s.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit "$smoke_status"
+          fi
+          cd .desktop-build/installers
+          shasum -a 256 *.dmg > SHA256SUMS-macos-${{ matrix.arch }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fr-macos-verification-${{ matrix.arch }}
+          path: /tmp/fr-mac-smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fr-macos-installer-${{ matrix.arch }}
+          path: |
+            .desktop-build/installers/*.dmg
+            .desktop-build/installers/SHA256SUMS-macos-*.txt
