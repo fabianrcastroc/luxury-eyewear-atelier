@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-15-intel
+          - runner: macos-latest
             arch: x64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -26,6 +26,8 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             desktop-fr/package-lock.json
+      - name: Ensure Rosetta for x64 application verification
+        run: sudo softwareupdate --install-rosetta --agree-to-license
       - run: npm ci
       - run: npm run build
       - run: npm ci --prefix desktop-fr
@@ -42,7 +44,15 @@ jobs:
           hdiutil attach "$dmg" -nobrowse -mountpoint /tmp/fr-mount
           ditto '/tmp/fr-mount/FR eyewear studio.app' '/tmp/fr-mac-installed/FR eyewear studio.app'
           hdiutil detach /tmp/fr-mount
-          FR_INSTALLED_APP=1 FR_ELECTRON_EXECUTABLE='/tmp/fr-mac-installed/FR eyewear studio.app/Contents/MacOS/FR eyewear studio' node desktop-fr/diagnose-macos.mjs
+          set +e
+          FR_TEST_ANGLE=metal FR_INSTALLED_APP=1 FR_ELECTRON_EXECUTABLE='/tmp/fr-mac-installed/FR eyewear studio.app/Contents/MacOS/FR eyewear studio' FR_SMOKE_OUTPUT=/tmp/fr-mac-smoke node .desktop-build/desktop/smoke-offline.mjs > /tmp/fr-macos-smoke.log 2>&1
+          smoke_status=$?
+          set -e
+          cat /tmp/fr-macos-smoke.log
+          if [ "$smoke_status" -ne 0 ]; then
+            python3 -c 'from pathlib import Path; s=Path("/tmp/fr-macos-smoke.log").read_text()[-3500:]; print("::error::"+s.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit "$smoke_status"
+          fi
           cd .desktop-build/installers
           shasum -a 256 *.dmg > SHA256SUMS-macos-${{ matrix.arch }}.txt
       - uses: actions/upload-artifact@v4
