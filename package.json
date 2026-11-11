@@ -14,7 +14,8 @@
     "test:collection": "node scripts/collection-lenses-browser.mjs",
     "test:workbench": "node scripts/workbench-browser.mjs",
     "test:metrology": "node scripts/renderer-metrology.mjs",
-    "test:cad": "node scripts/cad-acceptance.mjs"
+    "test:cad": "node scripts/cad-acceptance.mjs",
+    "test:reference-workflow": "node scripts/reference-workflow.mjs"
   },
   "engines": {
     "node": ">=22"

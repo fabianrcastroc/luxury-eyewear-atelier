@@ -18,6 +18,8 @@ try{
  await page.waitForFunction(()=>document.querySelector('#disena')?.dataset.renderer==='webgl',{},{timeout:60000});
  assert.match(page.url(),/^fr:\/\/studio\//);
  console.log('renderer ready');
+ assert.equal(await page.locator('[data-model]').count(),8);await page.locator('[data-model=cateye]').click();await page.locator('[data-panel="1"]').click();for(const [id,key,value] of [['precision-height','lensHeight',37.5],['precision-ear-length','earLength',40],['precision-splay','templeSplay',4]]){await page.locator('#'+id).fill(String(value));await page.locator('#'+id).dispatchEvent('change');await page.waitForFunction(({key,value})=>JSON.parse(document.querySelector('#disena').dataset.design)[key]===value,{key,value});}await page.locator('#studio-edit-contour').click();assert.equal(await page.locator('[data-contour-node]').count(),8);const beforeCurve=await page.locator('#disena').getAttribute('data-design');await page.locator('[data-contour-node]').nth(2).focus();await page.locator('[data-contour-node]').nth(2).press('ArrowUp');assert.notEqual(await page.locator('#disena').getAttribute('data-design'),beforeCurve);
+
  const security=await app.evaluate(({BrowserWindow})=>{const preferences=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {contextIsolation:preferences.contextIsolation,nodeIntegration:preferences.nodeIntegration,sandbox:preferences.sandbox};});
  assert.deepEqual(security,{contextIsolation:true,nodeIntegration:false,sandbox:true});
  await page.locator('[data-panel="1"]').click();await page.locator('#precision-depth').fill('8');await page.locator('#precision-depth').dispatchEvent('change');
@@ -29,7 +31,7 @@ try{
  await page.waitForFunction(()=>!document.querySelector('#studio-apply-reference').disabled,{},{timeout:30000});await page.locator('#studio-apply-reference').click();
  await page.waitForFunction(()=>JSON.parse(document.querySelector('#design-preview').dataset.config).customContour?.length>30);
  const download=async id=>{const before=new Set(await readdir(output));await page.locator('#'+id).click();let found;for(let count=0;count<200;count++){for(const name of await readdir(output)){if(!before.has(name)&&!name.endsWith('.crdownload')&&(await stat(path.join(output,name))).size>0)found=path.join(output,name);}if(found)break;await new Promise(resolve=>setTimeout(resolve,100));}assert.ok(found,'download completed: '+id);return found;};
- const projectPath=await download('studio-project-save'),project=JSON.parse(await readFile(projectPath,'utf8'));assert.equal(project.units,'mm');assert.ok(project.design.customContour.length>30);
+ const projectPath=await download('studio-project-save'),project=JSON.parse(await readFile(projectPath,'utf8'));assert.equal(project.units,'mm');assert.ok(project.design.customContour.length>30);assert.equal(project.version,5);assert.equal(project.design.earLength,40);assert.equal(project.design.templeSplay,4);
  await page.locator('#precision-depth').fill('6');await page.locator('#precision-depth').dispatchEvent('change');await page.locator('#studio-project-open').setInputFiles(projectPath);await page.waitForFunction(()=>JSON.parse(document.querySelector('#disena').dataset.design).materialDepth===8);
  console.log('project saved');
  const glbPath=await download('studio-glb'),glb=await readFile(glbPath);assert.equal(glb.readUInt32LE(0),0x46546c67);assert.equal(glb.readUInt32LE(8),glb.length);
@@ -38,6 +40,6 @@ try{
  await popup.evaluate(()=>{window.__printInvoked=false;window.print=()=>{window.__printInvoked=true;};});await popup.locator('button').first().click();assert.equal(await popup.evaluate(()=>window.__printInvoked),true);
  const encodedPDF=await app.evaluate(async({BrowserWindow})=>{const printWindow=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL()==='about:blank');return (await printWindow.webContents.printToPDF({preferCSSPageSize:true,printBackground:true})).toString('base64');});const pdf=Buffer.from(encodedPDF,'base64');await writeFile(path.join(output,'offline-patterns.pdf'),pdf);assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length,2);
  await page.screenshot({path:path.join(output,'offline-editor.png')});assert.deepEqual(errors,[]);assert.deepEqual(http,[]);
- result={success:true,platform:process.platform,url:page.url(),security,webgl:true,localWorker:true,projectRoundtrip:true,glb:true,pdfPages:2,externalHTTPRequests:http,errors};
+ result={success:true,platform:process.platform,url:page.url(),security,webgl:true,localWorker:true,projectRoundtrip:true,profileLibraryCount:8,assistedCurveEdit:true,newDimensions:true,glb:true,pdfPages:2,externalHTTPRequests:http,errors};
  console.log(JSON.stringify(result));
 }finally{await app.close();if(result)await writeFile(path.join(output,'offline-smoke.json'),JSON.stringify(result,null,2)+'\n');}

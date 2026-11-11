@@ -6,7 +6,7 @@ import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {frameContour,lensContour,lensCenters,bridgeGeometry,designMeasurements,nasalPads,hingeGeometry,MM} from './frame-geometry.js';
 import {normalizeDesign,frameColors,lensColors,photoColors} from './designer-model.js';
 import {templeSections} from './temple-development.js';
-import {finishedExtrusion,finishedTemple} from './finished-geometry.js';
+import {finishedExtrusion,finishedTemple,finishedNasalLaminate,finishedLens,finishedHinge,finishedRivetPair} from './finished-geometry.js';
 import {frontCutGeometry} from './manufacturing.js';
 
 export function createDesignRenderer(container){
@@ -25,7 +25,7 @@ export function createDesignRenderer(container){
  const light=new THREE.DirectionalLight(0xffffff,2.6);light.position.set(-3,7,5);light.castShadow=true;light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-5;light.shadow.camera.right=5;light.shadow.camera.top=5;light.shadow.camera.bottom=-5;light.shadow.bias=-.001;scene.add(light);
  const fill=new THREE.DirectionalLight(0xffffff,2);fill.position.set(5,3,-3);scene.add(fill);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({color:0x343434,opacity:.035}));floor.rotation.x=-Math.PI/2;floor.position.y=-2;floor.material.depthWrite=false;floor.receiveShadow=true;scene.add(floor);
- let group=new THREE.Group(),reference=null;scene.add(group);
+ let group=new THREE.Group(),reference=null,initialModelFit=true;scene.add(group);
  let framePending=false;
  function render(){if(framePending)return;framePending=true;requestAnimationFrame(()=>{framePending=false;renderer.render(scene,camera);container.dataset.camera=JSON.stringify(camera.position.toArray());container.dataset.projection=camera.isOrthographicCamera?'orthographic':'perspective';container.dataset.wireframe=String(display.wireframe);container.dataset.grid=String(display.grid);});}
  controls.addEventListener('change',render);
@@ -58,7 +58,7 @@ export function createDesignRenderer(container){
   const sections=templeSections(d,side,style),geometry=finishedTemple(sections.rows),mesh=addMesh(geometry,mat);
   mesh.name=`temple-${side}`;mesh.userData={part:'temple',materialClass:'acetate-stock',stockThicknessMM:d.materialDepth,sectionVertexCount:geometry.userData.sectionVertexCount,sectionCount:sections.rows.length,continuous:true,nominalLengthMM:sections.developedLength};
   const hinge=hingeGeometry(d,side);
-  const hardware=addMesh(new THREE.BoxGeometry(...hinge.hardware.size),material('#9b927d',true));hardware.position.set(...hinge.hardware.center);hardware.name=`hinge-${side}`;hardware.userData={part:'hinge',materialClass:'hardware-placeholder',manufacturingValidated:false};
+  const hardware=addMesh(finishedHinge(hinge.hardware.size),material('#9b927d',true));hardware.position.set(...hinge.hardware.center);hardware.name=`hinge-${side}`;hardware.userData={part:'hinge',materialClass:'hardware-placeholder',manufacturingValidated:false,construction:'three-knuckle-two-leaf-hinge',illustrativeEnvelopeMM:hinge.hardware.size.map(v=>v/MM)};
  }
  function update(raw){
   const d=normalizeDesign(raw),stockDepth=d.materialDepth*MM;container.dataset.renderModel=d.model;const cut=frontCutGeometry(d);for(const side of [-1,1])templeSections(d,side);container.dataset.config=JSON.stringify(d);scene.remove(group);dispose(group);group=new THREE.Group();scene.add(group);
@@ -74,22 +74,42 @@ export function createDesignRenderer(container){
   for(const side of [-1,1]){
    const inner=lensContour(d,side),center=centers[side===-1?0:1];
    const tinted=d.use==='sol'||d.sunOptical||d.photo,color=d.photo?photoColors.find(c=>c.id===d.photoColor).hex:lensColors.find(c=>c.id===d.lensColor).hex;
-   const lensMat=new THREE.MeshPhysicalMaterial({color:tinted?new THREE.Color(color).multiplyScalar(.65):'#d5e0df',transparent:true,opacity:tinted?.88:.12,roughness:.16,metalness:0,side:THREE.DoubleSide});
-   const lens=addMesh(new THREE.ShapeGeometry(new THREE.Shape(inner.map(p=>new THREE.Vector2(...p)))),lensMat);lens.position.set(center,0,stockDepth*.5);lens.name=`lens-${side}`;lens.userData={part:'lens',materialClass:'lens-preview'};
-   const hinge=hingeGeometry(d,side),pin=addMesh(new THREE.SphereGeometry(.018,12,8),material('#a4a08b',true));pin.position.set(hinge.anchor[0],hinge.anchor[1],stockDepth+.009);pin.scale.set(1,.55,.4);pin.name=`pin-${side}`;pin.userData={part:'pin',materialClass:'hardware-placeholder',manufacturingValidated:false};
+   const lensMat=new THREE.MeshPhysicalMaterial({color:tinted?new THREE.Color(color).multiplyScalar(.78):'#d5e0df',transparent:true,opacity:tinted?.82:.14,roughness:.11,metalness:0,clearcoat:1,clearcoatRoughness:.08,ior:1.5,side:THREE.DoubleSide,depthWrite:false});
+   const lensDepth=Math.min(1.2,d.materialDepth*.45)*MM;
+   const lens=addMesh(finishedLens(inner,lensDepth),lensMat);lens.position.set(center,0,(stockDepth-lensDepth)*.5);lens.name=`lens-${side}`;lens.userData={part:'lens',materialClass:'lens-preview',closedLensBlank:true,illustrativeThicknessMM:lensDepth/MM,opticalPrescription:false,manufacturingValidated:false};
+   const hinge=hingeGeometry(d,side),pin=addMesh(finishedRivetPair(),material('#a4a08b',true));pin.position.set(hinge.anchor[0],hinge.anchor[1],stockDepth);pin.name=`pin-${side}`;pin.userData={part:'pin',materialClass:'hardware-placeholder',construction:'paired-flush-rivets',manufacturingValidated:false};
   }
   for(const side of [-1,1]){
    const pad=nasalPads(d,side);if(pad.outline.length<3)continue;
-   const mesh=addMesh(finishedExtrusion(pad.outline,[],pad.depth,.7*MM),rim);mesh.position.z=-pad.depth;mesh.name=`nasal-pad-${side}`;mesh.userData={part:'nasal-pad',materialClass:'added-laminate',addedThicknessMM:pad.depth/MM,includedInMainStock:false,manufacturingValidated:false,polishedContinuity:true};
+   const mesh=addMesh(finishedNasalLaminate(pad.outline,pad.depth),rim);mesh.position.z=-pad.depth;mesh.name=`nasal-pad-${side}`;mesh.userData={part:'nasal-pad',materialClass:'added-laminate',addedThicknessMM:pad.depth/MM,includedInMainStock:false,manufacturingValidated:false,polishedContinuity:true,finish:'tapered-added-laminate',bondFaceZMM:0};
   }
   container.dataset.nasalPads='2';container.dataset.padConstruction='polished-laminated-crescent';container.dataset.measurements=JSON.stringify(designMeasurements(d));
-  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();render();
+  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}render();
  }
  function fit(){
   const target=controls.target,vector=camera.position.clone().sub(target).normalize(),aspect=Math.max(.15,camera.aspect||1);
   if(!vector.lengthSq())vector.set(0,0,1);
   if(camera.isOrthographicCamera){camera.zoom=1;camera.position.copy(target.clone().addScaledVector(vector,12));controls.update();camera.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(group);if(!box.isEmpty()){const inverse=camera.quaternion.clone().invert(),corners=[];for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])corners.push(new THREE.Vector3(x,y,z).sub(target).applyQuaternion(inverse));const width=Math.max(...corners.map(p=>Math.abs(p.x)))*2,height=Math.max(...corners.map(p=>Math.abs(p.y)))*2;camera.zoom=Math.min((camera.right-camera.left)/Math.max(width,.1),(camera.top-camera.bottom)/Math.max(height,.1))/1.16;}camera.updateProjectionMatrix();}
-  else{camera.zoom=1;const distance=Math.max(9.5,3.3/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*aspect)+2.3);camera.position.copy(target.clone().addScaledVector(vector,Math.min(38,distance)));camera.updateProjectionMatrix();}
+  else{
+   camera.zoom=1;camera.position.copy(target.clone().addScaledVector(vector,12));controls.update();camera.updateMatrixWorld(true);group.updateMatrixWorld(true);
+   const inverse=camera.quaternion.clone().invert(),points=[],point=new THREE.Vector3();
+   group.traverse(object=>{if(!object.isMesh||!object.visible)return;const p=object.geometry.attributes.position;for(let i=0;i<p.count;i++){point.fromBufferAttribute(p,i).applyMatrix4(object.matrixWorld).sub(target).applyQuaternion(inverse);points.push(point.x,point.y,point.z);}});
+   if(points.length){
+    const tanY=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),tanX=tanY*aspect,margin=1.12;
+    let shiftX=0,shiftY=0,distance=12;const oblique=[vector.x,vector.y,vector.z].filter(v=>Math.abs(v)>.001).length>1;
+    // A depth midpoint is not the visual centre of an open frame: the broad
+    // front lies nearer the eye than the narrow temple ends. Centre the actual
+    // projected vertices instead, fitting both axes with perspective depth.
+    const requiredDistance=()=>{let value=controls.minDistance;for(let i=0;i<points.length;i+=3)value=Math.max(value,points[i+2]+margin*Math.max(Math.abs(points[i]-shiftX)/tanX,Math.abs(points[i+1]-shiftY)/tanY));return Math.min(38,value);};
+    for(let pass=0;pass<10;pass++){
+     distance=requiredDistance();if(!oblique)break;let left=Infinity,right=-Infinity,bottom=Infinity,top=-Infinity;
+     for(let i=0;i<points.length;i+=3){const depth=Math.max(.1,distance-points[i+2]),x=(points[i]-shiftX)/depth,y=(points[i+1]-shiftY)/depth;left=Math.min(left,x);right=Math.max(right,x);bottom=Math.min(bottom,y);top=Math.max(top,y);}
+     shiftX+=(left+right)*.5*distance*.8;shiftY+=(bottom+top)*.5*distance*.8;
+    }
+    distance=requiredDistance();target.add(new THREE.Vector3(shiftX,shiftY,0).applyQuaternion(camera.quaternion));camera.position.copy(target.clone().addScaledVector(vector,distance));
+   }else camera.position.copy(target.clone().addScaledVector(vector,Math.max(9.5,3.3/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*aspect)+2.3)));
+   camera.updateProjectionMatrix();
+  }
   controls.update();
  }
  function setView(view){
@@ -115,7 +135,7 @@ export function createDesignRenderer(container){
  function selectPart(part){selectedPart=part in partVisibility?part:null;applyDisplay();render();}
  function setDisplay(settings={}){for(const key of ['wireframe','grid','axes'])if(typeof settings[key]==='boolean')display[key]=settings[key];applyDisplay();render();}
  function zoom(factor){if(!Number.isFinite(factor)||factor<=0)return;if(camera.isOrthographicCamera){camera.zoom=THREE.MathUtils.clamp(camera.zoom*factor,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();}else{const offset=camera.position.clone().sub(controls.target);const distance=THREE.MathUtils.clamp(offset.length()/factor,controls.minDistance,controls.maxDistance);camera.position.copy(controls.target.clone().addScaledVector(offset.normalize(),distance));}controls.update();render();}
- function fitView(){controls.target.set(0,0,-2.3);fit();render();}
+ function fitView(){const offset=camera.position.clone().sub(controls.target);controls.target.set(0,0,-2.3);camera.position.copy(controls.target.clone().add(offset));fit();render();}
  const observer=new ResizeObserver(resize);observer.observe(container);setView('perspectiva');resize();
  renderer.domElement.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const offset=camera.position.clone().sub(controls.target);offset.applyAxisAngle(new THREE.Vector3(0,1,0),e.key==='ArrowLeft'?-.15:.15);camera.position.copy(controls.target.clone().add(offset));controls.update();render();});
  async function loadReference(file){

@@ -17,7 +17,7 @@ try{
   const close=(actual,expected)=>{if(Math.abs(actual-expected)>1e-4)throw new Error(`Geometry ${actual} != ${expected}`);};
   const translation=node=>node.translation||(node.matrix?[node.matrix[12],node.matrix[13],node.matrix[14]]:[0,0,0]);
   try{
-   for(const model of ['recto','redondo','ovalado','curvo'])for(const stock of [2,3,4,6,8]){
+   for(const model of ['recto','redondo','ovalado','curvo','panto','boston','cateye','geometrico'])for(const stock of [2,3,4,6,8]){
     viewer.update({...design,model,materialDepth:stock});
     viewer.setView('frente');viewer.setProjection('orthographic');
     const camera=viewer.getCameraState();close(camera[0],0);close(camera[1],0);
@@ -81,6 +81,6 @@ try{
   }finally{viewer.destroy();}
   return runs;
  },defaultDesign);
- assert.equal(runs.length,20);assert.deepEqual(errors,[]);
- console.log('PASS renderer metrology: 20 model/stock combinations; GLB binary scale, actual 2/3/4/6/8 mm stock, continuous rounded sections, separate 3 mm added nasal laminates, hardware scope, mirrored rims and front/lateral camera axes.');
+ assert.equal(runs.length,40);assert.deepEqual(errors,[]);
+ console.log('PASS renderer metrology: 40 model/stock combinations; GLB binary scale, actual 2/3/4/6/8 mm stock, continuous rounded sections, separate 3 mm added nasal laminates, hardware scope, mirrored rims and front/lateral camera axes.');
 }finally{await browser.close();}

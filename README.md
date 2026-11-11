@@ -29,10 +29,10 @@ Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres pági
 
 ## Estudio personal
 
-- Cuatro siluetas: Recto de proporción compacta, Redondo circular, Ovalado de inspiración aviador sin doble puente predeterminado y Curvo integral en acetato con contorno adaptable a CatEye.
+- Ocho bases originales: Recto, Redondo, Ovalado, Curvo, Panto, Boston, Cat-eye y Geométrico. Presets de A, altura B, DBL y L, ceja y asientos de bisagra con reserva de material.
 - Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
 - Estudio de producto de pantalla completa con cuatro paneles accesibles: Modelo, Montura, Cristales y Receta. Solo un panel visible; navegación por teclado y Receta disponible al seleccionar graduación.
-- Tallas A/P 48/16, 52/17 y 56/18, patillas B de 135/140/145/150 mm; cambiar talla conserva la silueta. Puente clásico, doble o herradura, posiciones relativas alta/media/baja, espesor y curva solo del borde nasal: los controles de diseño del puente no separan los aros. Ancho del brazo desde 4 mm hasta la altura completa del aro; el gancho conserva su geometría y su posición depende solo del largo nominal B. Se retiró la extensión manual. Puente de 5 a 12 mm. Todos los modelos incluyen medias lunas nasales interiores fijas. La pronunciación modifica exclusivamente el borde nasal del propio aro; no altera las medias lunas ni el cristal, y en Curvo también pertenece al mismo aro metálico. Colores independientes por pieza.
+- Cotas base A, B óptico, DBL y largo L independientes; pared mínima 3–8 mm hacia dentro, exterior protegido y planchas 2/3/4/6/8 mm. Puente clásico, herradura o doble. Apertura nasal localizada y correcciones temporales, seis brazos, cuatro terminales, tramo auricular 20–45 mm y apertura lateral 0–8°. Longitud desarrollada L conservada.
 - Seis diseños de brazos con una selección común para ambos lados. Se normalizan los diseños antiguos para impedir combinaciones independientes. La sección del brazo se limita a los extremos verticales del aro, incluyendo el desplazamiento de su eje.
 - **Base de $209.000**, incluyendo todas las personalizaciones de montura y cristales solares sin graduación. Sin recargos por modelo, espesor, brazos o colores.
 - Los únicos suplementos corresponden a cristales graduados y sus tratamientos. Monofocales +$45.000, bifocales +$85.000, multifocales +$145.000. Bluelight +$20.000, antirreflejos +$18.000, fotocromático +$45.000, sol óptico +$25.000.
@@ -44,7 +44,7 @@ Son precios referenciales por el par de cristales; falta validación profesional
 
 ## Fotografías y modelos
 
-Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las imágenes de `public/assets/forms/` se generan desde la misma geometría y materiales que la vista editable. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Las pruebas verifican las cuatro siluetas, la separación constante al editar el puente y la conservación del gancho de la patilla al variar la anchura.
+Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las miniaturas actuales del selector son SVG del propio núcleo geométrico y se actualizan con sus presets. Los recursos antiguos de `public/assets/forms/` se conservan para compatibilidad. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Las pruebas verifican las ocho siluetas, la separación constante al editar el puente y la conservación del gancho de la patilla al variar la anchura.
 
 La portada editorial (`atelier-editorial.webp`) es una imagen original generada con IA; no es una fotografía documental del taller Miscante ni una imagen de Maison Bonnet. La nueva invitación al estudio (`personal-atelier.webp`) es una composición editorial original generada con IA, tampoco una fotografía documental de producto. Las otras imágenes editoriales y de la colección de demostración (`editorial-solar.png`, `collection-studio.png`) también son generadas con IA y no fotografías de inventario disponible.
 
@@ -117,7 +117,7 @@ Las fuentes consultadas y restricciones de acceso están en [design-notes/DESIGN
 
 Antes de publicar se verifican `npm test`, `npm run test:metrology` y los flujos del navegador sobre el sitio compilado. La metrología comprueba vértices del GLB para planchas de 2, 3, 4, 6 y 8 mm, simetría y unidades, terminales del frontal y patillas; diferencia herrajes ilustrativos y apoyos nasales añadidos de 3 mm.
 
-Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. Los cuatro modelos emplean ahora un frontal conectado de acetato.
+Los archivos impresos son **patrones planos preliminares de preparación**, no una validación del encaje con lunetas comerciales. Incluyen regla de 100 mm y cuadrado de 20 × 20 mm. La fabricación definitiva requiere contorno auténtico de la RB2140 50 □ 22, definición de ranura/bisel, herrajes, compensación de conformado y comprobación de una impresión física. Los ocho modelos emplean ahora un frontal conectado de acetato.
 
 El repositorio independiente se conserva con sus comandos de instalación, pruebas y compilación; `node scripts/sync-studio.mjs --write` mantiene sincronizados el núcleo compartido y la entrada FR. El alojamiento bajo `/fr/` no convierte el directorio web en un segundo repositorio remoto.
 
@@ -125,9 +125,9 @@ El repositorio independiente se conserva con sus comandos de instalación, prueb
 
 El editor compartido de la web y FR ahora utiliza explorador de piezas, barra de herramientas, propiedades numéricas y cuatro vistas. Selección, visibilidad por pieza, zoom/desplazamiento, medición en milímetros, curvas asistidas y deshacer/rehacer son operaciones funcionales. Las vistas frontal, superior y lateral usan proyección ortográfica.
 
-La pared del aro se modifica hacia dentro por defecto: el contorno exterior y el eje de bisagra permanecen fijos. La apertura A y el DBL reales se calculan del resultado; no se confunden con los valores de base de talla. La envolvente de los proyectos anteriores se conserva al migrarlos. Todos editan la pared hacia dentro; los archivos nuevos usan formato FR, versión 4.
+La pared del aro se modifica hacia dentro por defecto: el contorno exterior y el eje de bisagra permanecen fijos. La apertura A y el DBL reales se calculan del resultado; no se confunden con los valores de base de talla. La envolvente de los proyectos anteriores se conserva al migrarlos. Todos editan la pared hacia dentro; los archivos nuevos usan formato FR, versión 5.
 
-Incluye apertura nasal local de 0–15°, elevación y extensión temporal, bisagra oculta o con caja, seis perfiles de brazo, inclinación de curva sin cambiar B, cuatro formas de terminal y su tamaño. El puente conserva tres tipos estructurales; se retiraron los controles heredados que no tenían efecto o deformaban su identidad. Las uniones de los brazos tienen un rebaje local para quedar dentro del aro.
+Incluye apertura nasal local de 0–15°, elevación y extensión temporal, bisagra oculta o con caja, seis perfiles de brazo, inclinación de curva sin cambiar L, cuatro formas de terminal y su tamaño. El puente conserva tres tipos estructurales; se retiraron los controles heredados que no tenían efecto o deformaban su identidad. Las uniones de los brazos tienen un rebaje local para quedar dentro del aro.
 
 Los materiales disponibles son negro, carey, amarillo, marfil, azul piedra marmolado, gris y rojo italiano. Carey y marmolado tienen una representación procedural opaca; es una simulación visual, no una fotografía del lote de acetato. Se guardan notas junto al proyecto.
 
@@ -140,6 +140,9 @@ Esta entrega incorpora un instalador Windows x64 sin conexión, compilado e inst
 
 ## Descarga de FR eyewear studio sin conexión
 
-[Instalador Windows x64 1.0.1](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.0.1/FR-eyewear-studio-1.0.1-win-x64.exe).
+[Instalador Windows x64 1.1.0](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.1.0/FR-eyewear-studio-1.1.0-win-x64.exe).
 
 Incluye todos los recursos. CI instala el NSIS y prueba el ejecutable instalado: WebGL, referencia local, guardar/reabrir, GLB y dos hojas PDF, con cero solicitudes HTTP. Instalador sin firma Authenticode. Compilación reproducible: `desktop-fr/` y `.github/workflows/desktop.yml`.
+
+
+La revisión 1.1 incluye ocho nodos de corrección asistida y simétrica, superposición de contornos sobre la foto calibrada y guía de taller. La auditoría de cada requisito y el alcance físico pendiente están en [DELIVERY-1.1.0.md](design-notes/DELIVERY-1.1.0.md). Para repetir la aceptación con una referencia propia: `CAD_URL=http://127.0.0.1:3050 FR_REFERENCE_IMAGE=/ruta/referencia.png npm run test:reference-workflow`.

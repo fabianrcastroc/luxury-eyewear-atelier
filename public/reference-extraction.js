@@ -1,6 +1,6 @@
 // Local, deterministic extraction of frontal lens apertures. A photograph cannot
 // supply millimetres, depth, hinge placement or machining allowances by itself.
-const HELP='Usa una vista frontal, sin perspectiva, con ambos huecos de cristal cerrados y fondo claro uniforme. Indica después un ancho de cristal conocido para calibrar la escala.';
+const HELP='Usa una vista frontal, sin perspectiva, con ambos huecos de cristal cerrados y fondo claro o gris neutro uniforme. Indica después un ancho de cristal conocido para calibrar la escala.';
 function fail(message){throw new Error(`${message} ${HELP}`);}
 
 function components(mask,width,height,wanted=1){
@@ -41,31 +41,24 @@ function choosePair(items,width,height){
  return best;
 }
 
-const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
-function hull(points){
- const sorted=points.sort((a,b)=>a[0]-b[0]||a[1]-b[1]),lower=[],upper=[];
- for(const p of sorted){while(lower.length>=2&&cross(lower.at(-2),lower.at(-1),p)<=0)lower.pop();lower.push(p);}
- for(const p of sorted.slice().reverse()){while(upper.length>=2&&cross(upper.at(-2),upper.at(-1),p)<=0)upper.pop();upper.push(p);}
- return lower.slice(0,-1).concat(upper.slice(0,-1));
-}
-function outline(component,labels,width,height,mirror=false){
- const points=[];
- for(let y=component.minY;y<=component.maxY;y++)for(let x=component.minX;x<=component.maxX;x++){
-  const index=y*width+x;if(labels[index]!==component.id)continue;
-  if(x===0||y===0||x+1===width||y+1===height||labels[index-1]!==component.id||labels[index+1]!==component.id||labels[index-width]!==component.id||labels[index+width]!==component.id)points.push([(x-component.cx)*(mirror?-1:1),component.cy-y]);
+// A radial boundary follows the detected component, including shallow nasal
+// concavities and CatEye shoulders. Taking a convex hull here used to erase
+// those features before the user could correct them. Speck holes are ignored
+// by retaining the last sample on each ray belonging to the same component.
+function componentRadii(component,labels,width,height,mirror=false,count=256){
+ const radii=[];
+ for(let i=0;i<count;i++){
+  const angle=i/count*Math.PI*2,dx=Math.cos(angle)*(mirror?-1:1),dy=-Math.sin(angle),limit=Math.hypot(component.width,component.height)+2;
+  let last=0;
+  for(let r=0;r<=limit;r+=.5){const x=Math.round(component.cx+r*dx),y=Math.round(component.cy+r*dy);if(x<0||x>=width||y<0||y>=height)break;if(labels[y*width+x]===component.id)last=r;}
+  radii.push(last);
  }
- return hull(points);
+ // Remove pixel stair steps, without replacing concavities by a hull.
+ const median=radii.map((_,i)=>[radii[(i-2+count)%count],radii[(i-1+count)%count],radii[i],radii[(i+1)%count],radii[(i+2)%count]].sort((a,b)=>a-b)[2]);
+ return median.map((v,i)=>(median[(i-1+count)%count]+v*2+median[(i+1)%count])/4);
 }
-function radial(poly,angle){
- const dx=Math.cos(angle),dy=Math.sin(angle);let radius=0;
- for(let i=0;i<poly.length;i++){
-  const a=poly[i],b=poly[(i+1)%poly.length],ex=b[0]-a[0],ey=b[1]-a[1],den=dx*ey-dy*ex;
-  if(Math.abs(den)<1e-10)continue;
-  const distance=(a[0]*ey-a[1]*ex)/den,t=(a[0]*dy-a[1]*dx)/den;
-  if(distance>0&&t>=-1e-8&&t<=1+1e-8)radius=Math.max(radius,distance);
- }
- return radius;
-}
+function radialPolygon(radii){return radii.map((r,i)=>{const a=i/radii.length*Math.PI*2;return [r*Math.cos(a),r*Math.sin(a)];});}
+function imageContour(component,radii,mirror=false){return samplePerimeter(radialPolygon(radii)).map(([x,y])=>[component.cx+x*(mirror?-1:1),component.cy-y]);}
 function samplePerimeter(poly,count=128){
  const lengths=poly.map((p,i)=>Math.hypot(p[0]-poly[(i+1)%poly.length][0],p[1]-poly[(i+1)%poly.length][1])),perimeter=lengths.reduce((a,b)=>a+b,0),out=[];
  let edge=0,accumulated=0;
@@ -77,8 +70,8 @@ export function analyzeRGBA({data,width,height}){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<80||height<40||width>1200||height>1200||!data||data.length!==width*height*4)fail('La imagen debe tener dimensiones entre 80 × 40 y 1200 × 1200 píxeles.');
  const gray=new Uint8Array(width*height);let borderSum=0,borderCount=0;
  for(let i=0;i<gray.length;i++){const a=data[i*4+3]/255;gray[i]=Math.round((.2126*data[i*4]+.7152*data[i*4+1]+.0722*data[i*4+2])*a+255*(1-a));const x=i%width,y=Math.floor(i/width);if(x<3||y<3||x>=width-3||y>=height-3){borderSum+=gray[i];borderCount++;}}
- if(borderSum/borderCount<205)fail('No se reconoce un fondo claro alrededor de la montura.');
- const threshold=histogramThreshold(gray),thresholds=[threshold,40,55,70,80,110,140,170,200,225,240].filter((x,i,a)=>x>=30&&x<=245&&a.indexOf(x)===i);
+ const backgroundLevel=borderSum/borderCount;if(backgroundLevel<140)fail('No se reconoce un fondo claro o gris neutro alrededor de la montura.');
+ const threshold=histogramThreshold(gray),thresholds=[threshold,40,55,70,80,110,140,170,200,225,240].filter((x,i,a)=>x>=20&&x<backgroundLevel-12&&x<=245&&a.indexOf(x)===i);
  let selected=null;
  for(const threshold of thresholds){
   const background=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)background[i]=gray[i]>threshold?1:0;
@@ -86,12 +79,14 @@ export function analyzeRGBA({data,width,height}){
   if(pair&&(!selected||pair.score>selected.pair.score))selected={labels,pair,threshold};
  }
  if(!selected)fail('No se detectaron dos huecos de cristal cerrados y simétricos con suficiente confianza.');
- const {pair,labels}=selected,left=outline(pair.left,labels,width,height,true),right=outline(pair.right,labels,width,height),average=[];
- for(let i=0;i<128;i++){const angle=i/128*Math.PI*2,r=(radial(left,angle)+radial(right,angle))/2;average.push([r*Math.cos(angle),r*Math.sin(angle)]);}
- const poly=hull(average),sampled=samplePerimeter(poly),minX=Math.min(...sampled.map(p=>p[0])),maxX=Math.max(...sampled.map(p=>p[0])),minY=Math.min(...sampled.map(p=>p[1])),maxY=Math.max(...sampled.map(p=>p[1])),half=(maxX-minX)/2,cx=(maxX+minX)/2,cy=(maxY+minY)/2,aspectRatio=(maxY-minY)/(maxX-minX);
- if(aspectRatio<.45||aspectRatio>1.25||half<8||poly.length<8)fail('La proporción de los cristales queda fuera del rango estructural admitido.');
- const customContour=sampled.map(([x,y])=>[(x-cx)/half,(y-cy)/half]);
- return {customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5)),widthPixels:(pair.left.width+pair.right.width)/2,aspectRatio,diagnostics:['Dos huecos detectados automáticamente; contorno suavizado y simetrizado con envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','Comprueba las curvas en 2D antes de fabricar; una fotografía con perspectiva no proporciona metrología exacta.']};
+ const {pair,labels}=selected,leftRadii=componentRadii(pair.left,labels,width,height,true),rightRadii=componentRadii(pair.right,labels,width,height),radii=leftRadii.map((r,i)=>(r+rightRadii[i])/2);
+ const disagreement=Math.sqrt(leftRadii.reduce((sum,r,i)=>sum+(r-rightRadii[i])**2,0)/radii.length)/(radii.reduce((sum,r)=>sum+r,0)/radii.length);
+ if(disagreement>.18)fail('Los perfiles izquierdo y derecho no coinciden: recorta una vista frontal sin perspectiva ni reflejos que oculten el aro.');
+ const poly=radialPolygon(radii),sampled=samplePerimeter(poly),minX=Math.min(...sampled.map(p=>p[0])),maxX=Math.max(...sampled.map(p=>p[0])),minY=Math.min(...sampled.map(p=>p[1])),maxY=Math.max(...sampled.map(p=>p[1])),half=(maxX-minX)/2,cx=(maxX+minX)/2,cy=(maxY+minY)/2,aspectRatio=(maxY-minY)/(maxX-minX);
+ if(aspectRatio<.45||aspectRatio>1.25||half<8)fail('La proporción de los cristales queda fuera del rango estructural admitido.');
+ const customContour=sampled.map(([x,y])=>[(x-cx)/half,(y-cy)/half]),widthPixels=(pair.left.width+pair.right.width)/2,heightPixels=(pair.left.height+pair.right.height)/2;
+ const apertures=[[pair.left,leftRadii,'left',true],[pair.right,rightRadii,'right',false]].map(([component,radii,side,mirror])=>({side,bounds:{x:component.minX,y:component.minY,width:component.width,height:component.height},contour:imageContour(component,radii,mirror)}));
+ return {customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,gapPixels:pair.right.minX-pair.left.maxX-1,requiresKnownDimension:true},regularization:'radial-mirrored',diagnostics:['Dos huecos detectados automáticamente; perfiles simetrizados con suavizado local, sin envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el borde detectado; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
 }
 
 export async function extractReferenceImage(file){
@@ -104,15 +99,15 @@ export async function extractReferenceImage(file){
   const context=canvas.getContext('2d',{willReadFrequently:true});if(!context)fail('No está disponible el análisis de imagen en este navegador.');context.fillStyle='#fff';context.fillRect(0,0,width,height);context.drawImage(bitmap,0,0,width,height);
   const image=context.getImageData(0,0,width,height);
   // Thresholding and connected-component analysis run off the UI thread.
-  if(typeof Worker==='undefined')return analyzeRGBA(image);
-  return await new Promise((resolve,reject)=>{
+  const previewDataURL=canvas.toDataURL('image/png');if(typeof Worker==='undefined')return {...analyzeRGBA(image),previewDataURL};
+  const result=await new Promise((resolve,reject)=>{
    const worker=new Worker(new URL('./reference-extraction.js',import.meta.url),{type:'module'});
    const timer=setTimeout(()=>{worker.terminate();reject(new Error('El análisis tardó demasiado. Prueba con un recorte frontal más simple.'));},20000);
    const finish=()=>{clearTimeout(timer);worker.terminate();};
    worker.onmessage=({data})=>{finish();if(data.error)reject(new Error(data.error));else resolve(data.result);};
    worker.onerror=()=>{finish();reject(new Error('No se pudo iniciar el análisis local de imagen. Recarga la página e inténtalo nuevamente.'));};
    worker.postMessage({data:image.data,width,height},[image.data.buffer]);
-  });
+  });return {...result,previewDataURL};
  }finally{bitmap.close();}
 }
 

@@ -7,9 +7,9 @@ import {iconicModels,defaultDesign,normalizeDesign,designQuote,prescriptionError
 import {totals} from '../public/catalog.js';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} ≈ ${b}`);
 
-test('solo cuatro modelos y migración de diseños anteriores',()=>{
- assert.deepEqual(iconicModels.map(m=>m.name),['Recto','Redondo','Ovalado','Curvo']);
- for(const [before,after] of Object.entries({rectangular:'recto',panto:'redondo',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo','cat-eye':'recto'}))assert.equal(normalizeDesign({model:before}).model,after);
+test('ocho perfiles y migración de diseños anteriores',()=>{
+ assert.deepEqual(iconicModels.map(m=>m.name),['Recto','Redondo','Ovalado','Curvo','Panto','Boston','Cat-eye','Geométrico']);
+ for(const [before,after] of Object.entries({rectangular:'recto',panto:'panto',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo','cat-eye':'cateye'}))assert.equal(normalizeDesign({model:before}).model,after);
  const d=normalizeDesign({bridgeWidth:24,armLength:155});assert.equal(d.bridgeWidth,24);assert.ok(!('armLength' in d));
 });
 test('la base sigue en $209.000 sin recargos por talla, puente o brazos',()=>{
