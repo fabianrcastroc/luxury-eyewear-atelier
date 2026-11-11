@@ -83,3 +83,29 @@ El enlace usa una operación de región con contornos firmados y agujeros. Se de
 Se subdividen todas las caras mediante planos X comunes a intervalos de 2 mm antes de conformar, conservando grupos de materiales, UV y normales. Las normales se transforman con la inversa transpuesta de la deformación cilíndrica, evitando facetas de sombreado entre triángulos largos. El STL conformado mantiene mallas cerradas en las pruebas. La comprobación macOS espera el cierre real de todas las ventanas antes de simular la activación desde el Dock.
 
 La ejecución automatizada usa SwiftShader en macOS Intel, Windows y Linux. Apple Silicon usa Metal. Estas opciones se aplican únicamente con `--headless-test`; la ejecución normal conserva la selección de GPU de Electron. El runner Intel de GitHub no soporta el Metal forzado y se rechazó su instalador anterior en lugar de publicarlo sin la prueba.
+
+## Resultado de publicación y plataformas
+
+Versión de instaladores 1.3.2, fuente etiquetada `20dfc18`. En la ejecución
+https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43114635490
+pasaron Windows x64 (NSIS instalado), Linux amd64 (paquete extraído) y macOS
+Apple Silicon (DMG montado y aplicación copiada). Cada programa empaquetado
+verificó WebGL, edición, Worker local, proyectos, GLB, STL y PDF de dos hojas,
+sin solicitudes HTTP. Las 96 pruebas unitarias pasaron también en Linux CI.
+
+El estado global de esa ejecución es fallido por la tarea adicional Intel x64:
+el runner no pudo inicializar WebGL ni con Metal ni con SwiftShader. Un diagnóstico
+posterior probó cuatro backends sin éxito; la prueba con Rosetta no completó
+el arranque. No se publicó instalador Intel. No se afirma validación física de
+hardware Intel. El flujo principal futuro publica únicamente las plataformas
+verificadas; el diagnóstico x64 queda separado para retomar esa compatibilidad.
+
+Se descargaron los tres instaladores públicos y se contrastaron sus SHA-256 con
+los archivos publicados. El sitio ofrece Redondo y Cuadrado; `/fr/` redirige a
+ese configurador. El estudio completo permanece dentro del paquete de escritorio.
+
+```text
+37866070e4b2590c5184f3896d67d191beaf71c9a1df4b7c50f8e64664716607  FR-eyewear-studio-1.3.2-linux-amd64.deb
+f2a14a73143777fe30195821fe8996526c3268dd87921a1fad75b59ee7355d62  FR-eyewear-studio-1.3.2-mac-arm64.dmg
+cfb077a1dacc3bca47b838ccdc56d38593bc7f3f00550c4ee14ea044271dd1e5  FR-eyewear-studio-1.3.2-win-x64.exe
+```

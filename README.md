@@ -12,7 +12,7 @@ Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces an
 
 ## FR eyewear studio 1.3.2
 
-Estudio de escritorio offline para Windows, Linux y macOS (Intel y Apple Silicon). Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
+Estudio de escritorio offline para Windows, Linux y macOS Apple Silicon. Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
 
 El estudio completo incluye 20 bases, 27 cristales digitalizados de la tabla de la página 6, edición óptica independiente, conformado frontal 3D, contornos de construcción sin triangulación visible y medición con puntos y ajuste a nodos. Los perfiles Panto, Boston y Recto 2 se revisaron con los dibujos de las páginas 5 y 7; las cotas anotadas se distinguen de las alturas inferidas del trazado. Las fuentes rasterizadas no son CAD de fabricante.
 
@@ -23,7 +23,9 @@ Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón 
 - [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.2)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
 - [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.2)
-- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-mac-arm64.dmg) · [macOS Intel](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-mac-x64.dmg)
+- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-mac-arm64.dmg)
+
+Mac Intel x64 sigue pendiente: el runner Intel no pudo crear WebGL y la prueba con Rosetta no completó el arranque. No se publica ese paquete sin verificarlo.
 
 Los instaladores no tienen firma Authenticode ni notarización de Apple. macOS puede solicitar autorización en Privacidad y seguridad. Las cotas y curvas digitales requieren comprobación de impresión y taller antes de fabricar; no certifican un recambio RB2140.
 
