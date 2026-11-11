@@ -25,7 +25,7 @@ El kit Banton orienta el dibujo, anatomía, simetría y posición de componentes
 
 Aceptación en navegador: selección de las ocho bases, A/B/DBL/L, pared con exterior fijo, altura y brazos nuevos, ocho nodos con deshacer/rehacer, foto real de los planos con superposición y calibración, guardar/reabrir y tres PDF de exactamente dos páginas. Se inspeccionaron las capturas de perfiles, modelo y reverso.
 
-La prueba local Electron incluye WebGL, las ocho bases, corrección de perfil, Worker local, JSON, GLB y PDF, con cero solicitudes HTTP. La publicación del instalador queda condicionada a repetir la instalación y prueba del ejecutable en Windows.
+La prueba local Electron incluye WebGL, las ocho bases, corrección de perfil, Worker local, JSON, GLB y PDF, con cero solicitudes HTTP. El ejecutable Windows 1.1.0 superó instalación silenciosa y la prueba de funcionamiento en CI 42936793975 antes de crearse el Release. Se comprobaron además las ocho bases y la corrección de perfil en la aplicación instalada.
 
 ## Requisitos que necesitan datos o verificación adicionales
 
@@ -35,3 +35,8 @@ La entrega es web y Windows x64 offline. No se anuncian instaladores iOS/macOS n
 
 
 Los seis PDF reales del flujo de referencia tienen dos páginas por formato y cero solapes de texto. Las barras nominales de 100 mm miden 99,998–100,000 mm en el PDF. Esto mide la conversión digital; no una impresión física.
+
+
+Metrología binaria GLB: 40 combinaciones de ocho modelos y cinco planchas, aprobadas. Unidades, espesores reales, simetría, partes añadidas y cámara comprobados sobre los vértices exportados.
+
+El código compilado y el CSS de `/fr/` coinciden byte a byte con los recursos incluidos en el instalador. La web y el repositorio independiente verifican paridad de 37 archivos compartidos.

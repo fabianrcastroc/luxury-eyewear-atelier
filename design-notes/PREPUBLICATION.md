@@ -37,3 +37,8 @@ Instalador Windows x64 1.0.1: CI `42889636781`, compilación NSIS, instalación 
 Se descargó de nuevo el archivo publicado: 121.522.907 bytes, cabecera ejecutable MZ y SHA256 coincidente con `SHA256SUMS.txt` del Release:
 
 `5e88b9a515b5f4e13e7ac50235abab474c97379cbfd908e1f2937d443758c12c`
+
+
+## Revisión posterior 1.1.0
+
+La información anterior corresponde a 1.0.1. Para la revisión actual ampliada a ocho bases, consultar DELIVERY-1.1.0.md y REFERENCE-AUDIT-2026-11-10.md. La nueva entrega pasa 77 pruebas web, 74 independientes, 40 combinaciones GLB y el flujo completo con referencia real. Windows CI 42936793975 instaló y probó el ejecutable 1.1.0 sin conexión antes de publicar su Release.
