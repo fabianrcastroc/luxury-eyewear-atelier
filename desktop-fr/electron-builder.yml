@@ -27,6 +27,7 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: FR eyewear studio
 linux:
+  icon: desktop/resources/icon.png
   target:
     - target: deb
       arch: [x64]

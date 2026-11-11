@@ -96,17 +96,12 @@ export function createDesignRenderer(container){
    group.traverse(object=>{if(!object.isMesh||!object.visible)return;const p=object.geometry.attributes.position;for(let i=0;i<p.count;i++){point.fromBufferAttribute(p,i).applyMatrix4(object.matrixWorld).sub(target).applyQuaternion(inverse);points.push(point.x,point.y,point.z);}});
    if(points.length){
     const tanY=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),tanX=tanY*aspect,margin=1.12;
-    let shiftX=0,shiftY=0,distance=12;const oblique=[vector.x,vector.y,vector.z].filter(v=>Math.abs(v)>.001).length>1;
-    // A depth midpoint is not the visual centre of an open frame: the broad
-    // front lies nearer the eye than the narrow temple ends. Centre the actual
-    // projected vertices instead, fitting both axes with perspective depth.
-    const requiredDistance=()=>{let value=controls.minDistance;for(let i=0;i<points.length;i+=3)value=Math.max(value,points[i+2]+margin*Math.max(Math.abs(points[i]-shiftX)/tanX,Math.abs(points[i+1]-shiftY)/tanY));return Math.min(38,value);};
-    for(let pass=0;pass<10;pass++){
-     distance=requiredDistance();if(!oblique)break;let left=Infinity,right=-Infinity,bottom=Infinity,top=-Infinity;
-     for(let i=0;i<points.length;i+=3){const depth=Math.max(.1,distance-points[i+2]),x=(points[i]-shiftX)/depth,y=(points[i+1]-shiftY)/depth;left=Math.min(left,x);right=Math.max(right,x);bottom=Math.min(bottom,y);top=Math.max(top,y);}
-     shiftX+=(left+right)*.5*distance*.8;shiftY+=(bottom+top)*.5*distance*.8;
-    }
-    distance=requiredDistance();target.add(new THREE.Vector3(shiftX,shiftY,0).applyQuaternion(camera.quaternion));camera.position.copy(target.clone().addScaledVector(vector,distance));
+    // Fit every projected vertex against both frustum axes. The former
+    // iterative target shift could overshoot and crop an entire eye on load.
+    let distance=controls.minDistance;
+    for(let i=0;i<points.length;i+=3)distance=Math.max(distance,points[i+2]+margin*Math.max(Math.abs(points[i])/tanX,Math.abs(points[i+1])/tanY));
+    camera.position.copy(target.clone().addScaledVector(vector,Math.min(controls.maxDistance,distance)));
+
    }else camera.position.copy(target.clone().addScaledVector(vector,Math.max(9.5,3.3/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*aspect)+2.3)));
    camera.updateProjectionMatrix();
   }

@@ -55,7 +55,7 @@ function componentRadii(component,labels,width,height,mirror=false,count=256){
  }
  // Remove pixel stair steps, without replacing concavities by a hull.
  const median=radii.map((_,i)=>[radii[(i-2+count)%count],radii[(i-1+count)%count],radii[i],radii[(i+1)%count],radii[(i+2)%count]].sort((a,b)=>a-b)[2]);
- return median.map((v,i)=>(median[(i-1+count)%count]+v*2+median[(i+1)%count])/4);
+ return Object.assign(median.map((v,i)=>(median[(i-1+count)%count]+v*2+median[(i+1)%count])/4),{rawRadii:radii});
 }
 function radialPolygon(radii){return radii.map((r,i)=>{const a=i/radii.length*Math.PI*2;return [r*Math.cos(a),r*Math.sin(a)];});}
 function imageContour(component,radii,mirror=false){return samplePerimeter(radialPolygon(radii)).map(([x,y])=>[component.cx+x*(mirror?-1:1),component.cy-y]);}
@@ -84,9 +84,10 @@ export function analyzeRGBA({data,width,height}){
  if(disagreement>.18)fail('Los perfiles izquierdo y derecho no coinciden: recorta una vista frontal sin perspectiva ni reflejos que oculten el aro.');
  const poly=radialPolygon(radii),sampled=samplePerimeter(poly),minX=Math.min(...sampled.map(p=>p[0])),maxX=Math.max(...sampled.map(p=>p[0])),minY=Math.min(...sampled.map(p=>p[1])),maxY=Math.max(...sampled.map(p=>p[1])),half=(maxX-minX)/2,cx=(maxX+minX)/2,cy=(maxY+minY)/2,aspectRatio=(maxY-minY)/(maxX-minX);
  if(aspectRatio<.45||aspectRatio>1.25||half<8)fail('La proporción de los cristales queda fuera del rango estructural admitido.');
- const customContour=sampled.map(([x,y])=>[(x-cx)/half,(y-cy)/half]),widthPixels=(pair.left.width+pair.right.width)/2,heightPixels=(pair.left.height+pair.right.height)/2;
- const apertures=[[pair.left,leftRadii,'left',true],[pair.right,rightRadii,'right',false]].map(([component,radii,side,mirror])=>({side,bounds:{x:component.minX,y:component.minY,width:component.width,height:component.height},contour:imageContour(component,radii,mirror)}));
- return {customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,gapPixels:pair.right.minX-pair.left.maxX-1,requiresKnownDimension:true},regularization:'radial-mirrored',diagnostics:['Dos huecos detectados automáticamente; perfiles simetrizados con suavizado local, sin envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el borde detectado; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
+ const customContour=sampled.map(([x,y])=>[(x-cx)/half,(y-cy)/half]),widthPixels=maxX-minX,heightPixels=(pair.left.height+pair.right.height)/2;
+ const apertures=[[pair.left,leftRadii,'left',true],[pair.right,rightRadii,'right',false]].map(([component,radii,side,mirror])=>({side,bounds:{x:component.minX,y:component.minY,width:component.width,height:component.height},contour:imageContour(component,leftRadii.map((r,i)=>(r+rightRadii[i])/2),mirror)}));
+ const errors=[...leftRadii.rawRadii.map((r,i)=>Math.abs(r-radii[i])),...rightRadii.rawRadii.map((r,i)=>Math.abs(r-radii[i]))];
+ return {traceErrorPixels:{maximum:Math.max(...errors)+.5,rms:Math.sqrt(errors.reduce((sum,e)=>sum+e*e,0)/errors.length),pixelQuantization:.5},customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,gapPixels:pair.right.minX-pair.left.maxX-1,requiresKnownDimension:true},regularization:'radial-mirrored',diagnostics:['Dos huecos detectados automáticamente; perfiles simetrizados con suavizado local, sin envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el perfil simétrico que se aplicará; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
 }
 
 export async function extractReferenceImage(file){

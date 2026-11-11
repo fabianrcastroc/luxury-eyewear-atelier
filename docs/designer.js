@@ -7,6 +7,8 @@ export function initDesigner({onAdd,notify}){
  const root=document.querySelector('#disena');if(!root)return;
  let initial;try{initial=JSON.parse(localStorage.getItem('miscante-design')||'null');}catch{}
  let design=initial?migrateStoredDesign(initial):normalizeDesign({...defaultDesign,...getFrameProfile(defaultDesign.model).defaults}),view='perspectiva',recipe=null,recipeURL=null,validationRun=0;
+ function nextJobName(){let n=0;try{n=Number(localStorage.getItem('fr-job-sequence'))||0;localStorage.setItem('fr-job-sequence',String(n+1));}catch{}return `Diseño ${n+1}`;}
+ if(!design.jobName)design={...design,jobName:nextJobName()};
  let workbench=null;
  let viewer=null,referenceViewer=null,referencePhotoURL=null,personalPhoto=false,importedGLB=false,previewMode='editable',referenceLoadRun=0;
  const options=(list,selected)=>list.map(x=>`<option value="${x.id}" ${selected===x.id?'selected':''}>${x.name}${x.price?` · +${money(x.price)}`:''}</option>`).join('');
@@ -96,7 +98,7 @@ export function initDesigner({onAdd,notify}){
  if(button.dataset.view){view=button.dataset.view;viewer?.setView(view);sync();}
  if(button.dataset.use){design.use=button.dataset.use;if(design.use==='sol')clearRecipe();sync();}
  if(button.dataset.colorPart){design[button.dataset.colorPart]=button.dataset.color;sync();}
- if(button.id==='design-reset'){design={...defaultDesign};view='perspectiva';viewer?.setView(view);renderedConfig='';previewMode='editable';clearRecipe();root.querySelector('#recipe-later').checked=false;root.querySelector('#recipe-error').textContent='';sync();notify('Volviste al diseño inicial.');}
+ if(button.id==='design-reset'){design={...defaultDesign,jobName:nextJobName()};view='perspectiva';viewer?.setView(view);renderedConfig='';previewMode='editable';clearRecipe();root.querySelector('#recipe-later').checked=false;root.querySelector('#recipe-error').textContent='';sync();notify('Volviste al diseño inicial.');}
  if(button.id==='recipe-remove'){clearRecipe();notify('Receta retirada de este diseño.');}
  if(button.id==='design-save'){try{localStorage.setItem('miscante-design',JSON.stringify(design));notify('Diseño guardado. La receta no se guarda.');}catch{notify('No se pudo guardar el diseño en este navegador.');}}
  });

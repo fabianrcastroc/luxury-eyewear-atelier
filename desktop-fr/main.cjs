@@ -47,7 +47,7 @@ async function start(){
  app.on('browser-window-created',(_event,win)=>configureWindow(win));
  mainWindow=new BrowserWindow({width:1540,height:1000,minWidth:900,minHeight:650,backgroundColor:'#1b222a',title:'FR eyewear studio',autoHideMenuBar:false,webPreferences});
  await mainWindow.loadURL('fr://studio/index.html');
- await mainWindow.webContents.executeJavaScript("document.querySelectorAll('.fr-installer-link, a[href^=\"http\"],a[href=\"../index.html\"]').forEach(link=>link.remove())");
+ await mainWindow.webContents.executeJavaScript("document.querySelectorAll('.fr-installer-link, #standalone-install, a[href^=\"http\"],a[href=\"../index.html\"]').forEach(link=>link.remove())");
 }
 app.whenReady().then(start).catch(error=>{dialog.showErrorBox('FR eyewear studio',error.message);app.quit();});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});

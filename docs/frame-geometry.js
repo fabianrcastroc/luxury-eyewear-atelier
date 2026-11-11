@@ -52,7 +52,7 @@ function baselineLens(d,side){
  return points.map(([x,y])=>[x*half,y*yScale]);
 }
 const structuralCache=new Map();
-function structuralEnvelope(d,side,wall=finite(d.envelopeWall,3,8,4)){
+function structuralEnvelope(d,side,wall=finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)){
  const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
  const base=offsetContour(baselineLens(d,side),wall*MM),spec=getFrameProfile(modelOf(d));
  const h=Math.max(...base.map(p=>Math.abs(p[1]))),w=Math.max(...base.map(p=>Math.abs(p[0])));
@@ -89,7 +89,7 @@ function deform(d,side,points,reference){
 function detailedOuter(d,side){const outer=structuralEnvelope(d,side);return deform(d,side,outer,outer);}
 export function frameContour(d,side,scale=1){return detailedOuter(d,side).map(([x,y])=>[x*scale,y*scale]);}
 export function lensContour(d,side){
- const wall=finite(d.thickness,3,8,4),baseWall=finite(d.envelopeWall,3,8,4),outer=structuralEnvelope(d,side),finishedOuter=deform(d,side,outer,outer);
+ const wall=finite(d.thickness,3,8,4),baseWall=d.wallMode==='outward'?wall:finite(d.envelopeWall,3,8,4),outer=structuralEnvelope(d,side),finishedOuter=deform(d,side,outer,outer);
  const nominal=offsetContour(baselineLens(d,side),(baseWall-wall)*MM),desired=deform(d,side,nominal,outer);
  // Clip the independent aperture to the minimum-wall offset. This preserves
  // thicker brows/endpieces and guarantees the minimum material after edits.
@@ -118,7 +118,7 @@ export function designMeasurements(d){
  const envelope=[...frameContour(d,1).map(([x,y])=>[x+centers[1],y]),...hingeGeometry(d,1).boxOutline];
  const width=2*Math.max(...envelope.map(p=>p[0]))/MM;
  const lensHeight=(Math.max(...right.map(p=>p[1]))-Math.min(...right.map(p=>p[1])))/MM,baseLens=baselineLens(d,1),nominalLensHeight=(Math.max(...baseLens.map(p=>p[1]))-Math.min(...baseLens.map(p=>p[1])))/MM;
- return {lensHeight:round(lensHeight),nominalLensHeight:round(nominalLensHeight),minimumRimWallMM:finite(d.thickness,3,8,4),lens:round(lens),bridge:round(bridge),temple,front:round(width),nominalLens:s.lens,nominalBridge:s.bridge,code:`${round(lens)} □ ${round(bridge)}–${temple}`,size:s.id,wallMode:'inward'};
+ return {lensHeight:round(lensHeight),nominalLensHeight:round(nominalLensHeight),minimumRimWallMM:finite(d.thickness,3,8,4),lens:round(lens),bridge:round(bridge),temple,front:round(width),nominalLens:s.lens,nominalBridge:s.bridge,code:`${round(lens)} □ ${round(bridge)}–${temple}`,size:s.id,wallMode:d.wallMode==='outward'?'outward':'inward'};
 }
 function nasalX(d,y){
  const contour=frameContour(d,1),crossings=[];
@@ -127,7 +127,7 @@ function nasalX(d,y){
 }
 export function bridgeGeometry(d){
  const outer=frameContour(d,1),top=Math.max(...outer.map(p=>p[1])),kind=['clasico','doble','herradura'].includes(d.bridgeType)?d.bridgeType:'clasico';
- const samples=64,mm=n=>n*MM;
+ const samples=64,mm=n=>n*MM,gaugeMM=finite(d.bridgeGauge,2,6,4),riseMM=finite(d.bridgeRise,0,4,2.5),offset=mm(finite(d.bridgeOffset,-2,2,0));
  function band(y,rise,gauge){
   const x=nasalX(d,y),lowerX=nasalX(d,y-gauge),upper=[],lower=[];
   for(let i=0;i<=samples;i++){const t=i/samples,bump=4*t*(1-t);upper.push([-x+2*x*t,y+rise*bump]);lower.push([-lowerX+2*lowerX*t,y-gauge+rise*bump]);}
@@ -137,9 +137,9 @@ export function bridgeGeometry(d){
  if(kind==='herradura'){
   // A true open horseshoe/keyhole arch: circular nose vault and rounded
   // shoulders, rather than the same shallow strip with a different rise.
-  let base=top*.28;
+  let base=top*.28+offset;
   let radius=Math.max(mm(3.5),nasalX(d,base)-mm(.8));
-  const gauge=mm(3.5);
+  const gauge=mm(gaugeMM);
   base=Math.min(base,top-radius-gauge-mm(.8));
   radius=Math.max(mm(3.5),nasalX(d,base)-mm(.8));
   const outerRadius=radius+gauge,upper=[],lower=[];
@@ -147,16 +147,16 @@ export function bridgeGeometry(d){
   bands=[{upper,lower,outline:[...upper,...lower.slice().reverse()]}];
   section={kind:'round-keyhole-vault',vaultRadiusMM:radius/MM,wallMM:gauge/MM,baseMM:base/MM};
  }else if(kind==='doble'){
-  const lowerY=top*.32,upperY=Math.max(top*.8,lowerY+mm(8));
-  bands=[band(lowerY,mm(1.3),mm(2.4)),band(Math.min(upperY,top-mm(.8)),mm(.15),mm(2))];
-  section={kind:'separate-saddle-and-brow-bar',lowerGaugeMM:2.4,upperGaugeMM:2,clearanceMM:(bands[1].lower[Math.floor(samples/2)][1]-Math.max(...bands[0].upper.map(p=>p[1])))/MM};
+  const lowerY=top*.32+offset,upperY=Math.max(top*.8,lowerY+mm(8));
+  bands=[band(lowerY,mm(riseMM*.52),mm(gaugeMM*.6)),band(Math.min(upperY,top-mm(.8)),mm(.15),mm(gaugeMM*.5))];
+  section={kind:'separate-saddle-and-brow-bar',lowerGaugeMM:gaugeMM*.6,upperGaugeMM:gaugeMM*.5,clearanceMM:(bands[1].lower[Math.floor(samples/2)][1]-Math.max(...bands[0].upper.map(p=>p[1])))/MM};
  }else{
   // Traditional integral acetate saddle: flatter upper brow and a rounded,
   // rising underside. Broad shoulders are blended by the front polygon union.
-  const y=top*.58,x=nasalX(d,y),lowerY=y-mm(6),lowerX=nasalX(d,lowerY),upper=[],lower=[];
-  for(let i=0;i<=samples;i++){const t=i/samples,bump=4*t*(1-t);upper.push([-x+2*x*t,y+mm(.7)*bump]);lower.push([-lowerX+2*lowerX*t,lowerY+mm(2.5)*Math.sin(Math.PI*t)]);}
+  const y=top*.58+offset,x=nasalX(d,y),lowerY=y-mm(gaugeMM+riseMM-.7),lowerX=nasalX(d,lowerY),upper=[],lower=[];
+  for(let i=0;i<=samples;i++){const t=i/samples,bump=4*t*(1-t);upper.push([-x+2*x*t,y+mm(.7)*bump]);lower.push([-lowerX+2*lowerX*t,lowerY+mm(riseMM)*Math.sin(Math.PI*t)]);}
   bands=[{upper,lower,outline:[...upper,...lower.slice().reverse()]}];
-  section={kind:'integral-acetate-saddle',centerGaugeMM:4.2,shoulderGaugeMM:6};
+  section={kind:'integral-acetate-saddle',centerGaugeMM:gaugeMM,shoulderGaugeMM:gaugeMM+riseMM-.7};
  }
  return {bands,anchorHeight:bands[0].upper[0][1],type:kind,section};
 }

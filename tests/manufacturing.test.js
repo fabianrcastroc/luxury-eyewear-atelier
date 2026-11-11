@@ -21,29 +21,30 @@ for(const [paper,spec] of Object.entries(printPapers))test(`papel ${paper}: exac
  assert.match(doc.html,/tamaño real 100/);assert.equal(doc.checks.manufacturingValidated,false);
 });
 
-test('hoja 1: lunetas son los dos apoyos nasales de 3 mm, no discos ópticos sustitutos',()=>{
- const doc=manufacturingDocument();assert.match(doc.pages[0],/LUNETAS NASALES/);assert.equal(doc.checks.nasalPadCount,2);assert.equal(doc.checks.lensTemplateCount,0);
- assert.equal((doc.pages[0].match(/data-part="nasal-pad-/g)||[]).length,2);assert.equal((doc.pages[1].match(/data-part="temple-/g)||[]).length,2);
- assert.ok(!doc.pages[0].includes('data-part="optical-lens-'));assert.deepEqual(doc.measurements.nasalPadDepths,[3,3]);
- assert.equal(doc.checks.closedCutContourCount,7);assert.equal(doc.checks.excludedParts.includes('added-laminated-nasal-pads'),false);
+test('las dos hojas separan frontal y cristales de brazos y lunetas nasales',()=>{
+ const doc=manufacturingDocument();assert.match(doc.pages[0],/CRISTALES/);assert.match(doc.pages[1],/LUNETAS NASALES/);
+ assert.equal(doc.checks.nasalPadCount,2);assert.equal(doc.checks.lensTemplateCount,2);
+ assert.equal((doc.pages[1].match(/data-part="nasal-pad-/g)||[]).length,2);assert.equal((doc.pages[1].match(/data-part="temple-/g)||[]).length,2);
+ assert.equal((doc.pages[0].match(/data-part="optical-lens-/g)||[]).length,2);assert.ok(!doc.pages[0].includes('data-part="nasal-pad-'));assert.deepEqual(doc.measurements.nasalPadDepths,[3,3]);
+ assert.equal(doc.checks.closedCutContourCount,9);
 });
 
 test('los apoyos impresos conservan el mismo contorno y escala de la pieza 3D compartida',()=>{
  for(const model of ['recto','redondo','ovalado','curvo']){
   const d=normalizeDesign({model}),doc=manufacturingDocument(d);
   for(const side of [-1,1]){
-   const re=new RegExp(`data-part="nasal-pad-${side}" data-origin-x="([^"]+)" data-origin-y="([^"]+)" d="([^"]+)"`),match=doc.pages[0].match(re);assert.ok(match);
+   const re=new RegExp(`data-part="nasal-pad-${side}" data-origin-x="([^"]+)" data-origin-y="([^"]+)" d="([^"]+)"`),match=doc.pages[1].match(re);assert.ok(match);
    const expected=nasalPads(d,side).outline.map(([x,y])=>[Number(match[1])+x/MM,Number(match[2])-y/MM]),actual=coords(match[3]);
    assert.equal(actual.length,expected.length);actual.forEach((p,i)=>p.forEach((v,j)=>near(v,expected[i][j],.000101)));assert.ok(match[3].endsWith('Z'));
   }
  }
 });
 
-test('plantillas ópticas opcionales son piezas adicionales y no desplazan las lunetas nasales',()=>{
+test('los cristales se incluyen incluso sin la antigua opción adicional',()=>{
  const doc=manufacturingDocument({},{paper:'oficio',includeLensTemplates:true});
  assert.equal(doc.checks.nasalPadCount,2);assert.equal(doc.checks.lensTemplateCount,2);assert.equal(doc.checks.closedCutContourCount,9);
  assert.equal((doc.pages[0].match(/data-part="optical-lens-/g)||[]).length,2);
- assert.match(doc.pages[0],/NO SON APOYOS NASALES/);
+ assert.ok(!doc.pages[0].includes('nasal-pad-'));assert.match(doc.pages[1],/nasal-pad-/);
 });
 
 test('cambiar papel no redimensiona el frontal ni los apoyos',()=>{
@@ -72,7 +73,7 @@ test('caja opcional: el patrón usa exclusivamente la geometría de bisagra comp
  assert.ok(boxed.measurements.frontPatternWidth>hidden.measurements.frontPatternWidth);
  assert.equal(hingeGeometry(normalizeDesign({...raw,hingeMode:'hidden'}),1).boxOutline.length,0);
  assert.equal(hingeGeometry(normalizeDesign({...raw,hingeMode:'box'}),1).boxOutline.length,4);
- assert.ok(!/data-part="drill/.test(boxed.pages.join('')));assert.match(boxed.pages[1],/No se inventan taladros/);
+ assert.ok(!/data-part="drill/.test(boxed.pages.join('')));assert.ok(!boxed.pages.join('').includes('No se inventan taladros'));
 });
 
 test('frontal de impresión y sólido 3D comparten exactamente el mismo contorno unido y vaciados',()=>{
@@ -125,9 +126,15 @@ test('patillas: longitud B real del eje 120 a 160 mm, variando estilos sin alter
 test('Carta rechaza brazos demasiado anchos en vez de reducir la escala; Oficio conserva las piezas',()=>{
  const raw={model:'redondo',lensWidth:65,bridgeWidth:26,armWidth:75,templeLength:160};
  assert.throws(()=>manufacturingDocument(raw,{paper:'carta'}),/Ambas patillas no caben en Carta.*no se modificará la escala/);
- const doc=manufacturingDocument(raw,{paper:'oficio'});assert.equal(doc.checks.pageCount,2);assert.equal(doc.checks.scale,'1:1');assert.deepEqual(doc.measurements.templeDevelopedLengths.map(n=>Math.round(n)),[160,160]);
+ assert.throws(()=>manufacturingDocument(raw,{paper:'oficio'}),/brazos y lunetas nasales no caben/);const doc=manufacturingDocument({...raw,armWidth:20},{paper:'oficio'});assert.equal(doc.checks.scale,'1:1');assert.deepEqual(doc.measurements.templeDevelopedLengths.map(n=>Math.round(n)),[160,160]);
 });
 
  test('los terminales en la inclinación máxima se desarrollan sin cruces y conservan B',()=>{
  for(const tipShape of ['round','square','triangle','diamond'])for(const tipSize of [3,12]){const result=manufacturingDocument({tipShape,tipSize,armBendAngle:45,templeLength:120},{paper:'oficio'});assert.equal(result.checks.pageCount,2);for(const length of result.measurements.templeDevelopedLengths)assert.ok(Math.abs(length-120)<.0001);}
+});
+
+test('los planos llevan nombre de trabajo escapado y datos técnicos sin marca ni instrucciones',()=>{
+ const doc=manufacturingDocument({jobName:'Trabajo <12>'});
+ for(const svg of doc.pages){assert.match(svg,/Trabajo &lt;12&gt;/);assert.doesNotMatch(svg,/MISCANTE|FR eyewear|PATRONES DE|Imprimir|Comprobar|No se inventan|requieren especificación/);}
+ assert.match(manufacturingDocument().pages[0],/Diseño 1/);
 });
