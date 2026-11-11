@@ -86,9 +86,16 @@ function deform(d,side,points,reference){
   return [x+side*(reach*temporalWeight+nasalShift),y+lift*temporalWeight];
  });
 }
-function detailedOuter(d,side){const outer=structuralEnvelope(d,side);return deform(d,side,outer,outer);}
+function detailedOuter(d,side){
+ if(d.wallMode==='outward'){
+  const baseline=structuralEnvelope(d,side,finite(d.envelopeWall,3,8,4)),outer=deform(d,side,baseline,baseline);
+  return offsetContour(outer,(finite(d.thickness,3,8,4)-finite(d.envelopeWall,3,8,4))*MM);
+ }
+ const outer=structuralEnvelope(d,side);return deform(d,side,outer,outer);
+}
 export function frameContour(d,side,scale=1){return detailedOuter(d,side).map(([x,y])=>[x*scale,y*scale]);}
 export function lensContour(d,side){
+ if(d.wallMode==='outward')return lensContour({...d,wallMode:'inward',thickness:finite(d.envelopeWall,3,8,4)},side);
  const wall=finite(d.thickness,3,8,4),baseWall=d.wallMode==='outward'?wall:finite(d.envelopeWall,3,8,4),outer=structuralEnvelope(d,side),finishedOuter=deform(d,side,outer,outer);
  const nominal=offsetContour(baselineLens(d,side),(baseWall-wall)*MM),desired=deform(d,side,nominal,outer);
  // Clip the independent aperture to the minimum-wall offset. This preserves

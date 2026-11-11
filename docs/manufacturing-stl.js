@@ -7,13 +7,29 @@ import {finishedTemple,finishedNasalLaminate} from './finished-geometry.js';
 
 export const stlParts=['front','temple-left','temple-right','pad-left','pad-right'];
 
+// Float32 triangulation cannot retain micron-sized duplicate/collinear edges
+// from polygon unions. Clean the planar boundary BEFORE triangulation, so the
+// cap and side walls use the same vertices (maximum deviation 0.00002 mm).
+function extrusionBoundary(points){
+ const out=points.map(p=>p.map(Math.fround)),tolerance=.00002;
+ let changed=true;
+ while(changed&&out.length>3){changed=false;
+  for(let i=0;i<out.length;i++){
+   const a=out[(i+out.length-1)%out.length],b=out[i],c=out[(i+1)%out.length],dx=c[0]-a[0],dy=c[1]-a[1],length=Math.hypot(dx,dy);
+   const between=(b[0]-a[0])*(b[0]-c[0])+(b[1]-a[1])*(b[1]-c[1])<=0;
+   if(Math.hypot(b[0]-a[0],b[1]-a[1])<tolerance||(between&&length&&Math.abs(dx*(b[1]-a[1])-dy*(b[0]-a[0]))/length<tolerance)){out.splice(i,1);changed=true;break;}
+  }
+ }
+ return out.map(p=>new Vector2(...p));
+}
+
 // Separate material parts, in millimetres. Hardware and illustrative optical
 // surfaces are deliberately excluded from the printable solids.
 export function manufacturingSTL(raw,part='front'){
  const d=normalizeDesign(raw);let geometry;
  if(part==='front'){
-  const cut=frontCutGeometry(d),shape=new Shape(cut.outerLoops[0].map(p=>new Vector2(...p)));
-  for(const hole of cut.holes)shape.holes.push(new Path(hole.map(p=>new Vector2(...p))));
+  const cut=frontCutGeometry(d),shape=new Shape(extrusionBoundary(cut.outerLoops[0]));
+  for(const hole of cut.holes)shape.holes.push(new Path(extrusionBoundary(hole)));
   geometry=new ExtrudeGeometry(shape,{depth:d.materialDepth,bevelEnabled:false,steps:1});
  }else if(stlParts.includes(part)){
   const side=part.endsWith('left')?-1:1;

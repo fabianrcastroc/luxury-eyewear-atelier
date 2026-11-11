@@ -31,3 +31,17 @@ test('grosor y bóveda del puente cambian el material sin desplazar los cristale
   const next=normalizeDesign({...base,bridgeGauge:3,bridgeRise:3});assert.notDeepEqual(bridgeGeometry(next).bands,a.bands);assert.deepEqual(lensContour(next,1),lensContour(base,1));assert.equal(frontCutGeometry(next).outerLoops.length,1);
  }
 });
+
+test('una foto importada con microaristas de unión produce un STL cerrado sin alterar la plancha',async()=>{
+ const {readFile}=await import('node:fs/promises');const design=JSON.parse(await readFile(new URL('./fixtures/imported-outline.json',import.meta.url),'utf8'));
+ const result=manufacturingSTL(design),view=new DataView(result.buffer);assert.ok(result.volumeMM3>1000);assert.equal(result.closed,true);
+ let low=Infinity,high=-Infinity;
+ for(let i=0;i<result.triangles;i++)for(let j=0;j<3;j++){const z=view.getFloat32(84+i*50+20+j*12,true);low=Math.min(low,z);high=Math.max(high,z);}
+ assert.equal(low,0);assert.equal(high,design.materialDepth);
+});
+
+test('cristal fijo conserva incluso la edición nasal al cambiar pared y rechaza invasión nasal',()=>{
+ const base=normalizeDesign({model:'curvo',nasalAngle:12,temporalLift:3,wallMode:'outward'});
+ const inner=lensContour(base,1);for(const thickness of [3,4,6,8])assert.deepEqual(lensContour({...base,thickness},1),inner);
+ assert.throws(()=>manufacturingSTL({bridgeWidth:14,wallMode:'outward',thickness:8}),/zona nasal/);
+});

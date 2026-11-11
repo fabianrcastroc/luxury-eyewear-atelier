@@ -82,6 +82,8 @@ function boundariesCross(a,b){
 // in the model's frontal XY plane, before any paper placement or rotation.
 export function frontCutGeometry(raw={}){
  const d=normalizeDesign(raw),parts=projectParts(d),loops=unionPolygons(parts.polygons),outerLoops=loops.filter(loop=>signedArea(loop)>0),bridgeVoids=loops.filter(loop=>signedArea(loop)<0);
+ const gap=Math.min(...frameContour(d,1).map(p=>(p[0]+parts.centers[1])/MM))*2;
+ if(gap<2-1e-5)throw new Error('El contorno invade la zona nasal: conserva al menos 2 mm de separación entre aros o aumenta DBL.');
  if(outerLoops.length!==1)throw new Error('El frontal contiene piezas desconectadas. Revisa el puente y la caja de bisagra.');
  return {outerLoops,holes:[...parts.apertures,...bridgeVoids],apertures:parts.apertures,bridgeVoids,frontBounds:bounds(loops.flat()),unit:'mm'};
 }

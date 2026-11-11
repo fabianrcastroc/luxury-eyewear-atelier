@@ -10,11 +10,11 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## Revisión 1.2.0
+## Revisión 1.2.1
 
 FR eyewear studio incorpora 14 bases, dos modos de pared (exterior fijo o cristal fijo), controles de puente, STL por pieza en milímetros y nombre de trabajo. Las dos hojas contienen **frontal y cristales**, y **brazos y lunetas nasales**. Las hojas no llevan marca ni instrucciones.
 
-El estudio web puede preparar sus recursos para uso sin conexión. En iPhone/iPad: Safari → Compartir → Añadir a pantalla de inicio; esperar la descarga inicial antes de desconectar. Esto no es un instalador iOS nativo ni una prueba de compatibilidad física en dispositivo. Windows usa NSIS; Linux, un paquete Debian x64. La validación y los límites de esta revisión están en [DELIVERY-1.2.0.md](design-notes/DELIVERY-1.2.0.md). Para probar la caché local: servir `dist/` y ejecutar `CAD_URL=http://127.0.0.1:3040 node scripts/offline-browser.mjs`.
+El estudio web puede preparar sus recursos para uso sin conexión. En iPhone/iPad: Safari → Compartir → Añadir a pantalla de inicio; esperar la descarga inicial antes de desconectar. Esto no es un instalador iOS nativo ni una prueba de compatibilidad física en dispositivo. Windows usa NSIS; Linux, un paquete Debian x64. La validación y los límites de esta revisión están en [DELIVERY-1.2.1.md](design-notes/DELIVERY-1.2.1.md). Para probar la caché local: servir `dist/` y ejecutar `CAD_URL=http://127.0.0.1:3040 node scripts/offline-browser.mjs`.
 
 ## Desarrollo
 

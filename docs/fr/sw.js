@@ -1,4 +1,4 @@
-const CACHE="fr-studio-d8014b0624d2";const FILES=["./","./index.html","./app.js","./reference-extraction.js","./style.css","./cad-workspace.css","./standalone.css","./manifest.webmanifest","./assets/favicon.svg","./assets/icon-192.png","./assets/icon-512.png","./assets/forms/curvo.webp","./assets/forms/ovalado.webp","./assets/forms/recto.webp","./assets/forms/redondo.webp"];
+const CACHE="fr-studio-3ee2de3b745b";const FILES=["./","./index.html","./app.js","./reference-extraction.js","./style.css","./cad-workspace.css","./standalone.css","./manifest.webmanifest","./assets/favicon.svg","./assets/icon-192.png","./assets/icon-512.png","./assets/forms/curvo.webp","./assets/forms/ovalado.webp","./assets/forms/recto.webp","./assets/forms/redondo.webp"];
 // CACHE and FILES are generated from the exact compiled release by build-fr.
 self.addEventListener('install',event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)));
