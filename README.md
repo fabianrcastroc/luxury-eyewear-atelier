@@ -10,7 +10,7 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## FR eyewear studio 1.3.1
+## FR eyewear studio 1.3.2
 
 Estudio de escritorio offline para Windows, Linux y macOS (Intel y Apple Silicon). Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
 
@@ -20,9 +20,12 @@ El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservan
 
 Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
 
-- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.1)
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.2)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
-- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.1)
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.2)
+- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-mac-arm64.dmg) · [macOS Intel](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-mac-x64.dmg)
+
+Los instaladores no tienen firma Authenticode ni notarización de Apple. macOS puede solicitar autorización en Privacidad y seguridad. Las cotas y curvas digitales requieren comprobación de impresión y taller antes de fabricar; no certifican un recambio RB2140.
 
 El titular conserva la autoridad privada de licencias fuera del repositorio y de los instaladores. Emisión: `node scripts/license-issue.mjs solicitud.json "Cliente" licencia.frlicense /ruta/privada.pem [vencimiento-ISO]`. No regenerar la clave pública si se pierde la privada: restaurar la copia del titular.
 
@@ -43,7 +46,9 @@ npm run build
 
 Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres páginas, módulos empaquetados y archivos locales. Sirve esa carpeta con un servidor estático; ya no se distribuye como un único HTML independiente. `Miscante.html` mantiene compatibilidad redirigiendo al inicio del sitio.
 
-## Estudio personal
+## Capacidades de diseño
+
+La biblioteca de veinte bases corresponde al software de escritorio. El configurador público ofrece Redondo y Cuadrado con los mismos controles.
 
 - Veinte bases de construcción, incluidas: Recto, Redondo, Ovalado, Curvo, Panto, Boston, Cat-eye y Geométrico. Presets de A, altura B, DBL y L, ceja y asientos de bisagra con reserva de material.
 - Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
@@ -60,7 +65,7 @@ Son precios referenciales por el par de cristales; falta validación profesional
 
 ## Fotografías y modelos
 
-Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las miniaturas actuales del selector son SVG del propio núcleo geométrico y se actualizan con sus presets. Los recursos antiguos de `public/assets/forms/` se conservan para compatibilidad. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Las pruebas verifican las ocho siluetas, la separación constante al editar el puente y la conservación del gancho de la patilla al variar la anchura.
+Se retiraron las fotografías de terceros del selector porque no correspondían de manera consistente a las siluetas personalizables. Las miniaturas actuales del selector son SVG del propio núcleo geométrico y se actualizan con sus presets. Los recursos antiguos de `public/assets/forms/` se conservan para compatibilidad. No se presentan como fotografías de producto ni como modelos Ray-Ban. Con el servidor iniciado, `npm run render:previews` vuelve a generarlas si se modifica la geometría. Las pruebas verifican los perfiles de construcción, la separación constante al editar el puente y la conservación del gancho de la patilla al variar la anchura.
 
 La portada editorial (`atelier-editorial.webp`) es una imagen original generada con IA; no es una fotografía documental del taller Miscante ni una imagen de Maison Bonnet. La nueva invitación al estudio (`personal-atelier.webp`) es una composición editorial original generada con IA, tampoco una fotografía documental de producto. Las otras imágenes editoriales y de la colección de demostración (`editorial-solar.png`, `collection-studio.png`) también son generadas con IA y no fotografías de inventario disponible.
 
