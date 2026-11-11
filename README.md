@@ -12,6 +12,8 @@ Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces an
 
 ## Revisión 1.2.1
 
+[Probar online](https://fabianrcastroc.github.io/luxury-eyewear-atelier/fr/?v=1.2.1) · [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.2.1/FR-eyewear-studio-1.2.1-win-x64.exe) · [Linux Debian x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.2.1/FR-eyewear-studio-1.2.1-linux-amd64.deb)
+
 FR eyewear studio incorpora 14 bases, dos modos de pared (exterior fijo o cristal fijo), controles de puente, STL por pieza en milímetros y nombre de trabajo. Las dos hojas contienen **frontal y cristales**, y **brazos y lunetas nasales**. Las hojas no llevan marca ni instrucciones.
 
 El estudio web puede preparar sus recursos para uso sin conexión. En iPhone/iPad: Safari → Compartir → Añadir a pantalla de inicio; esperar la descarga inicial antes de desconectar. Esto no es un instalador iOS nativo ni una prueba de compatibilidad física en dispositivo. Windows usa NSIS; Linux, un paquete Debian x64. La validación y los límites de esta revisión están en [DELIVERY-1.2.1.md](design-notes/DELIVERY-1.2.1.md). Para probar la caché local: servir `dist/` y ejecutar `CAD_URL=http://127.0.0.1:3040 node scripts/offline-browser.mjs`.
@@ -146,7 +148,7 @@ Esta entrega incorpora un instalador Windows x64 sin conexión, compilado e inst
 
 ## Descarga de FR eyewear studio sin conexión
 
-[Instalador Windows x64 1.1.0](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.1.0/FR-eyewear-studio-1.1.0-win-x64.exe).
+[Instalador anterior Windows x64 1.1.0](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.1.0/FR-eyewear-studio-1.1.0-win-x64.exe).
 
 Incluye todos los recursos. CI instala el NSIS y prueba el ejecutable instalado: WebGL, referencia local, guardar/reabrir, GLB y dos hojas PDF, con cero solicitudes HTTP. Instalador sin firma Authenticode. Compilación reproducible: `desktop-fr/` y `.github/workflows/desktop.yml`.
 

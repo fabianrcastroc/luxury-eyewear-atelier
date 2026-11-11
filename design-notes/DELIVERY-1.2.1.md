@@ -18,10 +18,21 @@ Revisión del 11 de noviembre de 2026. Esta revisión parte del último encargo 
 
 84 pruebas aprobadas: incluyen los 14 perfiles, las dos políticas de pared, controles de puente y STL de cinco piezas por perfil. Compilación de la web y FR correcta. Aceptación CAD en navegador: controles, STL descargado, guardado/reapertura, móvil y PDF de dos páginas en A4/Carta/Oficio. Flujo de referencia real con la imagen negra de la página 8: 14 bases, superposición, calibración, JSON y tres PDF. Inspección visual de las hojas y del encuadre inicial.
 
-Aplicación Electron Linux: WebGL, Worker local, JSON, GLB, dos hojas y cero solicitudes HTTP. La comprobación del paquete final y los resultados de Windows CI deben confirmarse para el artefacto publicado; las pruebas anteriores de Windows 1.1.0 no validan 1.2.1.
+Aplicación Electron Linux: WebGL, Worker local, JSON, GLB, dos hojas y cero solicitudes HTTP. El flujo 43085996136 confirmó la instalación y ejecución Windows y la extracción y ejecución Linux del artefacto 1.2.1 publicado.
 
 ## Límites
 
 Las referencias rasterizadas no contienen profundidad ni geometría oculta y no autentican una talla comercial. No se promete exactitud clínica, tolerancias de taller, ranura/bisel, herraje específico ni calibración física de impresora. Tampoco se entrega instalador iOS nativo: requeriría un proyecto iOS y distribución firmada propios. La versión web offline es una alternativa de acceso, no una validación de Safari en dispositivo.
 
 La etiqueta 1.2.0 no produjo un Release: la prueba de instalación detectó el fallo STL de una referencia importada. Se conserva como evidencia del control de publicación; la corrección y su fixture de regresión pertenecen a 1.2.1.
+
+## Publicación confirmada
+
+- Código y etiqueta `fr-desktop-v1.2.1`: `e2d6dca1c99c0b3cc212877edd2154ad5e6ec663`.
+- Pages: [43085990670](https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43085990670), correcto.
+- Instaladores: [43085996136](https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43085996136), Windows instalado y probado y paquete Linux extraído y ejecutado, ambos correctos antes de publicar sus archivos.
+- Se descargaron los dos archivos desde el Release y se comprobaron contra los SHA-256 publicados:
+  - Windows: 121548443 bytes; `7abae13b3825aa896c31fe78452cb79ae359779f3e8aecb75db7970a6b057695`.
+  - Linux: 101873420 bytes; `39e056941aea3407d929e29501e9b06401199bd825714df14c18afd3153c0b72`.
+- Windows NSIS sin firma Authenticode. Linux Debian x64. No se publica IPA iOS.
+- La política de este entorno impide la petición directa al dominio github.io; el despliegue se confirma por su resultado de GitHub Actions, y el comportamiento se prueba con la compilación local.
