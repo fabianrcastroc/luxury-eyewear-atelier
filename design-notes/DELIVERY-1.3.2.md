@@ -111,3 +111,5 @@ cfb077a1dacc3bca47b838ccdc56d38593bc7f3f00550c4ee14ea044271dd1e5  FR-eyewear-stu
 ```
 
 La publicación Pages inicial superó las 96 pruebas y el build, pero deploy-pages v4 no encontró el artefacto aunque figuraba en la ejecución. Se actualizan upload-pages-artifact y deploy-pages a v5 (servicio de artefactos y Node 24 vigentes) para repetir el despliegue.
+
+Despliegue Pages confirmado: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43117284700, commit `3efb3c7`, conclusión SUCCESS, incluida la etapa Publicar. Las 96 pruebas volvieron a pasar antes del despliegue. La comprobación directa del dominio github.io está restringida por la red de este entorno; la confirmación externa procede del servicio de despliegue y las pruebas de navegador se ejecutaron sobre el mismo árbol generado localmente.
