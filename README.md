@@ -10,7 +10,7 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## FR eyewear studio 1.3.0
+## FR eyewear studio 1.3.1
 
 Estudio de escritorio offline para Windows, Linux y macOS (Intel y Apple Silicon). Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
 
@@ -20,9 +20,9 @@ El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservan
 
 Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
 
-- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.0)
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.1)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
-- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.0)
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.1)
 
 El titular conserva la autoridad privada de licencias fuera del repositorio y de los instaladores. Emisión: `node scripts/license-issue.mjs solicitud.json "Cliente" licencia.frlicense /ruta/privada.pem [vencimiento-ISO]`. No regenerar la clave pública si se pierde la privada: restaurar la copia del titular.
 
