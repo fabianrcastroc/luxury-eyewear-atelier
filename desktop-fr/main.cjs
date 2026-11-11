@@ -5,7 +5,14 @@ const {pathToFileURL}=require('node:url');
 
 app.setName('FR eyewear studio');
 protocol.registerSchemesAsPrivileged([{scheme:'fr',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true,codeCache:true}}]);
-if(process.argv.includes('--headless-test')){if(process.platform==='linux')app.commandLine.appendSwitch('ozone-platform','headless');if(process.platform==='darwin'&&process.arch==='arm64'){app.commandLine.appendSwitch('use-angle','metal');}else{app.commandLine.appendSwitch('disable-gpu');app.commandLine.appendSwitch('enable-unsafe-swiftshader');app.commandLine.appendSwitch('use-angle','swiftshader');}}
+if(process.argv.includes('--headless-test')){
+ if(process.platform==='linux')app.commandLine.appendSwitch('ozone-platform','headless');
+ if(process.platform==='darwin'){
+  const angle=process.env.FR_TEST_ANGLE||(process.arch==='arm64'?'metal':'swiftshader-webgl');
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+  if(angle!=='default'){app.commandLine.appendSwitch('use-gl','angle');app.commandLine.appendSwitch('use-angle',angle);}
+ }else{app.commandLine.appendSwitch('disable-gpu');app.commandLine.appendSwitch('enable-unsafe-swiftshader');app.commandLine.appendSwitch('use-angle','swiftshader');}
+}
 const webPreferences={preload:path.join(__dirname,'license-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true};
 const {deviceId,verifyLicense,trialStatus}=require('./license.cjs');
 let mainWindow,servicesConfigured=false,lifecycleConfigured=false;
