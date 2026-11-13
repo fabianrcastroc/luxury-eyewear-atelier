@@ -8,9 +8,9 @@ export const frameSizes=[
  {id:'media',name:'Media',lens:52,bridge:17,temple:140},
  {id:'amplia',name:'Amplia',lens:56,bridge:18,temple:145}
 ];
-const sizeOf=d=>{const base=frameSizes.find(s=>s.id===d.frameSize)||frameSizes[1];return {...base,lens:d.lensWidth==null?base.lens:finite(d.lensWidth,40,65,base.lens),bridge:d.bridgeWidth==null?base.bridge:finite(d.bridgeWidth,14,26,base.bridge)};};
+const sizeOf=d=>{const base=frameSizes.find(s=>s.id===d.frameSize)||frameSizes[1];return {...base,lens:d.frameShapeMode==='follow'&&getLensShape(d.opticalShape)?finite(d.opticalWidth,35,65,52):d.lensWidth==null?base.lens:finite(d.lensWidth,40,65,base.lens),bridge:d.bridgeWidth==null?base.bridge:finite(d.bridgeWidth,14,26,base.bridge)};};
 const finite=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
-const modelOf=d=>({rectangular:'recto',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo'}[d.model]||d.model);
+const modelOf=d=>({rectangular:'recto',aviador:'ovalado',clubmaster:'curvo'}[d.model]||d.model);
 // Imported apertures use the same constrained, millimetre-based geometry.
 // Invalid/self-intersecting/concave contours cannot enter the offset pipeline.
 export function normalizeContour(raw){
@@ -55,8 +55,8 @@ function baselineLens(d,side){
 }
 const structuralCache=new Map();
 function structuralEnvelope(d,side,wall=finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)){
- const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding,d.hingeLevel]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
- const base=offsetContour(baselineLens({...d,opticalShape:''},side),wall*MM),spec=getFrameProfile(modelOf(d));
+ const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding,d.rimJoin,d.hingeLevel,d.hingeMode,d.armWidth,d.frameShapeMode,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
+ const seed=baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:''},side),base=(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))||d.rimJoin==='round'?offsetSingleContour(seed,wall*MM,{join:'round',arcTolerance:.00001}):offsetContour(seed,wall*MM),spec=getFrameProfile(modelOf(d));
  const h=Math.max(...base.map(p=>Math.abs(p[1]))),w=Math.max(...base.map(p=>Math.abs(p[0])));
  const miterExcess=(w-sizeOf(d).lens/2*MM)/MM-wall,endpiece=spec.referenceFrontWidth?spec.endpiece-miterExcess:spec.endpiece;
  const smooth=(value,a,b)=>{const t=Math.max(0,Math.min(1,(value-a)/(b-a)));return t*t*(3-2*t);};
@@ -68,7 +68,7 @@ function structuralEnvelope(d,side,wall=finite(d.wallMode==='outward'?d.thicknes
  });
  // Rounded hinge endpiece: broad enough to seat hardware inside the actual
  // frontal material, with a short vertical temporal face rather than a blob.
- const cy=h*(2*finite(d.hingeLevel,.55,.85,spec.hingeFraction||.72)-1),hy=2.8*MM,edgeAt=[];
+ const cy=h*(2*finite(d.hingeLevel,.55,.85,spec.hingeFraction||.72)-1),hy=(d.hingeMode==='box'?Math.max(2.8,finite(d.armWidth,4,45,6)/2+.5):2.8)*MM,edgeAt=[];
  for(let i=0;i<base.length;i++){const a=base[i],b=base[(i+1)%base.length];if((a[1]<=cy&&b[1]>=cy)||(b[1]<=cy&&a[1]>=cy)){if(Math.abs(b[1]-a[1])>1e-10)edgeAt.push((a[0]+(b[0]-a[0])*(cy-a[1])/(b[1]-a[1]))*side);}}
  const edge=Math.max(...edgeAt),x0=edge-2.5*MM,x1=w+endpiece*MM,r=.8*MM,seat=[];
  for(const [cx,yy,start] of [[x1-r,cy+hy-r,0],[x0+r,cy+hy-r,90],[x0+r,cy-hy+r,180],[x1-r,cy-hy+r,270]])for(let k=0;k<=6;k++){const a=(start+k*15)*Math.PI/180;seat.push([side*(cx+r*Math.cos(a)),yy+r*Math.sin(a)]);}
@@ -101,6 +101,7 @@ export function lensContour(d,side){
  if(d.wallMode==='outward')return lensContour({...d,wallMode:'inward',thickness:finite(d.envelopeWall,3,8,4)},side);
  const wall=finite(d.thickness,3,8,4),baseWall=d.wallMode==='outward'?wall:finite(d.envelopeWall,3,8,4),outer=structuralEnvelope(d,side),finishedOuter=deform(d,side,outer,outer);
  const nominal=offsetContour(baselineLens(d,side),(baseWall-wall)*MM),desired=deform(d,side,nominal,outer);
+ if(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))return desired;
  // Clip the independent aperture to the minimum-wall offset. This preserves
  // thicker brows/endpieces and guarantees the minimum material after edits.
  if(!d.customContour&&!getLensShape(d.opticalShape)&&!finite(d.nasalAngle,0,15,0)&&!finite(d.temporalLift,0,12,0)&&!finite(d.temporalReach,0,8,0))return desired;
@@ -111,17 +112,18 @@ export function lensContour(d,side){
 }
 export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge)/2*MM;return [-center,center];}
 export function hingeGeometry(d,side){
- const outer=frameContour({...d,temporalLift:0,temporalReach:0,nasalAngle:0},side),center=lensCenters(d)[side===-1?0:1],stock=finite(d.materialDepth,2,8,6)*MM,mode=d.hingeMode==='box'?'box':'hidden';
- const top=Math.max(...outer.map(p=>p[1])),bottom=Math.min(...outer.map(p=>p[1])),y=bottom+(top-bottom)*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72);
+ const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1],stock=finite(d.materialDepth,2,8,6)*MM,mode=d.hingeMode==='box'?'box':'hidden';
+ const reference=offsetContour(baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:''},side),finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)*MM),height=Math.max(...reference.map(p=>Math.abs(p[1]))),station=height*(2*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72)-1),y=deform(d,side,[[side*Math.max(...reference.map(p=>Math.abs(p[0]))),station]],reference)[0][1];
  // Locate the true temporal envelope at hinge height, not its unrelated maxX.
  const crossings=[];
  for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}
  const edge=center+(crossings.length?(side===1?Math.max(...crossings):Math.min(...crossings)):side*Math.max(...outer.map(p=>Math.abs(p[0]))));
- const extension=mode==='box'?4*MM:0,anchor=[edge+side*(extension-1.5*MM),y,-1*MM];
- const boxOutline=mode==='box'?[[edge-side*2*MM,y-2.5*MM],[edge+side*extension,y-2.5*MM],[edge+side*extension,y+2.5*MM],[edge-side*2*MM,y+2.5*MM]]:[];
+ const extension=mode==='box'?finite(d.hingeBoxLength,2,10,4)*MM:0,anchor=[edge+side*(extension-1.5*MM),y,-1*MM],hy=(finite(d.armWidth,4,45,6)/2+.5)*MM;
+ const boxOutline=[];if(mode==='box'){const x0=edge*side-2*MM,x1=edge*side+extension,r=Math.min(.8*MM,hy);for(const [cx,cy,start]of [[x1-r,y+hy-r,0],[x0+r,y+hy-r,90],[x0+r,y-hy+r,180],[x1-r,y-hy+r,270]])for(let i=0;i<=6;i++){const a=(start+i*15)*Math.PI/180;boxOutline.push([side*(cx+r*Math.cos(a)),cy+r*Math.sin(a)]);}}
  if(boxOutline.length&&area(boxOutline)<0)boxOutline.reverse();
- return {mode,anchor,boxOutline,jointHalfDepth:Math.min(stock/2,1.25*MM),hardware:{center:[anchor[0],y,-.5*MM],size:[2*MM,3*MM,2*MM]}};
+ return {mode,anchor,boxOutline,heightMM:2*hy/MM,lengthMM:extension/MM,jointHalfDepth:Math.min(stock/2,1.25*MM),hardware:{center:[anchor[0],y,-.5*MM],size:[2*MM,Math.min(3*MM,2*hy-MM),2*MM]}};
 }
+
 export function designMeasurements(d){
  const s=sizeOf(d),temple=finite(d.templeLength,120,160,s.temple),centers=lensCenters(d),left=lensContour(d,-1),right=lensContour(d,1),round=x=>Math.round(x*100)/100;
  const lens=(Math.max(...right.map(p=>p[0]))-Math.min(...right.map(p=>p[0])))/MM;

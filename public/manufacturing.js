@@ -82,7 +82,7 @@ function boundariesCross(a,b){
 // in the model's frontal XY plane, before any paper placement or rotation.
 const frontGeometryCache=new Map();
 export function frontCutGeometry(raw={}){
- const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
+ const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
  const parts=projectParts(d);let loops=unionPolygons(parts.polygons);
  if(d.bridgeBlend>0){loops=offsetRegion(offsetRegion(loops,d.bridgeBlend),-d.bridgeBlend).filter(loop=>Math.abs(signedArea(loop))>=1e-5);}
  const outerLoops=loops.filter(loop=>signedArea(loop)>0),bridgeVoids=loops.filter(loop=>signedArea(loop)<0);

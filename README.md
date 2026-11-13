@@ -10,20 +10,22 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## FR eyewear studio 1.3.2
+## FR eyewear studio 1.4.0
+
+Corrige las caras del bisel que cubrían los cristales al modificar el puente: el sólido redondeado se construye mediante regiones desplazadas y tapas retrianguladas, compartido por vista 3D, GLB y STL. Añade caja de bisagra vinculada al ancho del brazo, terminales con largo/ancho/espesor y modos de aro siguiendo al cristal o independiente. Incorpora cinco bases del nuevo PDF (Wayfarer, tres Cat-eye y Panto 2) y conserva las cotas del Cat-eye técnico A51/B48/DBL17/frontal150/L125.
 
 Estudio de escritorio offline para Windows, Linux y macOS Apple Silicon. Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
 
-El estudio completo incluye 20 bases, 27 cristales digitalizados de la tabla de la página 6, edición óptica independiente, conformado frontal 3D, contornos de construcción sin triangulación visible y medición con puntos y ajuste a nodos. Los perfiles Panto, Boston y Recto 2 se revisaron con los dibujos de las páginas 5 y 7; las cotas anotadas se distinguen de las alturas inferidas del trazado. Las fuentes rasterizadas no son CAD de fabricante.
+El estudio completo incluye 25 bases y 31 cristales: los 27 de la tabla óptica y cuatro perfiles del nuevo sistemaFR.pdf, edición óptica independiente, conformado frontal 3D, contornos de construcción sin triangulación visible y medición con puntos y ajuste a nodos. Los perfiles Panto, Boston y Recto 2 se revisaron con los dibujos de las páginas 5 y 7; las cotas anotadas se distinguen de las alturas inferidas del trazado. Las fuentes rasterizadas no son CAD de fabricante.
 
 El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservando los controles. Las solicitudes se descargan como JSON y el cliente puede preparar un correo a **estudiomiscante@gmail.com**; adjunta el archivo y confirma el envío en su cliente de correo. `public/contact-config.js` deja preparado `servicios@miscante.cl` para activarlo cuando reciba correo. No hay recepción automática ni cobros.
 
 Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
 
-- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.3.2)
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.4.0)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
-- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.3.2)
-- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.3.2/FR-eyewear-studio-1.3.2-mac-arm64.dmg)
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.4.0)
+- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.4.0/FR-eyewear-studio-1.4.0-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.4.0/FR-eyewear-studio-1.4.0-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.4.0/FR-eyewear-studio-1.4.0-mac-arm64.dmg)
 
 Mac Intel x64 sigue pendiente: el runner Intel no pudo crear WebGL y la prueba con Rosetta no completó el arranque. No se publica ese paquete sin verificarlo.
 
@@ -50,9 +52,9 @@ Genera el sitio estático completo en `docs/` y `dist/`. Conserva las tres pági
 
 ## Capacidades de diseño
 
-La biblioteca de veinte bases corresponde al software de escritorio. El configurador público ofrece Redondo y Cuadrado con los mismos controles.
+La biblioteca de veinticinco bases corresponde al software de escritorio. El configurador público ofrece Redondo y Cuadrado con los mismos controles.
 
-- Veinte bases de construcción, incluidas: Recto, Redondo, Ovalado, Curvo, Panto, Boston, Cat-eye y Geométrico. Presets de A, altura B, DBL y L, ceja y asientos de bisagra con reserva de material.
+- Veinticinco bases de construcción, incluidas: Recto, Redondo, Ovalado, Curvo, Panto, Boston, Cat-eye y Geométrico. Presets de A, altura B, DBL y L, ceja y asientos de bisagra con reserva de material.
 - Vista 3D interactiva con Three.js: volumen, luces, materiales, lentes y brazos de sección plana y curva variable. Cámara frontal, lateral y perspectiva; cambiar una opción conserva la posición girada por el usuario. Geometría compartida con el SVG alternativo si WebGL no está disponible.
 - Estudio de producto de pantalla completa con cuatro paneles accesibles: Modelo, Montura, Cristales y Receta. Solo un panel visible; navegación por teclado y Receta disponible al seleccionar graduación.
 - Cotas base A, B óptico, DBL y largo L independientes; pared mínima 3–8 mm hacia dentro, exterior protegido y planchas 2/3/4/6/8 mm. Puente clásico, herradura o doble. Apertura nasal localizada y correcciones temporales, seis brazos, cuatro terminales, tramo auricular 20–45 mm y apertura lateral 0–8°. Longitud desarrollada L conservada.

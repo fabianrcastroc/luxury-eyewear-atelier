@@ -1,15 +1,14 @@
-import {Shape,Path,Vector2,Vector3,ExtrudeGeometry,BufferGeometry,Float32BufferAttribute,ShapeUtils,BoxGeometry,CylinderGeometry,SphereGeometry} from 'three';
+import {polishedExtrusion} from './polished-extrusion.js';
+import {Vector2,Vector3,BufferGeometry,Float32BufferAttribute,ShapeUtils,BoxGeometry,CylinderGeometry,SphereGeometry} from 'three';
 import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MM} from './frame-geometry.js';
 
+const polishedCache=new Map();
 // Quarter-round edges stay INSIDE the original XY silhouette and exact slab Z.
-// A negative bevel offset contracts the face; the side reaches the source path.
+// Offset regions define cap boundaries before triangulation; side walls reach the source path.
 export function finishedExtrusion(outer,holes,depth,radius=.65*MM){
- const shape=new Shape(outer.map(p=>new Vector2(...p)));
- for(const hole of holes)shape.holes.push(new Path(hole.map(p=>new Vector2(...p))));
- const bevel=Math.max(.001,Math.min(radius,depth*.24));
- const geometry=new ExtrudeGeometry(shape,{depth:Math.max(.002,depth-2*bevel),bevelEnabled:true,bevelSize:bevel,bevelOffset:-bevel,bevelThickness:bevel,bevelSegments:5,steps:1,curveSegments:24});
- geometry.translate(0,0,bevel);geometry.deleteAttribute('normal');geometry.deleteAttribute('uv');
+ const key=JSON.stringify([outer,holes,depth,radius]);if(polishedCache.has(key))return polishedCache.get(key).clone();
+ const geometry=polishedExtrusion(outer,holes,depth,Math.max(.001,Math.min(radius,depth*.24)),.00002*MM);
  const smooth=mergeVertices(geometry,1e-6);geometry.dispose();smooth.computeVertexNormals();
  // Welding the cap to its rounded edge must not average bevel normals across
  // the planar face. Unequal cap triangles otherwise produce broad, artificial
@@ -17,7 +16,7 @@ export function finishedExtrusion(outer,holes,depth,radius=.65*MM){
  // the exact surface normal is also the cap's +/-Z normal.
  const position=smooth.attributes.position,normal=smooth.attributes.normal;
  for(let i=0;i<position.count;i++){const z=position.getZ(i);if(Math.abs(z)<1e-7)normal.setXYZ(i,0,0,-1);else if(Math.abs(z-depth)<1e-7)normal.setXYZ(i,0,0,1);}
- normal.needsUpdate=true;const uv=[];for(let i=0;i<position.count;i++)uv.push(position.getX(i)/(10*MM),position.getY(i)/(10*MM));smooth.setAttribute('uv',new Float32BufferAttribute(uv,2));smooth.userData.capDepth=depth;return smooth;
+ normal.needsUpdate=true;const uv=[];for(let i=0;i<position.count;i++)uv.push(position.getX(i)/(10*MM),position.getY(i)/(10*MM));smooth.setAttribute('uv',new Float32BufferAttribute(uv,2));smooth.userData.capDepth=depth;if(polishedCache.size>=16){const first=polishedCache.keys().next().value;polishedCache.get(first).dispose();polishedCache.delete(first);}polishedCache.set(key,smooth.clone());return smooth;
 }
 
 /** A bonded laminate is polished towards its ends, not a uniform vertical fin.

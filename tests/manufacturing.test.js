@@ -72,7 +72,7 @@ test('caja opcional: el patrón usa exclusivamente la geometría de bisagra comp
  const raw={model:'curvo',lensWidth:50,bridgeWidth:22},hidden=manufacturingDocument({...raw,hingeMode:'hidden'}),boxed=manufacturingDocument({...raw,hingeMode:'box'});
  assert.ok(boxed.measurements.frontPatternWidth>hidden.measurements.frontPatternWidth);
  assert.equal(hingeGeometry(normalizeDesign({...raw,hingeMode:'hidden'}),1).boxOutline.length,0);
- assert.equal(hingeGeometry(normalizeDesign({...raw,hingeMode:'box'}),1).boxOutline.length,4);
+ assert.equal(hingeGeometry(normalizeDesign({...raw,hingeMode:'box'}),1).boxOutline.length,28);
  assert.ok(!/data-part="drill/.test(boxed.pages.join('')));assert.ok(!boxed.pages.join('').includes('No se inventan taladros'));
 });
 

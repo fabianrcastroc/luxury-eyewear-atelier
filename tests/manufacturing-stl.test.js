@@ -7,7 +7,7 @@ import {manufacturingSTL,stlParts,encodeClosedSTL} from '../public/manufacturing
 import {frameContour,lensContour,designMeasurements,bridgeGeometry} from '../public/frame-geometry.js';
 import {frontCutGeometry} from '../public/manufacturing.js';
 
-test('STL de cada pieza de los 14 modelos: cerrado, orientado, volumen positivo y mm',()=>{
+test('STL de cada pieza de los 25 modelos: cerrado, orientado, volumen positivo y mm',()=>{
  for(const profile of frameProfiles)for(const part of stlParts){
   const result=manufacturingSTL({...profile.defaults,model:profile.id,jobName:'Prueba'},part),bytes=new DataView(result.buffer);
   assert.equal(result.unit,'mm');assert.equal(result.closed,true);assert.ok(result.volumeMM3>1);assert.equal(result.buffer.byteLength,84+50*bytes.getUint32(80,true));

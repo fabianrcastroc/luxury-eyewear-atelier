@@ -9,7 +9,7 @@ const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} ≈ ${b}`);
 
 test('biblioteca ampliada y migración de diseños anteriores',()=>{
  assert.deepEqual(iconicModels.slice(0,8).map(m=>m.name),['Recto','Redondo','Ovalado','Curvo','Panto','Boston','Cat-eye','Geométrico']);
- for(const [before,after] of Object.entries({rectangular:'recto',panto:'panto',aviador:'ovalado',clubmaster:'curvo',wayfarer:'curvo','cat-eye':'cateye'}))assert.equal(normalizeDesign({model:before}).model,after);
+ for(const [before,after] of Object.entries({rectangular:'recto',panto:'panto',aviador:'ovalado',clubmaster:'curvo',wayfarer:'wayfarer','cat-eye':'cateye'}))assert.equal(normalizeDesign({model:before}).model,after);
  const d=normalizeDesign({bridgeWidth:24,armLength:155});assert.equal(d.bridgeWidth,24);assert.ok(!('armLength' in d));
 });
 test('la base sigue en $209.000 sin recargos por talla, puente o brazos',()=>{
@@ -112,11 +112,7 @@ test('A50 DBL22: cada silueta tiene boxing real de 50 mm y hueco interlenticular
  }
 });
 
-test('migración histórica Wayfarer conserva procedencia y no autentica el contorno',()=>{
- const d=normalizeDesign({model:'wayfarer',lensWidth:50,bridgeWidth:22});assert.equal(d.model,'curvo');assert.equal(d.migratedFrom,'wayfarer');assert.equal(d.referenceStatus,'unverified');assert.ok(!d.customContour);
- const restored=normalizeDesign(JSON.parse(JSON.stringify(d)));assert.equal(restored.referenceStatus,'unverified');assert.equal(restored.migratedFrom,'wayfarer');
- assert.ok(!normalizeDesign(defaultDesign).referenceStatus);
-});
+test('Wayfarer tiene un perfil propio digitalizado, sin afirmar CAD de fabricante',()=>{const d=normalizeDesign({model:'wayfarer',lensWidth:50,bridgeWidth:22});assert.equal(d.model,'wayfarer');assert.ok(!d.customContour);assert.equal(normalizeDesign(JSON.parse(JSON.stringify(d))).model,'wayfarer');});
 
 test('PDF: el ancho radial nunca desplaza envolvente, frente, bisagras ni arranque de brazos',()=>{
  for(const model of iconicModels)for(const hingeMode of ['hidden','box']){

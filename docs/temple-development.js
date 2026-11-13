@@ -19,12 +19,12 @@ const STYLE={
 export function templeSections(d,side,style=d.armStyle||'clasico'){
  const plan=templePlan(d,side,style),spec=STYLE[style]||STYLE.clasico,frame=frameContour(d,side);
  const top=Math.max(...frame.map(p=>p[1])),bottom=Math.min(...frame.map(p=>p[1]));
- const stock=bounded(d.materialDepth,2,12,6),depth=stock*MM/2,terminalThickness=Math.min(stock,2.8);
+ const stock=bounded(d.materialDepth,2,12,6),depth=stock*MM/2,terminalThickness=Math.min(stock,bounded(d.terminalThickness,1.5,8,2.8));
  const bendAngle=bounded(d.armBendAngle,0,65,45),angle=bendAngle*Math.PI/180;
- const tipLength=bounded(d.tipSize,3,12,10),tipShape=['round','square','triangle','diamond'].includes(d.tipShape)?d.tipShape:'round';
+ const tipLength=bounded(d.tipSize,3,Math.min(20,bounded(d.earLength,20,45,32)-.5),10),tipShape=['round','square','triangle','diamond'].includes(d.tipShape)?d.tipShape:'round';
  const total=bounded(plan.nominalLength,120,160,140),earLengthMM=bounded(d.earLength,20,45,32),earLength=earLengthMM*MM,target=(total-earLengthMM)*MM,count=128,splay=bounded(d.templeSplay,0,8,0)*Math.PI/180;
  const neckWidth=bounded(plan.shaftWidth/MM*spec.neck,2.6,4.2,3.2)*MM;
- const tipWidth=bounded(neckWidth/MM*(tipShape==='diamond'?1.4:tipShape==='triangle'?1.3:1.2),3.2,5.8,4)*MM;
+ const tipWidth=bounded(d.tipWidth,3.2,12,6)*MM;
  const joint=plan.stem[0].slice(),jointDepth=Math.min(depth,plan.jointHalfDepth??depth);
  const hingeHeight=Math.max(.08,2*Math.min(top-joint[1],joint[1]-bottom));
  function shaftWidth(t){
@@ -56,7 +56,7 @@ export function templeSections(d,side,style=d.armStyle||'clasico'){
   if(u<=.55)return neckWidth+(tipWidth-neckWidth)*smooth(u,0,.55);
   const v=(u-.55)/.45;return Math.max(end,tipWidth*Math.sqrt(Math.max(0,1-v*v)));
  }
- const hookLocal=hookRaw.map(row=>({...row,point:row.point.map(v=>v*correction),height:terminalWidth(row.t),depth:depth+(terminalThickness*MM/2-depth)*smooth(row.t,.3,.85)}));
+ const hookLocal=hookRaw.map(row=>({...row,point:row.point.map(v=>v*correction),height:terminalWidth(row.t),depth:(depth+(terminalThickness*MM/2-depth)*smooth(row.t,.3,.85))*(tipShape==='square'?1:Math.max(.12/terminalThickness,Math.min(1,terminalWidth(row.t)/(.65*tipWidth))))}));
  let minimumBendRadiusMM=Infinity;for(let i=1;i<hookRaw.length-1;i++){const a=hookRaw[i].point.map((v,j)=>v-hookRaw[i-1].point[j]),b=hookRaw[i+1].point.map((v,j)=>v-hookRaw[i].point[j]),la=Math.hypot(...a),lb=Math.hypot(...b),theta=Math.acos(Math.min(1,Math.max(-1,a.reduce((sum,v,j)=>sum+v*b[j],0)/(la*lb))));if(theta>1e-7)minimumBendRadiusMM=Math.min(minimumBendRadiusMM,(la+lb)/2/theta/MM);}const hook=hookLocal.map(row=>({...row,point:row.point.map((value,i)=>value+join[i])})),rows=[...stem,...hook.slice(1)];
  return {stem,hook,rows,plan,hookLocal,tipShape,tipSize:tipLength,tipLengthMM:tipLength,tipWidthMM:tipWidth/MM,terminalThicknessMM:terminalThickness,machining:{hingeSeatThicknessMM:jointDepth*2/MM,terminalThicknessMM:terminalThickness},bendAngle,bendMetric:'tangent-degrees',bendStart:join.slice(),bendStartLength:arcLength(stem)/MM,earLengthMM,minimumBendRadiusMM:Number.isFinite(minimumBendRadiusMM)?minimumBendRadiusMM:null,templeSplayDegrees:splay*180/Math.PI,developedLength:arcLength(rows)/MM};
 }
