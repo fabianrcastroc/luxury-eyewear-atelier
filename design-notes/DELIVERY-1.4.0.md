@@ -23,3 +23,17 @@ Cat-eye técnico: A51, B48, DBL17, ancho frontal150 y brazo125 mm, conforme a la
 Los modelos son construcciones editables y trazados de imágenes rasterizadas; no autentican CAD Ray-Ban ni certifican encaje RB2140. La ranura del cristal, herrajes concretos, tolerancias de material/conformado y viabilidad de montaje requieren validación física. Los planos permanecen a escala desarrollada 1:1 en dos hojas: frontal/cristales y brazos/lunetas.
 
 Se mantienen Windows x64, Linux amd64 y macOS Apple Silicon. Mac Intel sigue pendiente de un entorno capaz de verificar arranque y WebGL. Instaladores sin firma Authenticode/notarización. La autoridad privada de licencias existente se conserva fuera del repositorio y no se regenera; la evaluación y activación permanecen offline.
+
+## Publicación comprobada
+
+Los tres trabajos de empaquetado e instalación aprobaron en https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43363792714, etiqueta fr-desktop-v1.4.0, fuente ceba851. La comprobación ejecutó los programas incluidos en NSIS, DEB y DMG, con WebGL, importación local, proyecto, GLB, STL, PDF de dos hojas y cero HTTP externo.
+
+En el navegador, la referencia Wayfarer de sistemaFR.pdf se detectó y calibró; el trazado asistido también pasó. La foto roja no se segmentó con las opciones predeterminadas y requiere recorte, umbral o trazado asistido. No se garantiza reconocimiento automático de cualquier fotografía. Se corrigió además la selección de archivo para desactivar inmediatamente el resultado anterior y evitar aplicar una detección obsoleta.
+
+Los tres instaladores públicos se descargaron completos y sus SHA-256 coincidieron con las sumas de la publicación. También se comprobaron las cabeceras MZ, DEB/ar y DMG/koly.
+
+```text
+0008b5f56f6bee94ef50a8ccb78923c93ff5e23f0e7d219b02d8d923843f440a  FR-eyewear-studio-1.4.0-linux-amd64.deb
+1505f008d198d345a3f86b54136519d6c3c6b274ccd8c3ac49150964e0ca9a37  FR-eyewear-studio-1.4.0-mac-arm64.dmg
+1d68f44f142f92455d748c280c2ec174cf90dcc0230e1e4f0104bd1e66ec73f0  FR-eyewear-studio-1.4.0-win-x64.exe
+```
