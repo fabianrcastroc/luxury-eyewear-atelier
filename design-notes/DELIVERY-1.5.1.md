@@ -27,3 +27,7 @@ Sin cambio de clave de licencias; la autoridad privada se conserva fuera del rep
 La prueba local de Electron terminó correctamente: WebGL, Worker sin conexión, edición cúbica, proyecto versión 6, GLB, STL y PDF de dos hojas; cero solicitudes HTTP externas y cero errores. Capturas del selector y del editor verificadas visualmente, además de la aceptación DOM.
 
 La exportación GLB fuerza la actualización de la escena antes de capturar el archivo: una modificación y exportación dentro del mismo fotograma conservan ahora los mismos controles del proyecto. Se añadió una prueba de regresión de ese caso.
+
+## Resultado local de 1.5.1
+
+107/107 pruebas aprobadas, cero fallos. La aceptación de navegador comprueba también que la exportación dentro del mismo fotograma contiene los últimos controles. Electron local aprobado con proyecto v6, GLB, STL, PDF de dos hojas, Worker local y cero conexiones HTTP externas. Construcción y pruebas de los instaladores publicadas en Actions: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43512315454 .
