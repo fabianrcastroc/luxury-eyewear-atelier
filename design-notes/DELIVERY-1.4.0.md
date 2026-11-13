@@ -37,3 +37,5 @@ Los tres instaladores públicos se descargaron completos y sus SHA-256 coincidie
 1505f008d198d345a3f86b54136519d6c3c6b274ccd8c3ac49150964e0ca9a37  FR-eyewear-studio-1.4.0-mac-arm64.dmg
 1d68f44f142f92455d748c280c2ec174cf90dcc0230e1e4f0104bd1e66ec73f0  FR-eyewear-studio-1.4.0-win-x64.exe
 ```
+
+Despliegue web confirmado: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43364531344, commit a41e607, etapa Publicar aprobada. Las 101 pruebas volvieron a pasar antes de generar y publicar el sitio. El configurador de dos bases se validó localmente sobre el árbol estático generado; el dominio github.io no forma parte de los destinos de red permitidos de este entorno.
