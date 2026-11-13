@@ -31,3 +31,15 @@ La exportación GLB fuerza la actualización de la escena antes de capturar el a
 ## Resultado local de 1.5.1
 
 107/107 pruebas aprobadas, cero fallos. La aceptación de navegador comprueba también que la exportación dentro del mismo fotograma contiene los últimos controles. Electron local aprobado con proyecto v6, GLB, STL, PDF de dos hojas, Worker local y cero conexiones HTTP externas. Construcción y pruebas de los instaladores publicadas en Actions: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43512315454 .
+
+## Publicación verificada
+
+`main` actualizado en `ae283e1`. GitHub Pages aprobado en https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43512406485 . El `docs/workbench.js` servido por el origen público coincide byte por byte con la construcción revisada (SHA-256 `17765792cab856814ef90f83b03067bd75ee95901a5d349e5da611db714e69ef`). La política impide abrir directamente github.io desde este entorno; la comprobación del despliegue se apoya en la ejecución aprobada de Pages y en el origen público de los archivos.
+
+Windows: instalador NSIS instalado y probado en Windows por Actions. Archivo público descargado completo (121664911 bytes, cabecera MZ), SHA-256 coincidente con `SHA256SUMS.txt`.
+
+Linux: paquete extraído y probado por Actions, descarga pública completa verificada con `SHA256SUMS-linux.txt`; metadatos `fr-eyewear-studio-desktop / 1.5.1 / amd64`.
+
+macOS Apple Silicon: DMG montado, aplicación copiada y probada sin conexión por Actions, incluida reapertura de ventana. Descarga pública completa (121297090 bytes), firma de contenedor UDIF `koly` y SHA-256 coincidente con `SHA256SUMS-macos-arm64.txt`.
+
+El flujo de escritorio `43512315454` terminó aprobado en las tres plataformas; también terminó aprobado Pages `43512406485`. Los tres enlaces de descarga de 1.5.1 existen y se verificaron descargando los archivos completos. El recibo se incorpora después de la publicación, sin modificar el código de la etiqueta ni repetir el despliegue.
