@@ -1,3 +1,4 @@
+import {minimumProfileWall,isConvexProfile,sampleSpline} from './profile-spline.js';
 import {unionPolygons,offsetRegion} from './planar-kernel.js';
 import {MM,frameContour,lensContour,lensCenters,bridgeGeometry,designMeasurements,hingeGeometry,nasalPads} from './frame-geometry.js';
 import {normalizeDesign} from './designer-model.js';
@@ -82,7 +83,7 @@ function boundariesCross(a,b){
 // in the model's frontal XY plane, before any paper placement or rotation.
 const frontGeometryCache=new Map();
 export function frontCutGeometry(raw={}){
- const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
+ const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.outerSpline,d.opticalSpline,d.opticalOutline,d.curveMinWall,d.curveAllowConcave,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
  const parts=projectParts(d);let loops=unionPolygons(parts.polygons);
  if(d.bridgeBlend>0){loops=offsetRegion(offsetRegion(loops,d.bridgeBlend),-d.bridgeBlend).filter(loop=>Math.abs(signedArea(loop))>=1e-5);}
  const outerLoops=loops.filter(loop=>signedArea(loop)>0),bridgeVoids=loops.filter(loop=>signedArea(loop)<0);
@@ -92,6 +93,8 @@ export function frontCutGeometry(raw={}){
  const exterior=outerLoops[0],holes=[...parts.apertures,...bridgeVoids];
  if(holes.some(h=>h.some(p=>!pointInside(p,exterior))||boundariesCross(h,exterior)))throw new Error('La edición deja un vaciado fuera del frontal. Corrige el puente o la pared.');
  for(let i=0;i<holes.length;i++)for(let j=i+1;j<holes.length;j++)if(boundariesCross(holes[i],holes[j])||pointInside(holes[i][0],holes[j])||pointInside(holes[j][0],holes[i]))throw new Error('La edición superpone los vaciados del cristal o del puente. Reduce sus parámetros.');
+ if(!d.curveAllowConcave)for(const p of [d.outerSpline,d.opticalSpline].filter(Boolean))if(!isConvexProfile(sampleSpline(p)))throw Error('La curva crea una concavidad no habilitada. Ajusta los controles o permite concavidades intencionales.');
+ if(d.outerSpline||d.opticalSpline){const center=parts.centers[1]/MM,wall=minimumProfileWall(parts.apertures[1].map(([x,y])=>[x-center,y]),frameContour(d,1).map(p=>p.map(v=>v/MM)));if(wall<d.curveMinWall-.001)throw new Error(`La pared real queda en ${wall.toFixed(2)} mm; el mínimo configurado es ${d.curveMinWall} mm.`);}
  const result={outerLoops,holes:[...parts.apertures,...bridgeVoids],apertures:parts.apertures,bridgeVoids,frontBounds:bounds(loops.flat()),unit:'mm'};if(frontGeometryCache.size>=48)frontGeometryCache.delete(frontGeometryCache.keys().next().value);frontGeometryCache.set(cacheKey,result);return result;
 }
 export const frontSolidPolygons=frontCutGeometry;

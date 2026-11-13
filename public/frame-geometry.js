@@ -1,3 +1,4 @@
+import {sampleSpline} from './profile-spline.js';
 import {getLensShape} from './lens-library.js';
 import {getFrameProfile,normalizedProfile} from './frame-profiles.js';
 import {offsetSingleContour,isSimpleContour,polygonArea,unionPolygons,intersectPolygons} from './planar-kernel.js';
@@ -49,14 +50,15 @@ export function offsetContour(input,distance){
  return result;
 }
 function baselineLens(d,side){
+ if(d.opticalSpline||d.opticalOutline){const p=(d.opticalSpline?sampleSpline(d.opticalSpline):d.opticalOutline).map(p=>p.map(v=>v*MM));return side===-1?p.map(([x,y])=>[-x,y]).reverse():p;}
  const points=profile(d,side),half=(getLensShape(d.opticalShape)?finite(d.opticalWidth,35,65,52):sizeOf(d).lens)/2*MM,aspect=finite(d.contourAspectScale,.85,1.15,1),ys=points.map(p=>p[1]),height=Math.max(...ys)-Math.min(...ys);
  const yScale=getLensShape(d.opticalShape)?finite(d.opticalHeight,20,60,40)*MM/height:d.lensHeight==null?half*aspect:finite(d.lensHeight,25,60,40)*MM/height*aspect;
  return points.map(([x,y])=>[x*half,y*yScale]);
 }
 const structuralCache=new Map();
 function structuralEnvelope(d,side,wall=finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)){
- const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding,d.rimJoin,d.hingeLevel,d.hingeMode,d.armWidth,d.frameShapeMode,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
- const seed=baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:''},side),base=(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))||d.rimJoin==='round'?offsetSingleContour(seed,wall*MM,{join:'round',arcTolerance:.00001}):offsetContour(seed,wall*MM),spec=getFrameProfile(modelOf(d));
+ const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding,d.rimJoin,d.hingeLevel,d.hingeMode,d.armWidth,d.frameShapeMode,d.opticalSpline,d.opticalOutline,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
+ const seed=baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalSpline:null,opticalOutline:null},side),base=(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))||d.rimJoin==='round'?offsetSingleContour(seed,wall*MM,{join:'round',arcTolerance:.00001}):offsetContour(seed,wall*MM),spec=getFrameProfile(modelOf(d));
  const h=Math.max(...base.map(p=>Math.abs(p[1]))),w=Math.max(...base.map(p=>Math.abs(p[0])));
  const miterExcess=(w-sizeOf(d).lens/2*MM)/MM-wall,endpiece=spec.referenceFrontWidth?spec.endpiece-miterExcess:spec.endpiece;
  const smooth=(value,a,b)=>{const t=Math.max(0,Math.min(1,(value-a)/(b-a)));return t*t*(3-2*t);};
@@ -72,7 +74,9 @@ function structuralEnvelope(d,side,wall=finite(d.wallMode==='outward'?d.thicknes
  for(let i=0;i<base.length;i++){const a=base[i],b=base[(i+1)%base.length];if((a[1]<=cy&&b[1]>=cy)||(b[1]<=cy&&a[1]>=cy)){if(Math.abs(b[1]-a[1])>1e-10)edgeAt.push((a[0]+(b[0]-a[0])*(cy-a[1])/(b[1]-a[1]))*side);}}
  const edge=Math.max(...edgeAt),x0=edge-2.5*MM,x1=w+endpiece*MM,r=.8*MM,seat=[];
  for(const [cx,yy,start] of [[x1-r,cy+hy-r,0],[x0+r,cy+hy-r,90],[x0+r,cy-hy+r,180],[x1-r,cy-hy+r,270]])for(let k=0;k<=6;k++){const a=(start+k*15)*Math.PI/180;seat.push([side*(cx+r*Math.cos(a)),yy+r*Math.sin(a)]);}
- const union=unionPolygons([base,shaped,seat]);if(union.length!==1)throw new RangeError('La reserva de material del frontal no forma una pieza continua.');
+ // One convex material envelope per eye: unions of local lobes created
+ // artificial scallops at the brow and hinge. The bridge is joined downstream.
+ const union=[hull([...base,...shaped,...seat])];
  if(structuralCache.size>=100)structuralCache.delete(structuralCache.keys().next().value);structuralCache.set(cacheKey,union[0]);return union[0];
 }
 function deform(d,side,points,reference){
@@ -90,15 +94,18 @@ function deform(d,side,points,reference){
  });
 }
 function detailedOuter(d,side){
+ if(d.outerSpline){let p=sampleSpline(d.outerSpline).map(p=>p.map(v=>v*MM));if(side===-1)p=p.map(([x,y])=>[-x,y]).reverse();return p;}
  if(d.wallMode==='outward'){
   const baseline=structuralEnvelope(d,side,finite(d.envelopeWall,3,8,4)),outer=deform(d,side,baseline,baseline);
   return offsetContour(outer,(finite(d.thickness,3,8,4)-finite(d.envelopeWall,3,8,4))*MM);
  }
  const outer=structuralEnvelope(d,side);return deform(d,side,outer,outer);
 }
-export function frameContour(d,side,scale=1){const points=detailedOuter(d,side);if(!isSimpleContour(points))throw new RangeError('La modificación cruza el contorno exterior. Reduce la edición local.');return points.map(([x,y])=>[x*scale,y*scale]);}
+export function frameContour(d,side,scale=1){const points=d.outerSpline?detailedOuter(d,side):hull(detailedOuter(d,side));if(!isSimpleContour(points))throw new RangeError('La modificación cruza el contorno exterior. Reduce la edición local.');return points.map(([x,y])=>[x*scale,y*scale]);}
 export function lensContour(d,side){
+ if(d.opticalSpline||d.opticalOutline)return baselineLens(d,side);
  if(d.wallMode==='outward')return lensContour({...d,wallMode:'inward',thickness:finite(d.envelopeWall,3,8,4)},side);
+ if(d.outerSpline)return baselineLens(d,side);
  const wall=finite(d.thickness,3,8,4),baseWall=d.wallMode==='outward'?wall:finite(d.envelopeWall,3,8,4),outer=structuralEnvelope(d,side),finishedOuter=deform(d,side,outer,outer);
  const nominal=offsetContour(baselineLens(d,side),(baseWall-wall)*MM),desired=deform(d,side,nominal,outer);
  if(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))return desired;
@@ -113,7 +120,7 @@ export function lensContour(d,side){
 export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge)/2*MM;return [-center,center];}
 export function hingeGeometry(d,side){
  const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1],stock=finite(d.materialDepth,2,8,6)*MM,mode=d.hingeMode==='box'?'box':'hidden';
- const reference=offsetContour(baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:''},side),finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)*MM),height=Math.max(...reference.map(p=>Math.abs(p[1]))),station=height*(2*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72)-1),y=deform(d,side,[[side*Math.max(...reference.map(p=>Math.abs(p[0]))),station]],reference)[0][1];
+ const reference=offsetContour(baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalSpline:null,opticalOutline:null},side),finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)*MM),height=Math.max(...reference.map(p=>Math.abs(p[1]))),station=height*(2*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72)-1),y=deform(d,side,[[side*Math.max(...reference.map(p=>Math.abs(p[0]))),station]],reference)[0][1];
  // Locate the true temporal envelope at hinge height, not its unrelated maxX.
  const crossings=[];
  for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}

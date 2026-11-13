@@ -56,14 +56,15 @@ export function initDesigner({onAdd,notify}){
  fitDialog.querySelector('#fit-face-width').addEventListener('input',refreshFitAdvice);
  fitDialog.querySelector('#apply-fit-size').addEventListener('click',()=>{if(!fitSuggestion?.withinRange)return;design.frameSize=fitSuggestion.size.id;sync();fitDialog.close();notify('Talla frontal aplicada. El largo de patilla se elige por separado.');});
  let renderedConfig='',pendingRender=null;
- function updateProduct(){const config=JSON.stringify(design);root.dataset.design=config;if(!viewer){root.querySelector('#design-preview').innerHTML=framePreview(design,view);return;}if(config===renderedConfig){viewer.showReference(false);return;}renderedConfig=config;if(pendingRender)cancelAnimationFrame(pendingRender);const next={...design};pendingRender=requestAnimationFrame(()=>{pendingRender=null;viewer.update(next);viewer.showReference(false);});}
+ function updateProduct(){const config=JSON.stringify(design);root.dataset.design=config;if(root.dataset.profileDragging==='true'){if(pendingRender){cancelAnimationFrame(pendingRender);pendingRender=null;}return;}if(!viewer){root.querySelector('#design-preview').innerHTML=framePreview(design,view);return;}if(config===renderedConfig){viewer.showReference(false);return;}renderedConfig=config;if(pendingRender)cancelAnimationFrame(pendingRender);const next={...design};pendingRender=requestAnimationFrame(()=>{pendingRender=null;viewer.update(next);viewer.showReference(false);});}
+ root.addEventListener('fr-profile-preview',updateProduct);
  function clearRecipe(){validationRun++;recipe=null;if(recipeURL)URL.revokeObjectURL(recipeURL);recipeURL=null;root.querySelector('#design-recipe').value='';root.querySelector('#recipe-status').replaceChildren();}
  function sync(){
   design=normalizeDesign(design);
   updateProduct();
   root.querySelector('#design-preview').hidden=false;
   const template=iconicModels.find(m=>m.id===design.model);root.querySelector('#studio-model-name').textContent=template.name;
-  root.querySelector('#design-rounding').disabled=!!template.lockRounding;root.querySelector('#hint-rounding').textContent=template.lockRounding?'La curva de este modelo está protegida: cambia talla y espesores sin deformar su perfil.':'Ajuste de esquinas dentro de la silueta del modelo';
+  root.querySelector('#design-rounding').disabled=!!template.lockRounding;root.querySelector('#hint-rounding').textContent=template.lockRounding?'Perfil de referencia: usa el editor cúbico para modificar su curva y sus controles.':'Ajuste de esquinas dentro de la silueta del modelo';
   root.querySelector('#design-armWidth').max=templeWidthLimit(design);
   const measurements=designMeasurements(design);root.querySelector('#fit-code').textContent=`${measurements.code} · frontal aproximado ${measurements.front} mm`;
   if(fitDialog.open)refreshFitAdvice();
@@ -96,7 +97,7 @@ export function initDesigner({onAdd,notify}){
  if(button.id==='open-fit-guide'){refreshFitAdvice();fitDialog.showModal();}
  if(button.id==='open-reference'){referenceDialog.showModal();}
  if(button.dataset.previewMode){if(button.dataset.previewMode!=='editable')referenceDialog.showModal();previewMode='editable';sync();}
- if(button.dataset.model){if(personalPhoto&&referencePhotoURL?.startsWith('blob:'))URL.revokeObjectURL(referencePhotoURL);personalPhoto=false;referencePhotoURL=null;previewMode='editable';const model=iconicModels.find(m=>m.id===button.dataset.model);design={...design,...getFrameProfile(model.id).defaults,model:model.id,contourAspectScale:1,rounding:model.rounding,temporalLift:0,temporalReach:0,nasalAngle:0,envelopeWall:model.defaults.envelopeWall,thickness:model.defaults.thickness};delete design.customContour;design.opticalShape='';sync();}
+ if(button.dataset.model){if(personalPhoto&&referencePhotoURL?.startsWith('blob:'))URL.revokeObjectURL(referencePhotoURL);personalPhoto=false;referencePhotoURL=null;previewMode='editable';const model=iconicModels.find(m=>m.id===button.dataset.model);design={...design,...getFrameProfile(model.id).defaults,model:model.id,contourAspectScale:1,rounding:model.rounding,temporalLift:0,temporalReach:0,nasalAngle:0,envelopeWall:model.defaults.envelopeWall,thickness:model.defaults.thickness};delete design.customContour;delete design.outerSpline;delete design.opticalSpline;delete design.opticalOutline;delete design.opticalContour;design.opticalShape='';sync();}
  if(button.dataset.view){view=button.dataset.view;viewer?.setView(view);sync();}
  if(button.dataset.use){design.use=button.dataset.use;if(design.use==='sol')clearRecipe();sync();}
  if(button.dataset.colorPart){design[button.dataset.colorPart]=button.dataset.color;sync();}
