@@ -73,32 +73,33 @@ function samplePerimeter(poly,count=128){
  return out;
 }
 
-export function analyzeRGBA({data,width,height,threshold:requestedThreshold,cleanThinLines=false}){
+export function analyzeRGBA({data,width,height,threshold:requestedThreshold,cleanThinLines=false,mode='pair',side='right'}){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<80||height<40||width>1200||height>1200||!data||data.length!==width*height*4)fail('La imagen debe tener dimensiones entre 80 × 40 y 1200 × 1200 píxeles.');
  const gray=new Uint8Array(width*height);let borderSum=0,borderCount=0;
  for(let i=0;i<gray.length;i++){const a=data[i*4+3]/255;gray[i]=Math.round((.2126*data[i*4]+.7152*data[i*4+1]+.0722*data[i*4+2])*a+255*(1-a));const x=i%width,y=Math.floor(i/width);if(x<3||y<3||x>=width-3||y>=height-3){borderSum+=gray[i];borderCount++;}}
  let backgroundLevel=borderSum/borderCount;const darkBackground=backgroundLevel<140;if(backgroundLevel<140){for(let i=0;i<gray.length;i++)gray[i]=255-gray[i];backgroundLevel=255-backgroundLevel;}
  const threshold=histogramThreshold(gray),thresholds=(Number.isFinite(requestedThreshold)?[requestedThreshold]:[threshold,40,55,70,80,110,140,170,200,225,240]).filter((x,i,a)=>x>=20&&x<backgroundLevel-12&&x<=245&&a.indexOf(x)===i);
+ const pick=items=>{if(mode!=='single')return choosePair(items,width,height);const candidates=items.filter(c=>!c.border&&c.area>width*height*.006&&c.width>width*.1&&c.height/c.width>=.45&&c.height/c.width<=1.25&&c.area/(c.width*c.height)>.45).sort((a,b)=>b.area-a.area);const c=candidates[0];return c?{left:c,right:c,single:true,score:1+c.area/(width*height),symmetry:1,vertical:0}:null;};
  let selected=null;
  for(const threshold of thresholds){
   let background=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)background[i]=gray[i]>threshold?1:0;
   if(cleanThinLines){const inverse=background.map(v=>1-v),cleaned=healSinglePixelGaps(inverse,width,height);background=cleaned.map(v=>1-v);}
-  let {labels,items}=components(background,width,height),pair=choosePair(items,width,height),gapRepairApplied=false;if(!pair){const fixed=components(healSinglePixelGaps(background,width,height),width,height);const proposal=choosePair(fixed.items,width,height);if(proposal){labels=fixed.labels;items=fixed.items;pair=proposal;gapRepairApplied=true;}}
+  let {labels,items}=components(background,width,height),pair=pick(items),gapRepairApplied=false;if(!pair){const fixed=components(healSinglePixelGaps(background,width,height),width,height);const proposal=pick(fixed.items);if(proposal){labels=fixed.labels;items=fixed.items;pair=proposal;gapRepairApplied=true;}}
   if(pair&&(!selected||pair.score>selected.pair.score))selected={labels,pair,threshold,gapRepairApplied};
  }
  // Neutral/blue-green tinted lenses can have the same luminance as a red frame.
  // Evaluate chromatic separation as well, retaining the same pair-quality checks.
- const chromatic=new Uint8Array(width*height);for(let i=0;i<chromatic.length;i++){const r=data[i*4],g=data[i*4+1],b=data[i*4+2];chromatic[i]=g>r*.9&&b>r*.85&&g>30&&g<180?1:0;}const colored=components(chromatic,width,height),colorPair=choosePair(colored.items,width,height);if(!darkBackground&&colorPair&&(!selected||colorPair.score>selected.pair.score+.03))selected={labels:colored.labels,pair:colorPair,threshold:null,gapRepairApplied:false,segmentation:'chromatic-neutral'};
- if(!selected)fail('No se detectaron dos huecos de cristal cerrados y simétricos con suficiente confianza.');
- const {pair,labels}=selected,leftRadii=componentRadii(pair.left,labels,width,height,true),rightRadii=componentRadii(pair.right,labels,width,height),radii=leftRadii.map((r,i)=>(r+rightRadii[i])/2);
+ const chromatic=new Uint8Array(width*height);for(let i=0;i<chromatic.length;i++){const r=data[i*4],g=data[i*4+1],b=data[i*4+2];chromatic[i]=g>r*.9&&b>r*.85&&g>30&&g<180?1:0;}const colored=components(chromatic,width,height),colorPair=pick(colored.items);if(!darkBackground&&colorPair&&(!selected||colorPair.score>selected.pair.score+.03))selected={labels:colored.labels,pair:colorPair,threshold:null,gapRepairApplied:false,segmentation:'chromatic-neutral'};
+ if(!selected)fail(mode==='single'?'No se detectó un contorno cerrado de cristal dentro del recorte.':'No se detectaron dos huecos de cristal cerrados y simétricos con suficiente confianza.');
+ const {pair,labels}=selected,leftRadii=componentRadii(pair.left,labels,width,height,true),rightRadii=componentRadii(pair.right,labels,width,height),radii=side==='left'?leftRadii:side==='average'?leftRadii.map((r,i)=>(r+rightRadii[i])/2):rightRadii;
  const disagreement=Math.sqrt(leftRadii.reduce((sum,r,i)=>sum+(r-rightRadii[i])**2,0)/radii.length)/(radii.reduce((sum,r)=>sum+r,0)/radii.length);
- if(disagreement>.18)fail('Los perfiles izquierdo y derecho no coinciden: recorta una vista frontal sin perspectiva ni reflejos que oculten el aro.');
+ if(!pair.single&&disagreement>.18)fail('Los perfiles izquierdo y derecho no coinciden: recorta una vista frontal sin perspectiva ni reflejos que oculten el aro.');
  const poly=radialPolygon(radii),sampled=samplePerimeter(poly),minX=Math.min(...sampled.map(p=>p[0])),maxX=Math.max(...sampled.map(p=>p[0])),minY=Math.min(...sampled.map(p=>p[1])),maxY=Math.max(...sampled.map(p=>p[1])),half=(maxX-minX)/2,cx=(maxX+minX)/2,cy=(maxY+minY)/2,aspectRatio=(maxY-minY)/(maxX-minX);
  if(aspectRatio<.45||aspectRatio>1.25||half<8)fail('La proporción de los cristales queda fuera del rango estructural admitido.');
  const customContour=sampled.map(([x,y])=>[(x-cx)/half,(y-cy)/half]),widthPixels=maxX-minX,heightPixels=(pair.left.height+pair.right.height)/2;
- const apertures=[[pair.left,leftRadii,'left',true],[pair.right,rightRadii,'right',false]].map(([component,radii,side,mirror])=>({side,bounds:{x:component.minX,y:component.minY,width:component.width,height:component.height},contour:imageContour(component,leftRadii.map((r,i)=>(r+rightRadii[i])/2),mirror)}));
- const errors=[...leftRadii.rawRadii.map((r,i)=>Math.abs(r-radii[i])),...rightRadii.rawRadii.map((r,i)=>Math.abs(r-radii[i]))];
- return {segmentation:selected.segmentation||'luminance',gapRepairApplied:selected.gapRepairApplied,threshold:selected.threshold,traceErrorPixels:{maximum:Math.max(...errors)+.5,rms:Math.sqrt(errors.reduce((sum,e)=>sum+e*e,0)/errors.length),pixelQuantization:.5},customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,gapPixels:pair.right.minX-pair.left.maxX-1,requiresKnownDimension:true},regularization:'radial-mirrored',diagnostics:['Dos huecos detectados automáticamente; perfiles simetrizados con suavizado local, sin envolvente convexa.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el perfil simétrico que se aplicará; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
+ const apertures=(pair.single?[[pair.right,rightRadii,side==='left'?'left':'right',side==='left']]:[[pair.left,leftRadii,'left',true],[pair.right,rightRadii,'right',false]]).map(([component,radii,side,mirror])=>({side,bounds:{x:component.minX,y:component.minY,width:component.width,height:component.height},contour:imageContour(component,radii,mirror)}));
+ const errors=(side==='left'?leftRadii.rawRadii:side==='average'?[...leftRadii.rawRadii,...rightRadii.rawRadii]:rightRadii.rawRadii).map((r,i)=>Math.abs(r-radii[i%radii.length]));
+ return {singleAperture:!!pair.single,selectedSide:side,segmentation:selected.segmentation||'luminance',gapRepairApplied:selected.gapRepairApplied,threshold:selected.threshold,traceErrorPixels:{maximum:Math.max(...errors)+.5,rms:Math.sqrt(errors.reduce((sum,e)=>sum+e*e,0)/errors.length),pixelQuantization:.5},customContour,contour:customContour,confidence:Math.max(0,Math.min(.98,pair.symmetry-pair.vertical*.5-disagreement*.25)),widthPixels,aspectRatio,image:{width,height},apertures,referenceScale:{widthPixels,heightPixels,...(pair.single?{}:{gapPixels:pair.right.minX-pair.left.maxX-1}),requiresKnownDimension:true},regularization:side==='average'?'radial-mirrored':'radial-'+side,diagnostics:[pair.single?'Un contorno cerrado detectado; DBL no se deduce del recorte.':side==='average'?'Dos huecos detectados; promedio simétrico solicitado.':'Dos huecos detectados; se conserva el perfil elegido y se refleja para el par.','La escala requiere un ancho A conocido. La profundidad, el puente y los brazos usan los parámetros del diseño, no se deducen de la foto.','La superposición muestra el perfil simétrico que se aplicará; comprueba las curvas antes de fabricar. Una fotografía con perspectiva no proporciona metrología exacta.']};
 }
 
 export async function extractReferenceImage(file,options={}){
@@ -111,14 +112,14 @@ export async function extractReferenceImage(file,options={}){
   const context=canvas.getContext('2d',{willReadFrequently:true});if(!context)fail('No está disponible el análisis de imagen en este navegador.');context.fillStyle='#fff';context.fillRect(0,0,width,height);context.drawImage(bitmap,sx,sy,sw,sh,0,0,width,height);
   const image=context.getImageData(0,0,width,height);
   // Thresholding and connected-component analysis run off the UI thread.
-  const previewDataURL=canvas.toDataURL('image/png');if(typeof Worker==='undefined')return {...analyzeRGBA({...image,data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines}),previewDataURL};
+  const previewDataURL=canvas.toDataURL('image/png');if(typeof Worker==='undefined')return {...analyzeRGBA({...image,data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines,mode:options.mode,side:options.side}),previewDataURL};
   const result=await new Promise((resolve,reject)=>{
-   const worker=new Worker(new URL('./reference-extraction.js?v=1.6.0',import.meta.url),{type:'module'});
+   const worker=new Worker(new URL('./reference-extraction.js?v=1.7.0',import.meta.url),{type:'module'});
    const timer=setTimeout(()=>{worker.terminate();reject(new Error('El análisis tardó demasiado. Prueba con un recorte frontal más simple.'));},20000);
    const finish=()=>{clearTimeout(timer);worker.terminate();};
    worker.onmessage=({data})=>{finish();if(data.error)reject(new Error(data.error));else resolve(data.result);};
    worker.onerror=()=>{finish();reject(new Error('No se pudo iniciar el análisis local de imagen. Recarga la página e inténtalo nuevamente.'));};
-   worker.postMessage({data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines},[image.data.buffer]);
+   worker.postMessage({data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines,mode:options.mode,side:options.side},[image.data.buffer]);
   });return {...result,previewDataURL};
  }finally{bitmap.close();}
 }

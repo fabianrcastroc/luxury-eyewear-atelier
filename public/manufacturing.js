@@ -95,7 +95,7 @@ export function frontCutGeometry(raw={}){
  const exterior=outerLoops[0],holes=[...parts.apertures,...bridgeVoids];
  if(holes.some(h=>h.some(p=>!pointInside(p,exterior))||boundariesCross(h,exterior)))throw new Error('La edición deja un vaciado fuera del frontal. Corrige el puente o la pared.');
  for(let i=0;i<holes.length;i++)for(let j=i+1;j<holes.length;j++)if(boundariesCross(holes[i],holes[j])||pointInside(holes[i][0],holes[j])||pointInside(holes[j][0],holes[i]))throw new Error('La edición superpone los vaciados del cristal o del puente. Reduce sus parámetros.');
- if(!d.curveAllowConcave)for(const p of [d.outerBezier,d.opticalBezier].filter(Boolean))if(!isConvexProfile(sampleBezier(p)))throw Error('La curva crea una concavidad no habilitada.');
+
  if(!d.curveAllowConcave)for(const p of [d.outerSpline,d.opticalSpline].filter(Boolean))if(!isConvexProfile(sampleSpline(p)))throw Error('La curva crea una concavidad no habilitada. Ajusta los controles o permite concavidades intencionales.');
  if(d.outerOutline||d.outerBezier||d.opticalBezier||d.outerSpline||d.opticalSpline){const center=parts.centers[1]/MM,wall=minimumProfileWall(parts.apertures[1].map(([x,y])=>[x-center,y]),frameContour(d,1).map(p=>p.map(v=>v/MM)));if(wall<d.curveMinWall-.001)throw new Error(`La pared real queda en ${wall.toFixed(2)} mm; el mínimo configurado es ${d.curveMinWall} mm.`);}
  const result={outerLoops,holes:[...parts.apertures,...bridgeVoids],apertures:parts.apertures,bridgeVoids,frontBounds:bounds(loops.flat()),unit:'mm'};if(frontGeometryCache.size>=48)frontGeometryCache.delete(frontGeometryCache.keys().next().value);frontGeometryCache.set(cacheKey,result);return result;

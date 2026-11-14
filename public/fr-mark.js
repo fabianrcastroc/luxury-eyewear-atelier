@@ -1,0 +1,2 @@
+// Accessible text stays FR; the drawn F faces left as requested by the brand.
+export const frMark='<svg class="fr-mark" viewBox="0 0 80 48" role="img" aria-label="FR · F invertida" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" transform="translate(34 0) scale(-1 1)" d="M4 4H30V12H13V21H27V29H13V44H4Z"/><path fill="currentColor" fill-rule="evenodd" d="M42 44V4H59C69 4 75 9 75 17C75 23 72 27 67 29L78 44H67L57 30H51V44ZM51 12V22H59C64 22 66 20 66 17C66 14 64 12 59 12Z"/></svg>';

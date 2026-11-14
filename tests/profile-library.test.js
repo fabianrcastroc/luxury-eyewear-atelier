@@ -8,10 +8,10 @@ import {polygonArea,isSimpleContour} from '../public/planar-kernel.js';
 const near=(a,b,tolerance=1e-5)=>assert.ok(Math.abs(a-b)<tolerance,`${a} ≈ ${b}`);
 const distance=(p,poly)=>Math.min(...poly.map((a,i)=>{const b=poly[(i+1)%poly.length],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy)));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);}));
 
-test('veinticinco curvas de construcción distintas y fuentes declaradas, sin autenticidad comercial inventada',()=>{
- assert.equal(frameProfiles.length,25);const signatures=new Set();
+test('veintiocho curvas de construcción distintas y fuentes declaradas, sin autenticidad comercial inventada',()=>{
+ assert.equal(frameProfiles.length,28);const signatures=new Set();
  for(const p of frameProfiles){assert.equal(p.referenceStatus,p.traceSource?'pdf-raster-trace':'original-parametric');assert.ok(p.sourcePages.length);assert.ok(p.defaults.lensHeight>=25);const contour=normalizedProfile(p.id,p.rounding);assert.ok(isSimpleContour(contour));assert.ok(polygonArea(contour)>0);signatures.add(JSON.stringify(contour));}
- assert.equal(signatures.size,25);
+ assert.equal(signatures.size,28);
 });
 
 test('A, B óptico y DBL son cotas independientes exactas de la abertura base',()=>{

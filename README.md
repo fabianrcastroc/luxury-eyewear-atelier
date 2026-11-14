@@ -10,22 +10,24 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## FR eyewear studio 1.6.1
+## FR eyewear studio 1.7.0
 
-La vista previa responde mientras el acabado del frontal y los cristales se calcula en un Worker local. Añade nodos Bézier con tangentes por grados y longitud, tramos rectos/oblicuos, movimiento restringido y división exacta; conserva el editor B-spline de 4–32 controles. El suavizado comprueba una tolerancia de desviación en mm. Los 31 cristales cuentan con siluetas SVG y carga verificada; se puede adaptar el aro o conservar el exterior y comprobar encaje. Los exteriores de Wayfarer y tres Cat-eye se construyen por separado de sus aberturas; los pantos diferencian la ceja de la pared inferior. La detección de referencias combina luminosidad y color; la abertura calibrada queda protegida. Proyectos nuevos en formato 7, con lectura de formatos 1–6. Las referencias rasterizadas no son CAD autenticado de fabricante.
+Selección directa con nodos y tramos Bézier: clic, Shift y marco; arrastre de nodos, conjuntos y tangentes; recto/curvo, suave/esquina, división, eliminación múltiple, rotación, escala y distribución. Se corrige el retorno prematuro que bloqueaba el arrastre y las tangentes que interceptaban clics. Abrir el editor prepara un borrador sin modificar el proyecto; el gesto conserva su origen durante todo el arrastre y el deshacer funciona por operación. Los tramos rectos declarados se conservan al reconstruir para edición. La marca gráfica usa la F invertida.
+
+La biblioteca incluye Wayfarer con tramos rectos y bisagra revisada y tres bases nuevas con rectas y curvas explícitas. La referencia admite dos cristales o uno recortado, elección de lado y trazado manual desde cuatro puntos con rectas/curvas y puntos arrastrables. La calibración A es obligatoria; DBL no se inventa para un único cristal. El cálculo del acabado sigue en un Worker local. Proyectos v7 con lectura de formatos anteriores; las imágenes no constituyen CAD de fabricante.
 
 Estudio de escritorio offline para Windows, Linux y macOS Apple Silicon. Licencia comercial por equipo mediante archivo Ed25519 firmado y evaluación de 30 días; activación sin conexión. No hay instalador móvil ni aplicación iOS.
 
-El estudio completo incluye 25 bases y 31 cristales: los 27 de la tabla óptica y cuatro perfiles del nuevo sistemaFR.pdf, edición óptica independiente, conformado frontal 3D, contornos de construcción sin triangulación visible y medición con puntos y ajuste a nodos. Los perfiles Panto, Boston y Recto 2 se revisaron con los dibujos de las páginas 5 y 7; las cotas anotadas se distinguen de las alturas inferidas del trazado. Las fuentes rasterizadas no son CAD de fabricante.
+El estudio completo incluye 28 bases y 31 cristales: los 27 de la tabla óptica y cuatro perfiles del nuevo sistemaFR.pdf, edición óptica independiente, conformado frontal 3D, contornos de construcción sin triangulación visible y medición con puntos y ajuste a nodos. Los perfiles Panto, Boston y Recto 2 se revisaron con los dibujos de las páginas 5 y 7; las cotas anotadas se distinguen de las alturas inferidas del trazado. Las fuentes rasterizadas no son CAD de fabricante.
 
 El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservando los controles. Las solicitudes se descargan como JSON y el cliente puede preparar un correo a **estudiomiscante@gmail.com**; adjunta el archivo y confirma el envío en su cliente de correo. `public/contact-config.js` deja preparado `servicios@miscante.cl` para activarlo cuando reciba correo. No hay recepción automática ni cobros.
 
 Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
 
-- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.6.1)
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.7.0)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
-- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.6.1)
-- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.1/FR-eyewear-studio-1.6.1-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.1/FR-eyewear-studio-1.6.1-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.1/FR-eyewear-studio-1.6.1-mac-arm64.dmg)
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.7.0)
+- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.0/FR-eyewear-studio-1.7.0-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.0/FR-eyewear-studio-1.7.0-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.0/FR-eyewear-studio-1.7.0-mac-arm64.dmg)
 
 Mac Intel x64 sigue pendiente: el runner Intel no pudo crear WebGL y la prueba con Rosetta no completó el arranque. No se publica ese paquete sin verificarlo.
 
