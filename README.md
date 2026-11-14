@@ -10,7 +10,7 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## FR eyewear studio 1.7.0
+## FR eyewear studio 1.7.1
 
 Selección directa con nodos y tramos Bézier: clic, Shift y marco; arrastre de nodos, conjuntos y tangentes; recto/curvo, suave/esquina, división, eliminación múltiple, rotación, escala y distribución. Se corrige el retorno prematuro que bloqueaba el arrastre y las tangentes que interceptaban clics. Abrir el editor prepara un borrador sin modificar el proyecto; el gesto conserva su origen durante todo el arrastre y el deshacer funciona por operación. Los tramos rectos declarados se conservan al reconstruir para edición. La marca gráfica usa la F invertida.
 
@@ -24,10 +24,10 @@ El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservan
 
 Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
 
-- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.7.0)
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.7.1)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
-- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.7.0)
-- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.0/FR-eyewear-studio-1.7.0-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.0/FR-eyewear-studio-1.7.0-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.0/FR-eyewear-studio-1.7.0-mac-arm64.dmg)
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.7.1)
+- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.1/FR-eyewear-studio-1.7.1-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.1/FR-eyewear-studio-1.7.1-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.7.1/FR-eyewear-studio-1.7.1-mac-arm64.dmg)
 
 Mac Intel x64 sigue pendiente: el runner Intel no pudo crear WebGL y la prueba con Rosetta no completó el arranque. No se publica ese paquete sin verificarlo.
 

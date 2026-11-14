@@ -114,7 +114,7 @@ export async function extractReferenceImage(file,options={}){
   // Thresholding and connected-component analysis run off the UI thread.
   const previewDataURL=canvas.toDataURL('image/png');if(typeof Worker==='undefined')return {...analyzeRGBA({...image,data:image.data,width,height,threshold:options.threshold,cleanThinLines:options.cleanThinLines,mode:options.mode,side:options.side}),previewDataURL};
   const result=await new Promise((resolve,reject)=>{
-   const worker=new Worker(new URL('./reference-extraction.js?v=1.7.0',import.meta.url),{type:'module'});
+   const worker=new Worker(new URL('./reference-extraction.js?v=1.7.1',import.meta.url),{type:'module'});
    const timer=setTimeout(()=>{worker.terminate();reject(new Error('El análisis tardó demasiado. Prueba con un recorte frontal más simple.'));},20000);
    const finish=()=>{clearTimeout(timer);worker.terminate();};
    worker.onmessage=({data})=>{finish();if(data.error)reject(new Error(data.error));else resolve(data.result);};
