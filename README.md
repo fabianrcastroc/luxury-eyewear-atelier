@@ -10,7 +10,7 @@ Sitio editorial en español con colección de autor y estudio de diseño persona
 
 Son páginas independientes. La bolsa se conserva entre páginas. Los enlaces anteriores `/#disena` y `/#coleccion` llevan a las nuevas páginas.
 
-## FR eyewear studio 1.6.0
+## FR eyewear studio 1.6.1
 
 La vista previa responde mientras el acabado del frontal y los cristales se calcula en un Worker local. Añade nodos Bézier con tangentes por grados y longitud, tramos rectos/oblicuos, movimiento restringido y división exacta; conserva el editor B-spline de 4–32 controles. El suavizado comprueba una tolerancia de desviación en mm. Los 31 cristales cuentan con siluetas SVG y carga verificada; se puede adaptar el aro o conservar el exterior y comprobar encaje. Los exteriores de Wayfarer y tres Cat-eye se construyen por separado de sus aberturas; los pantos diferencian la ceja de la pared inferior. La detección de referencias combina luminosidad y color; la abertura calibrada queda protegida. Proyectos nuevos en formato 7, con lectura de formatos 1–6. Las referencias rasterizadas no son CAD autenticado de fabricante.
 
@@ -22,10 +22,10 @@ El configurador de Miscante ofrece únicamente **Redondo y Cuadrado**, conservan
 
 Las hojas contienen frontal y cristales; brazos y lunetas. Conservan el patrón plano desarrollado incluso si el modelo 3D está conformado. GLB y STL incluyen el conformado. El trazado de foto permite recortar, ajustar umbral y limpiar trazos finos; incluye una vía asistida por puntos si la segmentación falla.
 
-- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.6.0)
+- [Configurador Miscante](https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.6.1)
 - El estudio completo se distribuye para escritorio. El antiguo acceso web `/fr/` redirige al configurador público de dos bases.
-- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.6.0)
-- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.0/FR-eyewear-studio-1.6.0-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.0/FR-eyewear-studio-1.6.0-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.0/FR-eyewear-studio-1.6.0-mac-arm64.dmg)
+- [Instaladores](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.6.1)
+- [Windows x64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.1/FR-eyewear-studio-1.6.1-win-x64.exe) · [Linux amd64](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.1/FR-eyewear-studio-1.6.1-linux-amd64.deb) · [macOS Apple Silicon](https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/download/fr-desktop-v1.6.1/FR-eyewear-studio-1.6.1-mac-arm64.dmg)
 
 Mac Intel x64 sigue pendiente: el runner Intel no pudo crear WebGL y la prueba con Rosetta no completó el arranque. No se publica ese paquete sin verificarlo.
 
