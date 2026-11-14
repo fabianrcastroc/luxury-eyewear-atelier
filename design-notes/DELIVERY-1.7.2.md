@@ -36,4 +36,15 @@ Se preparan los 56 perfiles de las 28 bases y se comprueba una desviación digit
 
 El muestreo de curvas también comprueba tangentes colineales que sobrepasan los extremos: conserva los extremos reales de la curva y no los sustituye por una cuerda recta. Prueba de regresión frente a una evaluación densa independiente.
 
-Resultado final local: 119/119 pruebas unitarias. El barrido de interfaz abre los 56 perfiles editables de las 28 bases; pruebas de ratón, selección y transformación aprobadas, al igual que la última prueba nativa de arrastre, exportación y trabajo offline. La revisión anterior validó además ambos paquetes y la web; se volverán a comprobar los artefactos de esta etiqueta antes de entregar sus enlaces.
+Resultado final local: 119/119 pruebas unitarias. El barrido de interfaz abre los 56 perfiles editables de las 28 bases; pruebas de ratón, selección y transformación aprobadas, al igual que la última prueba nativa de arrastre, exportación y trabajo offline. La revisión anterior validó además las tres plataformas y la web; se volverán a comprobar los artefactos de esta etiqueta antes de entregar sus enlaces.
+
+
+## Recibo final de publicación
+
+Código `9e0c6ed`, etiqueta `fr-desktop-v1.7.2`. Pages aprobado: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43646114141 . Tres paquetes nativos aprobados: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43646112294 . Las pruebas incluyen arrastre real del ratón, 28 bases, proyecto, Worker offline, GLB, STL y PDF de dos hojas. macOS comprueba también la reapertura de ventana.
+
+Se descargaron íntegros los tres archivos públicos y coincidieron sus SHA-256: Windows 121836143 bytes, Linux 102139168 bytes, macOS ARM 121565484 bytes. Cabeceras MZ, ar y UDIF verificadas. DEB: fr-eyewear-studio-desktop / 1.7.2 / amd64.
+
+El workbench del origen público coincide con la construcción revisada: SHA-256 `5fc463678df5b66242be84c7e2ae27ffad74582ce8197ba189f0ad749756a226`. El entorno restringe el acceso directo a github.io; la publicación se comprueba por Pages aprobado y el origen público de los archivos.
+
+Web: https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.7.2 . Instaladores: https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.7.2 . Este recibo no altera el código ni los paquetes de la etiqueta.
