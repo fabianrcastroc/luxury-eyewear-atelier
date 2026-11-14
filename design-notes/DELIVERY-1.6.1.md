@@ -42,3 +42,15 @@ La prueba final local de Electron también ejercita conversión y división Béz
 La revisión 1.6.0 falló antes de generar el instalador: al actualizar la versión de la aplicación se alteró una dependencia transitiva del lockfile. Se restauró íntegro el árbol de dependencias de 1.5.1 y se cambiaron únicamente las dos versiones raíz. No se cambió el código funcional al crear 1.6.1.
 
 La instalación limpia del lockfile corregido se verificó con `npm ci --prefix desktop-fr --ignore-scripts`: 293 paquetes instalados. Se desactivaron únicamente los scripts de descarga del binario para esta comprobación local; la CI ejecuta la instalación completa y prueba el binario instalado. El suavizado también se comprobó en navegador: desviación 0,045 mm bajo tolerancia 0,15 mm, A54/B41 conservados.
+
+## Recibo de publicación
+
+- Código y enlaces en `main`: `8550128`; etiqueta `fr-desktop-v1.6.1`.
+- Pages aprobado: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43634429951 .
+- Instaladores aprobados en las tres plataformas: https://github.com/fabianrcastroc/luxury-eyewear-atelier/actions/runs/43634193852 . Windows se instaló desde NSIS; Linux se extrajo del DEB; macOS se montó desde DMG y se probó la aplicación copiada, incluida reapertura de ventana. Todos ejercitan Bézier, Worker local, proyecto v7, GLB, STL y PDF sin peticiones HTTP externas.
+- Descargas completas públicas verificadas por SHA-256: Windows `121830918` bytes, Linux `102128124` bytes, macOS ARM `121562788` bytes. Cabeceras MZ, ar y UDIF correctas. DEB: `fr-eyewear-studio-desktop`, versión `1.6.1`, arquitectura `amd64`.
+- El `docs/workbench.js` del origen público coincide con la construcción revisada: SHA-256 `28dc89b11e35b2b78c66e4ec9f968c999713dded5ff55608d5db74e5e2785ac1`. El entorno no permite abrir directamente github.io; la publicación se comprueba mediante Pages aprobado y los archivos del origen público.
+
+Descargas: https://github.com/fabianrcastroc/luxury-eyewear-atelier/releases/tag/fr-desktop-v1.6.1 . Configurador: https://fabianrcastroc.github.io/luxury-eyewear-atelier/disena.html?v=1.6.1 .
+
+La comprobación local posterior a restaurar dependencias recuperó también el ejecutable de Electron del entorno, usando el proxy configurado. Este recibo no modifica el código de la etiqueta ni los artefactos aprobados.
