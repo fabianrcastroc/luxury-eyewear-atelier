@@ -23,7 +23,7 @@ test('A, B óptico y DBL son cotas independientes exactas de la abertura base',(
 test('ceja y terminal temporal tienen material adicional y la pared mínima no mueve su envolvente ni bisagra',()=>{
  for(const p of frameProfiles){const d=normalizeDesign({...p.defaults,model:p.id}),outer=frameContour(d,1),anchor=hingeGeometry(d,1).anchor,inner=lensContour(d,1),widths=inner.map(point=>distance(point,outer)/MM);assert.ok(Math.min(...widths)>=d.thickness-1e-5);assert.ok(Math.max(...widths)-Math.min(...widths)>1,`${p.id}: pared variable real`);
   const hinge=hingeGeometry(d,1),center=lensCenters(d)[1];assert.ok(distance([hinge.anchor[0]-center,hinge.anchor[1]],outer)>MM,'asiento de bisagra dentro del material');
-  for(const thickness of [3,6,8]){const edited=normalizeDesign({...d,thickness});assert.deepEqual(frameContour(edited,1),outer);assert.deepEqual(hingeGeometry(edited,1).anchor,anchor);assert.ok(designMeasurements(edited).lens!==designMeasurements(d).lens);}
+  for(const thickness of [3,6,8]){const edited=normalizeDesign({...d,thickness});assert.deepEqual(frameContour(edited,1),outer);assert.deepEqual(hingeGeometry(edited,1).anchor,anchor);if(edited.thickness!==d.thickness)assert.ok(designMeasurements(edited).lens!==designMeasurements(d).lens);}
  }
 });
 

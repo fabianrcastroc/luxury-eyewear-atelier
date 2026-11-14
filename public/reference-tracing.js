@@ -9,5 +9,5 @@ export function traceLandmarks(raw){
  for(let i=0;i<128;i++){const t=i/128*points.length,k=Math.floor(t),u=t-k,a=points[k%points.length],b=points[(k+1)%points.length],previous=points[(k+points.length-1)%points.length],next=points[(k+2)%points.length],u2=u*u,u3=u2*u;sampled.push([0,1].map(axis=>(2*u3-3*u2+1)*a[axis]+(u3-2*u2+u)*(b[axis]-previous[axis])*.3+(-2*u3+3*u2)*b[axis]+(u3-u2)*(next[axis]-a[axis])*.3));}
  const width=Math.max(...sampled.map(p=>p[0]))-Math.min(...sampled.map(p=>p[0])),height=Math.max(...sampled.map(p=>p[1]))-Math.min(...sampled.map(p=>p[1])),contour=normalizeContour(sampled.map(([x,y])=>[x,-y]));
  if(!contour)throw Error('El trazado se cruza o tiene una proporción fuera de rango. Revisa el orden y la posición de los puntos.');
- return {customContour:contour,aspectRatio:height/width,widthPixels:width,manual:true,traceErrorPixels:null,referenceScale:{widthPixels:width,requiresKnownDimension:true},regularization:'operator-reviewed-cubic'};
+ return {pixelContour:sampled,customContour:contour,aspectRatio:height/width,widthPixels:width,manual:true,traceErrorPixels:null,referenceScale:{widthPixels:width,requiresKnownDimension:true},regularization:'operator-reviewed-cubic'};
 }

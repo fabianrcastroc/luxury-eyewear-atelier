@@ -14,6 +14,7 @@ export async function buildFR(){
  const common={bundle:true,write:false,define:{__CAD_STYLE_VERSION__:JSON.stringify(hash(await readFile(new URL('cad-workspace.css',source))))},format:'esm',target:'es2022',minify:true,legalComments:'eof'};
  const bundle=await build({...common,stdin:{contents:entry,sourcefile:'software-fr/app.js',resolveDir:fileURLToPath(source),loader:'js'}});
  const worker=await build({...common,entryPoints:[fileURLToPath(new URL('reference-extraction.js',source))]});
+ const solidWorker=await build({...common,entryPoints:[fileURLToPath(new URL('solid-worker.js',source))]});
  const code=bundle.outputFiles[0].text,workerCode=worker.outputFiles[0].text;
  const style=await readFile(new URL('style.css',source)),standalone=await readFile(new URL('standalone.css',templates));
  const html=(await readFile(new URL('index.html',templates),'utf8'))
@@ -26,6 +27,7 @@ export async function buildFR(){
   await writeFile(new URL('index.html',out),html);
   await writeFile(new URL('app.js',out),code);
   await writeFile(new URL('reference-extraction.js',out),workerCode);
+  await writeFile(new URL('solid-worker.js',out),solidWorker.outputFiles[0].text);
   await writeFile(new URL('style.css',out),style);
   await cp(new URL('cad-workspace.css',source),new URL('cad-workspace.css',out));
   await cp(new URL('THIRD_PARTY_NOTICES.txt',source),new URL('THIRD_PARTY_NOTICES.txt',out));
@@ -35,7 +37,7 @@ export async function buildFR(){
   await cp(new URL('assets/forms/',source),new URL('assets/forms/',out),{recursive:true});
   await cp(new URL('retire-worker.js',templates),new URL('sw.js',out));
   // Fail the Pages build rather than deploy a missing entry or broken worker.
-  for(const path of ['index.html','app.js','reference-extraction.js','style.css','cad-workspace.css','standalone.css','assets/favicon.svg','assets/forms/recto.webp','assets/forms/redondo.webp','assets/forms/ovalado.webp','assets/forms/curvo.webp'])await access(new URL(path,out));
+  for(const path of ['index.html','app.js','solid-worker.js','reference-extraction.js','style.css','cad-workspace.css','standalone.css','assets/favicon.svg','assets/forms/recto.webp','assets/forms/redondo.webp','assets/forms/ovalado.webp','assets/forms/curvo.webp'])await access(new URL(path,out));
   if(!html.includes('FR eyewear studio')||!html.includes('id="disena"')||!code.length||!workerCode.includes('onmessage'))throw new Error(`FR output incomplete in ${directory}`);
  }
  const publicEntry=new URL('docs/fr/',root);await mkdir(publicEntry,{recursive:true});await cp(new URL('retire-worker.js',templates),new URL('sw.js',publicEntry));await writeFile(new URL('index.html',publicEntry),'<!doctype html><html lang="es"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=../disena.html"><title>Miscante · Diseño personalizado</title><p><a href="../disena.html">Abrir el configurador de Miscante</a></p></html>');

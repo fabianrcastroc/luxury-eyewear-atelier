@@ -1,3 +1,4 @@
+import {sampleBezier} from './bezier-profile.js';
 import {minimumProfileWall,isConvexProfile,sampleSpline} from './profile-spline.js';
 import {unionPolygons,offsetRegion} from './planar-kernel.js';
 import {MM,frameContour,lensContour,lensCenters,bridgeGeometry,designMeasurements,hingeGeometry,nasalPads} from './frame-geometry.js';
@@ -17,7 +18,8 @@ const linePath=points=>`M${points.map(p=>`${f(p[0])},${f(p[1])}`).join('L')}`;
 const text=(x,y,value,extra='')=>`<text x="${f(x)}" y="${f(y)}" ${extra}>${value}</text>`;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function projectParts(d){
+const partsCache=new Map();
+function projectParts(d){const key=JSON.stringify(d);if(partsCache.has(key))return partsCache.get(key);
  const centers=lensCenters(d),polygons=[],apertures=[],pads=[];
  for(const side of [-1,1]){
   const center=centers[side===-1?0:1];
@@ -27,7 +29,7 @@ function projectParts(d){
   const pad=nasalPads(d,side);pads.push({side,depth:pad.depth/MM,outline:pad.outline.map(([x,y])=>[x/MM,y/MM])});
  }
  polygons.push(...bridgeGeometry(d).bands.map(b=>b.outline.map(([x,y])=>[x/MM,y/MM])));
- return {polygons,apertures,pads,centers};
+ const result={polygons,apertures,pads,centers};if(partsCache.size>=64)partsCache.delete(partsCache.keys().next().value);partsCache.set(key,result);return result;
 }
 function frontLayout(parts,paper,includeLensTemplates=false){
  const frontBounds=bounds(parts.polygons.flat()),frontWidth=frontBounds.maxX-frontBounds.minX,frontHeight=frontBounds.maxY-frontBounds.minY;
@@ -76,14 +78,14 @@ function intersects(a,b,c,d){
 }
 function boundariesCross(a,b){
  const x=bounds(a),y=bounds(b);if(x.maxX<y.minX||y.maxX<x.minX||x.maxY<y.minY||y.maxY<x.minY)return false;
- return a.some((p,i)=>b.some((q,j)=>intersects(p,a[(i+1)%a.length],q,b[(j+1)%b.length])));
+ const segments=b.map((q,j)=>({q,r:b[(j+1)%b.length],minX:Math.min(q[0],b[(j+1)%b.length][0]),maxX:Math.max(q[0],b[(j+1)%b.length][0]),minY:Math.min(q[1],b[(j+1)%b.length][1]),maxY:Math.max(q[1],b[(j+1)%b.length][1])}));return a.some((p,i)=>{const r=a[(i+1)%a.length],x0=Math.min(p[0],r[0])-EPS,x1=Math.max(p[0],r[0])+EPS,y0=Math.min(p[1],r[1])-EPS,y1=Math.max(p[1],r[1])+EPS;return segments.some(s=>s.maxX>=x0&&s.minX<=x1&&s.maxY>=y0&&s.minY<=y1&&intersects(p,r,s.q,s.r));});
 }
 
 // Shared by the 3D solid and the printable cutting plan. Coordinates are mm
 // in the model's frontal XY plane, before any paper placement or rotation.
 const frontGeometryCache=new Map();
 export function frontCutGeometry(raw={}){
- const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.outerSpline,d.opticalSpline,d.opticalOutline,d.curveMinWall,d.curveAllowConcave,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
+ const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.outerOutline,d.outerBezier,d.opticalBezier,d.outerSpline,d.opticalSpline,d.opticalOutline,d.curveMinWall,d.curveAllowConcave,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
  const parts=projectParts(d);let loops=unionPolygons(parts.polygons);
  if(d.bridgeBlend>0){loops=offsetRegion(offsetRegion(loops,d.bridgeBlend),-d.bridgeBlend).filter(loop=>Math.abs(signedArea(loop))>=1e-5);}
  const outerLoops=loops.filter(loop=>signedArea(loop)>0),bridgeVoids=loops.filter(loop=>signedArea(loop)<0);
@@ -93,8 +95,9 @@ export function frontCutGeometry(raw={}){
  const exterior=outerLoops[0],holes=[...parts.apertures,...bridgeVoids];
  if(holes.some(h=>h.some(p=>!pointInside(p,exterior))||boundariesCross(h,exterior)))throw new Error('La edición deja un vaciado fuera del frontal. Corrige el puente o la pared.');
  for(let i=0;i<holes.length;i++)for(let j=i+1;j<holes.length;j++)if(boundariesCross(holes[i],holes[j])||pointInside(holes[i][0],holes[j])||pointInside(holes[j][0],holes[i]))throw new Error('La edición superpone los vaciados del cristal o del puente. Reduce sus parámetros.');
+ if(!d.curveAllowConcave)for(const p of [d.outerBezier,d.opticalBezier].filter(Boolean))if(!isConvexProfile(sampleBezier(p)))throw Error('La curva crea una concavidad no habilitada.');
  if(!d.curveAllowConcave)for(const p of [d.outerSpline,d.opticalSpline].filter(Boolean))if(!isConvexProfile(sampleSpline(p)))throw Error('La curva crea una concavidad no habilitada. Ajusta los controles o permite concavidades intencionales.');
- if(d.outerSpline||d.opticalSpline){const center=parts.centers[1]/MM,wall=minimumProfileWall(parts.apertures[1].map(([x,y])=>[x-center,y]),frameContour(d,1).map(p=>p.map(v=>v/MM)));if(wall<d.curveMinWall-.001)throw new Error(`La pared real queda en ${wall.toFixed(2)} mm; el mínimo configurado es ${d.curveMinWall} mm.`);}
+ if(d.outerOutline||d.outerBezier||d.opticalBezier||d.outerSpline||d.opticalSpline){const center=parts.centers[1]/MM,wall=minimumProfileWall(parts.apertures[1].map(([x,y])=>[x-center,y]),frameContour(d,1).map(p=>p.map(v=>v/MM)));if(wall<d.curveMinWall-.001)throw new Error(`La pared real queda en ${wall.toFixed(2)} mm; el mínimo configurado es ${d.curveMinWall} mm.`);}
  const result={outerLoops,holes:[...parts.apertures,...bridgeVoids],apertures:parts.apertures,bridgeVoids,frontBounds:bounds(loops.flat()),unit:'mm'};if(frontGeometryCache.size>=48)frontGeometryCache.delete(frontGeometryCache.keys().next().value);frontGeometryCache.set(cacheKey,result);return result;
 }
 export const frontSolidPolygons=frontCutGeometry;

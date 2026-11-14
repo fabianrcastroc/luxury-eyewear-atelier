@@ -16,7 +16,7 @@ const STYLE={
 
 /** A common developed axis, with an editable ear section. `tipSize` is the
  * actual distal terminal length in mm, never an oversized knob's width. */
-export function templeSections(d,side,style=d.armStyle||'clasico'){
+function templeSectionsUncached(d,side,style=d.armStyle||'clasico'){
  const plan=templePlan(d,side,style),spec=STYLE[style]||STYLE.clasico,frame=frameContour(d,side);
  const top=Math.max(...frame.map(p=>p[1])),bottom=Math.min(...frame.map(p=>p[1]));
  const stock=bounded(d.materialDepth,2,12,6),depth=stock*MM/2,terminalThickness=Math.min(stock,bounded(d.terminalThickness,1.5,8,2.8));
@@ -73,3 +73,5 @@ export function flatTemple(d,side,style=d.armStyle||'clasico'){
  const bend=points[sections.stem.length-1];
  return {outline:[...upper,...lower.reverse()],centerline:points.map(p=>[p.x,p.y]),developedLength:sections.developedLength,nominalLength:sections.plan.nominalLength,hinge:[0,0],bendStart:[bend.x,bend.y],bendStartLength:sections.bendStartLength,tipShape:sections.tipShape,tipSize:sections.tipSize,tipLengthMM:sections.tipLengthMM,tipWidthMM:sections.tipWidthMM,terminalThicknessMM:sections.terminalThicknessMM,machining:sections.machining,earLengthMM:sections.earLengthMM,minimumBendRadiusMM:sections.minimumBendRadiusMM,bendMetric:sections.bendMetric};
 }
+
+const templeSectionsCache=new Map();export function templeSections(d,side,style=d.armStyle||'clasico'){const key=JSON.stringify([d,side,style]);if(templeSectionsCache.has(key))return templeSectionsCache.get(key);const result=templeSectionsUncached(d,side,style);if(templeSectionsCache.size>=96)templeSectionsCache.delete(templeSectionsCache.keys().next().value);templeSectionsCache.set(key,result);return result;}

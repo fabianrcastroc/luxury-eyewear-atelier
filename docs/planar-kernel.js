@@ -49,7 +49,7 @@ export function offsetRegion(paths,distance,{arcTolerance=.01}={}){
  const solution=new ClipperLib.Paths();kernel.Execute(solution,distance*SCALE);
  return solution.map(coordinates).filter(p=>p.length>=3&&Math.abs(area(p))>1e-12);
 }
-export function isSimpleContour(points){
+function isSimpleContourUncached(points){
  try{
   const path=integerPath(points),simplified=ClipperLib.Clipper.SimplifyPolygon(path,ClipperLib.PolyFillType.pftNonZero);
   if(simplified.length!==1)return false;
@@ -58,3 +58,5 @@ export function isSimpleContour(points){
  }catch{return false;}
 }
 export {area as polygonArea};
+
+const simpleCache=new Map();export function isSimpleContour(points){const key=JSON.stringify(points);if(simpleCache.has(key))return simpleCache.get(key);const result=isSimpleContourUncached(points);if(simpleCache.size>=192)simpleCache.delete(simpleCache.keys().next().value);simpleCache.set(key,result);return result;}

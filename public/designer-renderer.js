@@ -1,3 +1,4 @@
+import {createSolidClient} from './solid-client.js';
 import {constructionEdges} from './construction-edges.js';
 import {formGeometry,formingParameters} from './front-forming.js';
 import * as THREE from 'three';
@@ -54,7 +55,9 @@ export function createDesignRenderer(container){
  }
  function material(hex,metal=false){const map=metal?null:acetateTexture(hex);return new THREE.MeshPhysicalMaterial({color:map?'#ffffff':hex,map,roughness:metal?.26:.27,metalness:metal?.8:0,clearcoat:.55,clearcoatRoughness:.22,transmission:0,transparent:false,opacity:1,side:THREE.DoubleSide,thickness:.35,envMapIntensity:.7});}
 
- function addMesh(geometry,mat,parent=group){const mesh=new THREE.Mesh(geometry,mat.clone());const edge=new THREE.LineSegments(constructionEdges(geometry),new THREE.LineBasicMaterial({color:(mat.color.r+mat.color.g+mat.color.b)>1.5?0x17222c:0xc1cdd5,transparent:true,opacity:.7}));edge.userData.featureEdges=true;edge.visible=display.wireframe;mesh.add(edge);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+ function addEdges(mesh){if(mesh.children.some(c=>c.userData.featureEdges))return;const mat=Array.isArray(mesh.material)?mesh.material[0]:mesh.material,edge=new THREE.LineSegments(constructionEdges(mesh.geometry),new THREE.LineBasicMaterial({color:(mat.color.r+mat.color.g+mat.color.b)>1.5?0x17222c:0xc1cdd5,transparent:true,opacity:.7}));edge.userData.featureEdges=true;mesh.add(edge);}
+ function addMesh(geometry,mat,parent=group){const mesh=new THREE.Mesh(geometry,mat.clone());if(display.wireframe)addEdges(mesh);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+
  function contours(d,side,scale=1){return frameContour(d,side,scale).map(p=>new THREE.Vector2(...p));}
  function arm(d,side,style,mat){
   const sections=templeSections(d,side,style),geometry=finishedTemple(sections.rows),mesh=addMesh(geometry,mat);
@@ -62,18 +65,22 @@ export function createDesignRenderer(container){
   const hinge=hingeGeometry(d,side);
   const hardware=addMesh(finishedHinge(hinge.hardware.size),material('#9b927d',true));hardware.position.set(...hinge.hardware.center);hardware.name=`hinge-${side}`;hardware.userData={part:'hinge',materialClass:'hardware-placeholder',manufacturingValidated:false,construction:'three-knuckle-two-leaf-hinge',illustrativeEnvelopeMM:hinge.hardware.size.map(v=>v/MM)};
  }
- function update(raw){
-  const d=normalizeDesign(raw),stockDepth=d.materialDepth*MM;container.dataset.renderModel=d.model;const cut=frontCutGeometry(d);for(const side of [-1,1])templeSections(d,side);container.dataset.config=JSON.stringify(d);scene.remove(group);dispose(group);group=new THREE.Group();scene.add(group);
+ function simpleSolid(outer,holes,depth){const shape=new THREE.Shape(outer.map(p=>new THREE.Vector2(...p)));for(const h of holes)shape.holes.push(new THREE.Path(h.map(p=>new THREE.Vector2(...p))));return new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false,steps:1,curveSegments:1});}
+ function preview(d,cut,stockDepth,lensDepth){if(!group.children.length)return;const centers=lensCenters(d);for(const mesh of group.children){let geometry;if(mesh.name==='finished-front')geometry=simpleSolid(cut.outerLoops[0].map(p=>p.map(v=>v*MM)),cut.holes.map(h=>h.map(p=>p.map(v=>v*MM))),stockDepth);else if(mesh.name.startsWith('lens-')){const side=Number(mesh.name.slice(5));geometry=simpleSolid(lensContour(d,side),[],lensDepth);mesh.position.set(centers[side===-1?0:1],0,(stockDepth-lensDepth)*.5);}if(geometry){if(d.frontWrap){const position=mesh.position.toArray();formGeometry(geometry,d,mesh.name,position,MM,formingParameters(d));mesh.position.set(0,0,0);}mesh.geometry.dispose();mesh.geometry=geometry;for(const c of mesh.children.filter(c=>c.userData.featureEdges)){c.geometry.dispose();c.material.dispose();mesh.remove(c);}}}container.dataset.previewConfig=JSON.stringify(d);render();}
+ const solidClient=createSolidClient();let updateGeneration=0,latestUpdate=Promise.resolve();
+ function update(raw){const version=++updateGeneration;latestUpdate=rebuild(raw,version);return latestUpdate;}
+ async function rebuild(raw,version){
+  const d=normalizeDesign(raw),stockDepth=d.materialDepth*MM;container.dataset.renderModel=d.model;const cut=frontCutGeometry(d);for(const side of [-1,1])templeSections(d,side);const args=[cut.outerLoops[0].map(p=>p.map(v=>v*MM)),cut.holes.map(h=>h.map(p=>p.map(v=>v*MM))),stockDepth,Math.min(.8,d.thickness*.22)*MM];const lensDepth=Math.min(1.2,d.materialDepth*.45)*MM,lensArgs=[-1,1].map(side=>[lensContour(d,side),[],lensDepth,Math.min(.12*MM,lensDepth*.18)]);container.dataset.building='true';preview(d,cut,stockDepth,lensDepth);const geometries=await solidClient.build([args,...lensArgs]);if(!geometries)return;if(version!==updateGeneration){geometries.forEach(g=>g.dispose());return;}const frontGeometry=geometries[0];container.dataset.config=JSON.stringify(d);scene.remove(group);dispose(group);group=new THREE.Group();scene.add(group);
   const rim=material(frameColors.find(c=>c.id===d.rimColor).hex),bridge=material(frameColors.find(c=>c.id===d.bridgeColor).hex),arms=material(frameColors.find(c=>c.id===d.armColor).hex),centers=lensCenters(d);
-  const frontGeometry=finishedExtrusion(cut.outerLoops[0].map(p=>p.map(v=>v*MM)),cut.holes.map(h=>h.map(p=>p.map(v=>v*MM))),stockDepth,Math.min(.8,d.thickness*.22)*MM);
+
   const front=addMesh(frontGeometry,rim);front.name='finished-front';front.userData={part:'front',materialClass:'acetate-stock',stockThicknessMM:d.materialDepth,thicknessAxis:'z',finishedEdges:true,connectedFront:true};
   front.material.userData.part='rims';frontGeometry.clearGroups();frontGeometry.addGroup(0,frontGeometry.index.count,0);
   for(const side of [-1,1]){
    const inner=lensContour(d,side),center=centers[side===-1?0:1];
    const tinted=d.use==='sol'||d.sunOptical||d.photo,color=d.photo?photoColors.find(c=>c.id===d.photoColor).hex:lensColors.find(c=>c.id===d.lensColor).hex;
    const lensMat=new THREE.MeshPhysicalMaterial({color:tinted?new THREE.Color(color).multiplyScalar(.78):'#d5e0df',transparent:true,opacity:tinted?.82:.14,roughness:.11,metalness:0,clearcoat:1,clearcoatRoughness:.08,ior:1.5,side:THREE.DoubleSide,depthWrite:false});
-   const lensDepth=Math.min(1.2,d.materialDepth*.45)*MM;
-   const lens=addMesh(finishedLens(inner,lensDepth),lensMat);lens.position.set(center,0,(stockDepth-lensDepth)*.5);lens.name=`lens-${side}`;lens.userData={part:'lens',materialClass:'lens-preview',closedLensBlank:true,illustrativeThicknessMM:lensDepth/MM,opticalPrescription:false,manufacturingValidated:false};
+
+   const lens=addMesh(geometries[side===-1?1:2],lensMat);lens.position.set(center,0,(stockDepth-lensDepth)*.5);lens.name=`lens-${side}`;lens.userData={part:'lens',materialClass:'lens-preview',closedLensBlank:true,illustrativeThicknessMM:lensDepth/MM,opticalPrescription:false,manufacturingValidated:false};
    const hinge=hingeGeometry(d,side),pin=addMesh(finishedRivetPair(),material('#a4a08b',true));pin.position.set(hinge.anchor[0],hinge.anchor[1],stockDepth);pin.name=`pin-${side}`;pin.userData={part:'pin',materialClass:'hardware-placeholder',construction:'paired-flush-rivets',manufacturingValidated:false};
   }
   for(const side of [-1,1]){
@@ -81,7 +88,7 @@ export function createDesignRenderer(container){
    const mesh=addMesh(finishedNasalLaminate(pad.outline,pad.depth),rim);mesh.position.z=-pad.depth;mesh.name=`nasal-pad-${side}`;mesh.userData={part:'nasal-pad',materialClass:'added-laminate',addedThicknessMM:pad.depth/MM,includedInMainStock:false,manufacturingValidated:false,polishedContinuity:true,finish:'tapered-added-laminate',bondFaceZMM:0};
   }
   container.dataset.nasalPads='2';container.dataset.padConstruction='polished-laminated-crescent';container.dataset.measurements=JSON.stringify(designMeasurements(d));
-  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);if(d.frontWrap){const forming=formingParameters(d);for(const mesh of group.children){if(!mesh.isMesh)continue;const position=mesh.position.toArray();formGeometry(mesh.geometry,d,mesh.name,position,MM,forming);for(const child of mesh.children)if(child.userData.featureEdges)formGeometry(child.geometry,d,mesh.name,position,MM,forming);mesh.position.set(0,0,0);}}rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}render();
+  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);if(d.frontWrap){const forming=formingParameters(d);for(const mesh of group.children){if(!mesh.isMesh)continue;const position=mesh.position.toArray();formGeometry(mesh.geometry,d,mesh.name,position,MM,forming);for(const child of mesh.children)if(child.userData.featureEdges)formGeometry(child.geometry,d,mesh.name,position,MM,forming);mesh.position.set(0,0,0);}}rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}container.dataset.building='false';render();
  }
  function fit(){
   const target=controls.target,vector=camera.position.clone().sub(target).normalize(),aspect=Math.max(.15,camera.aspect||1);
@@ -122,7 +129,7 @@ export function createDesignRenderer(container){
   camera.updateProjectionMatrix();controls.update();render();
  }
  function partKey(object){const part=object.userData.part;return part==='front'?'rims':part==='rim'?'rims':part==='lens'?'lenses':part==='temple'?'temples':part==='nasal-pad'?'pads':part==='hinge'||part==='pin'?'hinges':part==='bridge'?'bridge':null;}
- function applyDisplay(){group.traverse(object=>{if(object.userData.featureEdges){object.visible=display.wireframe;return;}if(!object.material)return;const key=partKey(object);if(key)object.visible=object.userData.part==='front'?(partVisibility.rims||partVisibility.bridge):partVisibility[key];for(const material of (Array.isArray(object.material)?object.material:[object.material])){const semantic=material.userData.part||key;material.visible=semantic?partVisibility[semantic]:true;if('wireframe' in material)material.wireframe=false;if(material.emissive){material.emissive.setHex((selectedPart===semantic||(object.userData.part==='front'&&selectedPart==='bridge'))?0x28556a:0);material.emissiveIntensity=selectedPart===semantic?.25:1;}}});grid.visible=display.grid;axes.visible=display.axes;}
+ function applyDisplay(){if(display.wireframe)for(const mesh of group.children)if(mesh.isMesh)addEdges(mesh);group.traverse(object=>{if(object.userData.featureEdges){object.visible=display.wireframe;return;}if(!object.material)return;const key=partKey(object);if(key)object.visible=object.userData.part==='front'?(partVisibility.rims||partVisibility.bridge):partVisibility[key];for(const material of (Array.isArray(object.material)?object.material:[object.material])){const semantic=material.userData.part||key;material.visible=semantic?partVisibility[semantic]:true;if('wireframe' in material)material.wireframe=false;if(material.emissive){material.emissive.setHex((selectedPart===semantic||(object.userData.part==='front'&&selectedPart==='bridge'))?0x28556a:0);material.emissiveIntensity=selectedPart===semantic?.25:1;}}});grid.visible=display.grid;axes.visible=display.axes;}
  function setPartVisibility(part,value){if(part in partVisibility){partVisibility[part]=Boolean(value);if(part==='rims'||part==='bridge')partVisibility.rims=partVisibility.bridge=Boolean(value);applyDisplay();render();}}
  function selectPart(part){selectedPart=part in partVisibility?part:null;applyDisplay();render();}
  function setDisplay(settings={}){for(const key of ['wireframe','grid','axes'])if(typeof settings[key]==='boolean')display[key]=settings[key];applyDisplay();render();}
@@ -145,6 +152,7 @@ export function createDesignRenderer(container){
  }
  function showReference(value){if(reference)reference.visible=value;group.visible=!reference?.visible;render();}
  async function exportGLB(){
+  let completion;do{completion=latestUpdate;await completion;}while(completion!==latestUpdate);
   if(!group.children.length)throw new Error('Primero crea una montura para exportar.');
   const snapshot=group.clone(true),helpers=[];snapshot.traverse(o=>{if(o.userData.featureEdges)helpers.push(o);if(o.isMesh){o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();for(const m of Array.isArray(o.material)?o.material:[o.material]){m.emissive?.setHex(0);m.emissiveIntensity=1;m.visible=true;}}});helpers.forEach(o=>o.removeFromParent());
   // glTF declares metres; each scene unit is 1 / MM millimetres.
@@ -153,6 +161,6 @@ export function createDesignRenderer(container){
   snapshot.userData={...snapshot.userData,units:'metres',design:JSON.parse(container.dataset.config||'{}'),purpose:'Parametric design preview; validate manufacturing fit separately'};
   try{return await new GLTFExporter().parseAsync(snapshot,{binary:true,onlyVisible:false});}finally{snapshot.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();});}
  }
- function destroy(){observer.disconnect();controls.dispose();dispose(group);if(reference)dispose(reference);dispose(grid);dispose(axes);env.dispose();floor.geometry.dispose();floor.material.dispose();for(const texture of materialTextures.values())texture.dispose();renderer.dispose();}
+ function destroy(){solidClient.destroy();observer.disconnect();controls.dispose();dispose(group);if(reference)dispose(reference);dispose(grid);dispose(axes);env.dispose();floor.geometry.dispose();floor.material.dispose();for(const texture of materialTextures.values())texture.dispose();renderer.dispose();}
  return {update,setView,setProjection,setDisplay,setPartVisibility,selectPart,setSelection:selectPart,zoom,fitView,exportGLB,loadReference,showReference,destroy,canvas:renderer.domElement,getCameraState:()=>camera.position.toArray(),getStats:()=>({meshes:group.children.length,model:container.dataset.renderModel,projection:camera.isOrthographicCamera?'orthographic':'perspective',selectedPart,renderCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,partVisibility:{...partVisibility},...display})};
 }

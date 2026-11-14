@@ -60,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          gh release create $tag .desktop-build/installers/FR-eyewear-studio-*-win-x64.exe .desktop-build/installers/SHA256SUMS.txt --title "FR eyewear studio $($tag.Replace('fr-desktop-v','')) — Desktop offline" --notes-file design-notes/RELEASE-1.5.1.md
+          gh release create $tag .desktop-build/installers/FR-eyewear-studio-*-win-x64.exe .desktop-build/installers/SHA256SUMS.txt --title "FR eyewear studio $($tag.Replace('fr-desktop-v','')) — Desktop offline" --notes-file design-notes/RELEASE-1.6.0.md
   linux:
     needs: windows
     runs-on: ubuntu-latest

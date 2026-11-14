@@ -1,3 +1,4 @@
+import {sampleBezier} from './bezier-profile.js';
 import {sampleSpline} from './profile-spline.js';
 import {getLensShape} from './lens-library.js';
 import {getFrameProfile,normalizedProfile} from './frame-profiles.js';
@@ -14,7 +15,7 @@ const finite=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(m
 const modelOf=d=>({rectangular:'recto',aviador:'ovalado',clubmaster:'curvo'}[d.model]||d.model);
 // Imported apertures use the same constrained, millimetre-based geometry.
 // Invalid/self-intersecting/concave contours cannot enter the offset pipeline.
-export function normalizeContour(raw){
+function normalizeContourUncached(raw){
  if(!Array.isArray(raw)||raw.length<32||raw.length>256)return null;
  if(raw.some(p=>!Array.isArray(p)||p.length!==2||p.some(v=>typeof v!=='number'||!Number.isFinite(v))))return null;
  const xs=raw.map(p=>p[0]),ys=raw.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),width=maxX-minX,aspect=(maxY-minY)/width;
@@ -50,15 +51,16 @@ export function offsetContour(input,distance){
  return result;
 }
 function baselineLens(d,side){
- if(d.opticalSpline||d.opticalOutline){const p=(d.opticalSpline?sampleSpline(d.opticalSpline):d.opticalOutline).map(p=>p.map(v=>v*MM));return side===-1?p.map(([x,y])=>[-x,y]).reverse():p;}
+ if(d.opticalBezier||d.opticalSpline||d.opticalOutline){const p=(d.opticalBezier?sampleBezier(d.opticalBezier):d.opticalSpline?sampleSpline(d.opticalSpline):d.opticalOutline).map(p=>p.map(v=>v*MM));return side===-1?p.map(([x,y])=>[-x,y]).reverse():p;}
  const points=profile(d,side),half=(getLensShape(d.opticalShape)?finite(d.opticalWidth,35,65,52):sizeOf(d).lens)/2*MM,aspect=finite(d.contourAspectScale,.85,1.15,1),ys=points.map(p=>p[1]),height=Math.max(...ys)-Math.min(...ys);
  const yScale=getLensShape(d.opticalShape)?finite(d.opticalHeight,20,60,40)*MM/height:d.lensHeight==null?half*aspect:finite(d.lensHeight,25,60,40)*MM/height*aspect;
  return points.map(([x,y])=>[x*half,y*yScale]);
 }
 const structuralCache=new Map();
 function structuralEnvelope(d,side,wall=finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)){
- const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding,d.rimJoin,d.hingeLevel,d.hingeMode,d.armWidth,d.frameShapeMode,d.opticalSpline,d.opticalOutline,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
- const seed=baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalSpline:null,opticalOutline:null},side),base=(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))||d.rimJoin==='round'?offsetSingleContour(seed,wall*MM,{join:'round',arcTolerance:.00001}):offsetContour(seed,wall*MM),spec=getFrameProfile(modelOf(d));
+ const cacheKey=JSON.stringify([side,wall,modelOf(d),d.customContour,d.frameSize,d.lensWidth,d.lensHeight,d.contourAspectScale,d.rounding,d.rimJoin,d.hingeLevel,d.hingeMode,d.armWidth,d.frameShapeMode,d.opticalBezier,d.opticalSpline,d.opticalOutline,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight]);if(structuralCache.has(cacheKey))return structuralCache.get(cacheKey);
+ const template=getFrameProfile(modelOf(d));if(template.outerReference&&!d.customContour&&!d.opticalShape&&d.frameShapeMode!=='follow'){const sx=sizeOf(d).lens/template.outerReferenceWidth,sy=(d.lensHeight||sizeOf(d).lens*template.aspect)/template.outerReferenceHeight;let reference=template.outerReference.map(([x,y])=>[side*x*sx*MM,y*sy*MM]);if(side<0)reference.reverse();const min=Math.min(...reference.map(p=>p[0]*side)),limit=-(sizeOf(d).lens+sizeOf(d).bridge)/2*MM+2*MM;if(min<limit){const ratio=limit/min;reference=reference.map(([x,y])=>[x*side<0?x*ratio:x,y]);}let result=offsetContour(reference,(wall-(template.constructionWall||4))*MM);const near=Math.min(...result.map(p=>p[0]*side));if(near<limit){const ratio=limit/near;result=result.map(([x,y])=>[x*side<0?x*ratio:x,y]);}result=hull([...result,...offsetContour(baselineLens(d,side),wall*MM)]);if(structuralCache.size>=100)structuralCache.delete(structuralCache.keys().next().value);structuralCache.set(cacheKey,result);return result;}
+ const seed=baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalBezier:null,opticalSpline:null,opticalOutline:null},side),base=(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))||d.rimJoin==='round'?offsetSingleContour(seed,wall*MM,{join:'round',arcTolerance:.00001}):offsetContour(seed,wall*MM),spec=getFrameProfile(modelOf(d));
  const h=Math.max(...base.map(p=>Math.abs(p[1]))),w=Math.max(...base.map(p=>Math.abs(p[0])));
  const miterExcess=(w-sizeOf(d).lens/2*MM)/MM-wall,endpiece=spec.referenceFrontWidth?spec.endpiece-miterExcess:spec.endpiece;
  const smooth=(value,a,b)=>{const t=Math.max(0,Math.min(1,(value-a)/(b-a)));return t*t*(3-2*t);};
@@ -94,6 +96,8 @@ function deform(d,side,points,reference){
  });
 }
 function detailedOuter(d,side){
+ if(d.outerOutline){const p=d.outerOutline.map(p=>p.map(v=>v*MM));return side===-1?p.map(([x,y])=>[-x,y]).reverse():p;}
+ if(d.outerBezier){let p=sampleBezier(d.outerBezier).map(p=>p.map(v=>v*MM));if(side===-1)p=p.map(([x,y])=>[-x,y]).reverse();return p;}
  if(d.outerSpline){let p=sampleSpline(d.outerSpline).map(p=>p.map(v=>v*MM));if(side===-1)p=p.map(([x,y])=>[-x,y]).reverse();return p;}
  if(d.wallMode==='outward'){
   const baseline=structuralEnvelope(d,side,finite(d.envelopeWall,3,8,4)),outer=deform(d,side,baseline,baseline);
@@ -101,11 +105,11 @@ function detailedOuter(d,side){
  }
  const outer=structuralEnvelope(d,side);return deform(d,side,outer,outer);
 }
-export function frameContour(d,side,scale=1){const points=d.outerSpline?detailedOuter(d,side):hull(detailedOuter(d,side));if(!isSimpleContour(points))throw new RangeError('La modificación cruza el contorno exterior. Reduce la edición local.');return points.map(([x,y])=>[x*scale,y*scale]);}
-export function lensContour(d,side){
- if(d.opticalSpline||d.opticalOutline)return baselineLens(d,side);
+function frameContourUncached(d,side,scale=1){const points=(d.outerOutline||d.outerBezier||d.outerSpline)?detailedOuter(d,side):hull(detailedOuter(d,side));if(!isSimpleContour(points))throw new RangeError('La modificación cruza el contorno exterior. Reduce la edición local.');return points.map(([x,y])=>[x*scale,y*scale]);}
+function lensContourUncached(d,side){
+ if(d.opticalBezier||d.opticalSpline||d.opticalOutline)return baselineLens(d,side);
  if(d.wallMode==='outward')return lensContour({...d,wallMode:'inward',thickness:finite(d.envelopeWall,3,8,4)},side);
- if(d.outerSpline)return baselineLens(d,side);
+ if(d.outerOutline||d.outerBezier||d.outerSpline)return baselineLens(d,side);
  const wall=finite(d.thickness,3,8,4),baseWall=d.wallMode==='outward'?wall:finite(d.envelopeWall,3,8,4),outer=structuralEnvelope(d,side),finishedOuter=deform(d,side,outer,outer);
  const nominal=offsetContour(baselineLens(d,side),(baseWall-wall)*MM),desired=deform(d,side,nominal,outer);
  if(d.frameShapeMode==='follow'&&getLensShape(d.opticalShape))return desired;
@@ -118,9 +122,9 @@ export function lensContour(d,side){
  return clipped[0];
 }
 export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge)/2*MM;return [-center,center];}
-export function hingeGeometry(d,side){
+function hingeGeometryUncached(d,side){
  const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1],stock=finite(d.materialDepth,2,8,6)*MM,mode=d.hingeMode==='box'?'box':'hidden';
- const reference=offsetContour(baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalSpline:null,opticalOutline:null},side),finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)*MM),height=Math.max(...reference.map(p=>Math.abs(p[1]))),station=height*(2*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72)-1),y=deform(d,side,[[side*Math.max(...reference.map(p=>Math.abs(p[0]))),station]],reference)[0][1];
+ const reference=offsetContour(baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalBezier:null,opticalSpline:null,opticalOutline:null},side),finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)*MM),height=Math.max(...reference.map(p=>Math.abs(p[1]))),station=height*(2*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72)-1),y=deform(d,side,[[side*Math.max(...reference.map(p=>Math.abs(p[0]))),station]],reference)[0][1];
  // Locate the true temporal envelope at hinge height, not its unrelated maxX.
  const crossings=[];
  for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}
@@ -145,7 +149,7 @@ function nasalX(d,y){
  for(let i=0;i<contour.length;i++){const a=contour[i],b=contour[(i+1)%contour.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crossings.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}
  return lensCenters(d)[1]+(crossings.length?Math.min(...crossings):-Math.max(...contour.map(p=>Math.abs(p[0]))))+1.4*MM;
 }
-export function bridgeGeometry(d){
+function bridgeGeometryUncached(d){
  const outer=frameContour(d,1),top=Math.max(...outer.map(p=>p[1])),kind=['clasico','doble','herradura'].includes(d.bridgeType)?d.bridgeType:'clasico';
  const samples=64,mm=n=>n*MM,gaugeMM=finite(d.bridgeGauge,2,6,4),riseMM=finite(d.bridgeRise,0,4,2.5),offset=mm(finite(d.bridgeOffset,-2,2,0));
  function band(y,rise,gauge){
@@ -203,7 +207,7 @@ export function templeSection(d,centerY,height){
  const h=Math.min(height,top-bottom),center=Math.max(bottom+h/2,Math.min(top-h/2,centerY));
  return {bottom:center-h/2,top:center+h/2,center,height:h};
 }
-export function nasalPads(d,side){
+function nasalPadsUncached(d,side){
  const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1],back=[],nose=[],height=12*MM,cy=-6*MM;
  function nasalBoundary(y){const crosses=[];for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];if((a[1]<=y&&b[1]>=y)||(b[1]<=y&&a[1]>=y)){if(Math.abs(b[1]-a[1])>1e-10)crosses.push(a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]));}}return center+(side===1?Math.min(...crosses):Math.max(...crosses));}
  // A bonded half-moon follows the rear nasal wall. Its front boundary overlaps
@@ -221,3 +225,15 @@ export function recommendFrameSize(faceWidth,d){
  const closest=choices.sort((a,b)=>Math.abs(a.measurements.front-width)-Math.abs(b.measurements.front-width))[0];
  return {...closest,minimum,maximum,withinRange:width>=minimum&&width<=maximum};
 }
+
+const frameContourCache=new Map();export function frameContour(d,side,scale=1){const key=JSON.stringify([d,side,scale]);if(frameContourCache.has(key))return frameContourCache.get(key);const result=frameContourUncached(d,side,scale);if(frameContourCache.size>=96)frameContourCache.delete(frameContourCache.keys().next().value);frameContourCache.set(key,result);return result;}
+
+const lensContourCache=new Map();export function lensContour(d,side){const key=JSON.stringify([d,side]);if(lensContourCache.has(key))return lensContourCache.get(key);const result=lensContourUncached(d,side);if(lensContourCache.size>=96)lensContourCache.delete(lensContourCache.keys().next().value);lensContourCache.set(key,result);return result;}
+
+const normalizeContourCache=new Map();export function normalizeContour(raw){const key=JSON.stringify(raw);if(normalizeContourCache.has(key))return normalizeContourCache.get(key);const result=normalizeContourUncached(raw);if(normalizeContourCache.size>=96)normalizeContourCache.delete(normalizeContourCache.keys().next().value);normalizeContourCache.set(key,result);return result;}
+
+const nasalPadsCache=new Map();export function nasalPads(d,side){const key=JSON.stringify([d,side]);if(nasalPadsCache.has(key))return nasalPadsCache.get(key);const result=nasalPadsUncached(d,side);if(nasalPadsCache.size>=96)nasalPadsCache.delete(nasalPadsCache.keys().next().value);nasalPadsCache.set(key,result);return result;}
+
+const hingeGeometryCache=new Map();export function hingeGeometry(d,side){const key=JSON.stringify([d,side]);if(hingeGeometryCache.has(key))return hingeGeometryCache.get(key);const result=hingeGeometryUncached(d,side);if(hingeGeometryCache.size>=96)hingeGeometryCache.delete(hingeGeometryCache.keys().next().value);hingeGeometryCache.set(key,result);return result;}
+
+const bridgeGeometryCache=new Map();export function bridgeGeometry(d){const key=JSON.stringify([d]);if(bridgeGeometryCache.has(key))return bridgeGeometryCache.get(key);const result=bridgeGeometryUncached(d);if(bridgeGeometryCache.size>=96)bridgeGeometryCache.delete(bridgeGeometryCache.keys().next().value);bridgeGeometryCache.set(key,result);return result;}
