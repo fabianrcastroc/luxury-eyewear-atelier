@@ -6,6 +6,7 @@ npmRebuild: false
 files:
   - desktop/*.cjs
   - desktop/license-public.pem
+  - desktop/commercial-config.json
   - dist/**
   - package.json
   - LICENSE.txt

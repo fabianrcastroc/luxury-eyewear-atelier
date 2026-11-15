@@ -5,3 +5,14 @@ test-results/
 
 .desktop-build/
 installers/
+
+# Never commit licensing/payment/signing credentials or customer data
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.key
+*.sqlite
+*.sqlite-*
+commercial/data/

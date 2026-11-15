@@ -1,0 +1,179 @@
+name: FR signed commercial candidate
+on:
+  workflow_dispatch:
+    inputs:
+      publish_external:
+        description: 'Publicar en almacenamiento externo después de verificar firmas'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  signed:
+    environment: fr-commercial-signing
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+          - os: macos-15-intel
+            platform: mac
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      FR_TERMS_APPROVED: ${{ vars.FR_TERMS_APPROVED }}
+      FR_PUBLISHER_NAME: ${{ vars.FR_PUBLISHER_NAME }}
+      FR_LICENSING_API_URL: ${{ vars.FR_LICENSING_API_URL }}
+      FR_AZURE_ENDPOINT: ${{ vars.FR_AZURE_ENDPOINT }}
+      FR_AZURE_ACCOUNT: ${{ vars.FR_AZURE_ACCOUNT }}
+      FR_AZURE_CERT_PROFILE: ${{ vars.FR_AZURE_CERT_PROFILE }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      CSC_NAME: ${{ vars.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Reject provisional commercial terms
+        run: node commercial/release/legal-check.mjs
+      - name: Reject missing signing prerequisites
+        run: node commercial/release/signing-config.mjs ${{ matrix.platform }}
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm ci --prefix desktop-fr
+      - run: node desktop-fr/stage.mjs
+      - run: npm ci
+        working-directory: .desktop-build
+      - run: node commercial/release/signing-config.mjs ${{ matrix.platform }} .desktop-build/desktop/signed.json
+      - name: Package with real identity and notarization
+        run: npx electron-builder --config desktop/signed.json --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+        working-directory: .desktop-build
+      - name: Verify Windows installer and application signatures
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem .desktop-build/installers/*.exe) + @(Get-ChildItem .desktop-build/installers/win-unpacked/*.exe)
+          if ($files.Count -lt 2) { throw 'Installer or executable missing' }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            if ($signature.Status -ne 'Valid') { throw "Invalid signature: $($file.Name)" }
+            $publisher = $signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName,$false)
+            if ($publisher -ne $env:FR_PUBLISHER_NAME) { throw 'Publisher differs from verified identity' }
+          }
+          $installer = Get-ChildItem .desktop-build/installers/*win-x64.exe | Select-Object -First 1
+          $installed = Start-Process $installer.FullName -ArgumentList '/S /D=C:\fr-signed-test' -Wait -PassThru
+          if ($installed.ExitCode -ne 0) { throw 'Signed installation failed' }
+          $env:FR_INSTALLED_APP='1'
+          $env:FR_ELECTRON_EXECUTABLE='C:\fr-signed-test\FR eyewear studio.exe'
+          node .desktop-build/desktop/smoke-offline.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Installed smoke failed' }
+      - name: Verify notarized macOS application and DMG
+        if: matrix.platform == 'mac'
+        env:
+          FR_TEST_ANGLE: metal
+        run: |
+          app=$(find .desktop-build/installers -name 'FR eyewear studio.app' -maxdepth 3 -print -quit)
+          dmg=$(find .desktop-build/installers -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$app" && test -n "$dmg"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv --verbose=4 "$app" 2> /tmp/fr-identity.txt
+          grep -F "TeamIdentifier=$APPLE_TEAM_ID" /tmp/fr-identity.txt
+          spctl --assess --type execute --verbose=2 "$app"
+          xcrun stapler validate "$app"
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
+          mkdir -p /tmp/fr-signed-mount /tmp/fr-signed-installed
+          hdiutil attach "$dmg" -nobrowse -mountpoint /tmp/fr-signed-mount
+          ditto '/tmp/fr-signed-mount/FR eyewear studio.app' '/tmp/fr-signed-installed/FR eyewear studio.app'
+          hdiutil detach /tmp/fr-signed-mount
+          FR_INSTALLED_APP=1 FR_ELECTRON_EXECUTABLE='/tmp/fr-signed-installed/FR eyewear studio.app/Contents/MacOS/FR eyewear studio' node .desktop-build/desktop/smoke-offline.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: commercial-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            .desktop-build/installers/*.exe
+            .desktop-build/installers/*.dmg
+  linux:
+    environment: fr-commercial-signing
+    runs-on: ubuntu-latest
+    env:
+      FR_LICENSING_API_URL: ${{ vars.FR_LICENSING_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm ci --prefix desktop-fr
+      - run: node desktop-fr/stage.mjs
+      - run: npm ci
+        working-directory: .desktop-build
+      - run: npm run package:linux
+        working-directory: .desktop-build
+      - name: Verify extracted Linux package offline
+        run: |
+          dpkg-deb -x .desktop-build/installers/*.deb /tmp/fr-signed-linux
+          executable=$(find /tmp/fr-signed-linux/opt -name fr-eyewear-studio -type f -print -quit)
+          test -n "$executable"
+          FR_INSTALLED_APP=1 FR_ELECTRON_EXECUTABLE="$executable" node .desktop-build/desktop/smoke-offline.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: commercial-linux-x64
+          path: .desktop-build/installers/*.deb
+  seal:
+    needs: [signed, linux]
+    environment: fr-commercial-publication
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: commercial-*
+          merge-multiple: true
+          path: commercial-artifacts
+      - name: Seal checksums with corporate release key
+        env:
+          FR_RELEASE_GPG_PRIVATE_KEY: ${{ secrets.FR_RELEASE_GPG_PRIVATE_KEY }}
+          FR_RELEASE_GPG_PASSPHRASE: ${{ secrets.FR_RELEASE_GPG_PASSPHRASE }}
+          FR_RELEASE_GPG_FINGERPRINT: ${{ vars.FR_RELEASE_GPG_FINGERPRINT }}
+        run: |
+          test -n "$FR_RELEASE_GPG_PRIVATE_KEY" && test -n "$FR_RELEASE_GPG_FINGERPRINT"
+          export GNUPGHOME="$(mktemp -d)"
+          trap 'rm -rf "$GNUPGHOME"' EXIT
+          chmod 700 "$GNUPGHOME"
+          printf '%s' "$FR_RELEASE_GPG_PRIVATE_KEY" | gpg --batch --import
+          cd commercial-artifacts
+          sha256sum *.exe *.dmg *.deb > SHA256SUMS.txt
+          printf '%s' "$FR_RELEASE_GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --local-user "$FR_RELEASE_GPG_FINGERPRINT" --armor --detach-sign SHA256SUMS.txt
+          gpg --verify SHA256SUMS.txt.asc SHA256SUMS.txt
+          gpg --armor --export "$FR_RELEASE_GPG_FINGERPRINT" > release-public.asc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: commercial-verified-distribution
+          path: commercial-artifacts/*
+      - name: Publish immutable version to external S3-compatible storage
+        if: inputs.publish_external
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.FR_STORAGE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.FR_STORAGE_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.FR_STORAGE_REGION }}
+          FR_STORAGE_ENDPOINT: ${{ vars.FR_STORAGE_ENDPOINT }}
+          FR_STORAGE_BUCKET: ${{ vars.FR_STORAGE_BUCKET }}
+          FR_PUBLIC_DOWNLOAD_ORIGIN: ${{ vars.FR_PUBLIC_DOWNLOAD_ORIGIN }}
+        run: node commercial/release/publish.mjs

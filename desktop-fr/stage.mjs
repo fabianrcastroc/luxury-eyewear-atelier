@@ -5,7 +5,8 @@ const here=path.dirname(fileURLToPath(import.meta.url)),root=path.dirname(here),
 await rm(stage,{recursive:true,force:true});await mkdir(path.join(stage,'desktop','resources'),{recursive:true});
 await cp(path.join(root,'dist','fr'),path.join(stage,'dist'),{recursive:true});
 for(const file of ['license.html','license-ui.js'])await cp(path.join(here,file),path.join(stage,'dist',file));
-for(const file of ['main.cjs','license.cjs','license-preload.cjs','license-public.pem','electron-builder.yml','smoke-offline.mjs'])await cp(path.join(here,file),path.join(stage,'desktop',file));
+for(const file of ['main.cjs','commercial-client.cjs','license.cjs','license-preload.cjs','license-public.pem','entitlements.mac.plist','electron-builder.yml','smoke-offline.mjs'])await cp(path.join(here,file),path.join(stage,'desktop',file));
+const apiURL=process.env.FR_LICENSING_API_URL||'';if(apiURL){const u=new URL(apiURL);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/')throw Error('FR_LICENSING_API_URL requiere un origen HTTPS sin rutas ni credenciales.');}await writeFile(path.join(stage,'desktop','commercial-config.json'),JSON.stringify({apiURL,supportEmail:'estudiomiscante@gmail.com'}));
 await cp(path.join(here,'LICENSE.txt'),path.join(stage,'LICENSE.txt'));
 for(const file of ['package.json','package-lock.json'])await cp(path.join(here,file),path.join(stage,file));
 const sharp=(await import('sharp')).default;

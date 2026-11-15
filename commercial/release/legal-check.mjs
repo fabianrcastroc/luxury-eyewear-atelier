@@ -1,0 +1,2 @@
+import{readFileSync}from'node:fs';
+const terms=readFileSync('desktop-fr/LICENSE.txt','utf8');if(process.env.FR_TERMS_APPROVED!=='true'||/COMPLETAR|provisional|borrador|candidato/i.test(terms)){console.error('Distribución comercial bloqueada: completar identidad y contrato definitivo en desktop-fr/LICENSE.txt y registrar FR_TERMS_APPROVED=true tras revisión del titular.');process.exitCode=1;}else console.log('Contrato marcado como aprobado; esta comprobación no sustituye revisión jurídica.');

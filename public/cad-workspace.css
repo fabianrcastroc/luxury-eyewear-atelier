@@ -66,3 +66,5 @@
 [data-trace-point]{cursor:move;stroke:#25333c;stroke-width:1;pointer-events:all}
 .cad-profile-nodes circle{fill:#263640;stroke:#93adb2;stroke-width:.4}.cad-profile-nodes circle.is-selected{fill:#ffcb70;stroke:#fff0c5;stroke-width:.5}
 #cad-reference-workspace #studio-extract-preview svg{max-height:58vh!important}#cad-reference-workspace [data-trace-point]{vector-effect:non-scaling-stroke;stroke-width:1.5px}
+.cad-profile-nodes circle,.fr-tangent-handle{vector-effect:non-scaling-stroke;stroke-width:1.5px}.fr-tangent-actual{fill:#ffcf78;pointer-events:none}.fr-tangent-extension{stroke-dasharray:2 2;opacity:.6}
+#cad-reference-workspace .fr-reference-steps,#cad-reference-workspace #studio-extract-status,#cad-reference-workspace #studio-reference-resolution{color:#d1dfe5;line-height:1.6}#cad-reference-workspace .fr-reference-steps{padding:0 16px}

@@ -1,0 +1,10 @@
+lockfile,scope,package,version,license_reported
+package-lock.json,dependencies,clipper-lib,6.4.2,BSL
+package-lock.json,dependencies,three,0.183.2,MIT
+package-lock.json,devDependencies,esbuild,0.28.2,MIT
+package-lock.json,devDependencies,playwright-core,1.64.1,Apache-2.0
+package-lock.json,devDependencies,sharp,0.35.5,Apache-2.0
+desktop-fr/package-lock.json,devDependencies,electron,45.2.3,MIT
+desktop-fr/package-lock.json,devDependencies,electron-builder,26.18.0,MIT
+desktop-fr/package-lock.json,devDependencies,playwright-core,1.64.1,Apache-2.0
+desktop-fr/package-lock.json,devDependencies,sharp,0.35.5,Apache-2.0

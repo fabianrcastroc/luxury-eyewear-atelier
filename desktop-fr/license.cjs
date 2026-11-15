@@ -14,7 +14,7 @@ function deviceId(){
 function verifyLicense(document,publicKey,device,now=Date.now()){
  if(!document||typeof document.payload!=='string'||typeof document.signature!=='string'||document.payload.length>12000)throw Error('Archivo de licencia inválido.');
  if(!crypto.verify(null,Buffer.from(document.payload),publicKey,Buffer.from(document.signature,'base64')))throw Error('La firma de la licencia no es válida.');
- const data=JSON.parse(document.payload);
+ const data=JSON.parse(document.payload);if(data.features!==undefined&&(!Array.isArray(data.features)||data.features.some(x=>!['edit','project','reference','patterns','glb','stl','team'].includes(x))))throw Error('El plan contiene funcionalidades no válidas.');
  if(data.product!=='FR eyewear studio'||data.deviceId!==device||typeof data.customer!=='string'||!data.customer.trim()||!data.licenseId)throw Error('La licencia no corresponde a este equipo.');
  if(data.expiresAt!=null&&(!Number.isFinite(Date.parse(data.expiresAt))||Date.parse(data.expiresAt)<now))throw Error('La licencia ha vencido.');
  return data;

@@ -15,6 +15,9 @@ if(process.argv.includes('--headless-test')){
 }
 const webPreferences={preload:path.join(__dirname,'license-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true};
 const {deviceId,verifyLicense,trialStatus}=require('./license.cjs');
+const {apiOrigin,validateKey,offlineRequest,verifyDeactivation,capabilities}=require('./commercial-client.cjs');
+const commercialConfig=(()=>{try{return JSON.parse(fs.readFileSync(path.join(__dirname,'commercial-config.json'),'utf8'));}catch{return {};}})(),licenseOrigin=apiOrigin(commercialConfig);
+async function licensingCall(route,data){if(!licenseOrigin)throw Error('La activación online aún no está configurada por el editor. Usa un archivo firmado o contacta a soporte.');const r=await net.fetch(licenseOrigin+route,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(15000)});const body=await r.json();if(!r.ok)throw Error(body.error||'No se pudo completar la operación.');return body;}
 let mainWindow,servicesConfigured=false,lifecycleConfigured=false;
 const licensePath=()=>path.join(app.getPath('userData'),'license.frlicense'),trialPath=()=>path.join(app.getPath('userData'),'evaluation.json');
 const readJSON=file=>{try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}};
@@ -22,17 +25,23 @@ function licensingStatus(){let license,message;try{const raw=readJSON(licensePat
 function openEditor(){return mainWindow.loadURL('fr://studio/index.html').then(()=>mainWindow.webContents.executeJavaScript("document.querySelectorAll('.fr-installer-link, a[href^=\"http\"]').forEach(link=>link.remove())"));}
 function configureLicensing(){fs.mkdirSync(app.getPath('userData'),{recursive:true});
  const allowed=event=>{if(event.sender.getURL()!=='fr://studio/license.html')throw Error('Operación no permitida.');};
+ ipcMain.handle('fr-license-capabilities',event=>{if(!['fr://studio/index.html','fr://studio/license.html'].includes(event.sender.getURL()))throw Error('Operación no permitida.');return {features:capabilities(licensingStatus()),onlineAvailable:!!licenseOrigin};});
+ ipcMain.handle('fr-license-key-activate',async(event,key)=>{allowed(event);const document=await licensingCall('/v1/activate',{key:validateKey(key),deviceId:deviceId()});verifyLicense(document,fs.readFileSync(path.join(__dirname,'license-public.pem'),'utf8'),deviceId());fs.writeFileSync(licensePath(),JSON.stringify(document),{mode:0o600});await openEditor();return {message:'Licencia activada. Ya puedes trabajar sin conexión hasta el vencimiento indicado.'};});
+ ipcMain.handle('fr-license-key-request',async(event,{key,action='activate'})=>{allowed(event);if(!['activate','deactivate'].includes(action))throw Error('Operación inválida.');const current=licensingStatus().license;if(action==='deactivate'&&!current?.activationToken)throw Error('Esta licencia heredada requiere transferencia asistida por soporte.');const request=offlineRequest({key,action,deviceId:deviceId(),activationToken:current?.activationToken}),result=await dialog.showSaveDialog(mainWindow,{defaultPath:'FR-'+action+'-solicitud.json'});if(result.canceled)return {message:'Guardado cancelado.'};fs.writeFileSync(result.filePath,JSON.stringify(request,null,2),{mode:0o600});return {message:'Solicitud privada guardada. Contiene tu clave: no la publiques. Procésala en el portal de licencias desde un equipo conectado.'};});
+ ipcMain.handle('fr-license-deactivate',async(event,key)=>{allowed(event);const current=licensingStatus().license;if(!current?.activationToken)throw Error('Esta licencia requiere transferencia asistida por soporte.');const result=await licensingCall('/v1/deactivate',{key:validateKey(key),deviceId:deviceId(),activationToken:current.activationToken});verifyDeactivation(result,fs.readFileSync(path.join(__dirname,'license-public.pem'),'utf8'),deviceId(),current.licenseId);fs.unlinkSync(licensePath());return {message:'Equipo desactivado. Puedes activar otro dentro del límite de tu plan.'};});
+ ipcMain.handle('fr-license-deactivation-import',async event=>{allowed(event);const current=licensingStatus().license;if(!current)throw Error('No hay licencia activa.');const result=await dialog.showOpenDialog(mainWindow,{properties:['openFile'],filters:[{name:'Respuesta FR',extensions:['frlicense','json']}]});if(result.canceled)return {message:'Importación cancelada.'};if(fs.statSync(result.filePaths[0]).size>20000)throw Error('Archivo demasiado grande.');verifyDeactivation(JSON.parse(fs.readFileSync(result.filePaths[0],'utf8')),fs.readFileSync(path.join(__dirname,'license-public.pem'),'utf8'),deviceId(),current.licenseId);fs.unlinkSync(licensePath());return {message:'Desactivación offline confirmada.'};});
+ ipcMain.handle('fr-license-recovery',async(event,email)=>{allowed(event);return licensingCall('/v1/recovery',{email});});
  ipcMain.handle('fr-license-resume',async event=>{allowed(event);const status=licensingStatus();if(!status.license&&!status.trial.valid)throw Error('Activa una licencia para continuar.');await openEditor();return {message:'Estudio abierto.'};});
- ipcMain.handle('fr-license-status',event=>{allowed(event);return licensingStatus();});
+ ipcMain.handle('fr-license-status',event=>{allowed(event);return {...licensingStatus(),onlineAvailable:!!licenseOrigin,supportEmail:commercialConfig.supportEmail||'estudiomiscante@gmail.com'};});
  ipcMain.handle('fr-license-trial',async event=>{allowed(event);const status=licensingStatus();if(!status.trial.available)throw Error('La evaluación de este equipo ya se utilizó.');fs.writeFileSync(trialPath(),JSON.stringify({startedAt:Date.now(),lastSeen:Date.now()}));await openEditor();return {message:'Evaluación iniciada.'};});
- ipcMain.handle('fr-license-activate',async event=>{allowed(event);const result=await dialog.showOpenDialog(mainWindow,{properties:['openFile'],filters:[{name:'Licencia FR',extensions:['frlicense','json']}]});if(result.canceled)return {message:'Activación cancelada.'};if(fs.statSync(result.filePaths[0]).size>20000)throw Error('Licencia demasiado grande.');const bytes=fs.readFileSync(result.filePaths[0],'utf8');verifyLicense(JSON.parse(bytes),fs.readFileSync(path.join(__dirname,'license-public.pem'),'utf8'),deviceId());fs.writeFileSync(licensePath(),bytes);await openEditor();return {message:'Licencia activada para este equipo.'};});
+ ipcMain.handle('fr-license-activate',async event=>{allowed(event);const result=await dialog.showOpenDialog(mainWindow,{properties:['openFile'],filters:[{name:'Licencia FR',extensions:['frlicense','json']}]});if(result.canceled)return {message:'Activación cancelada.'};if(fs.statSync(result.filePaths[0]).size>20000)throw Error('Licencia demasiado grande.');const bytes=fs.readFileSync(result.filePaths[0],'utf8');verifyLicense(JSON.parse(bytes),fs.readFileSync(path.join(__dirname,'license-public.pem'),'utf8'),deviceId());fs.writeFileSync(licensePath(),bytes,{mode:0o600});await openEditor();return {message:'Licencia activada para este equipo.'};});
  ipcMain.handle('fr-license-request',async event=>{allowed(event);const result=await dialog.showSaveDialog(mainWindow,{defaultPath:'FR-solicitud-licencia.json',filters:[{name:'Solicitud de licencia',extensions:['json']}]});if(result.canceled)return {message:'Guardado cancelado.'};fs.writeFileSync(result.filePath,JSON.stringify({product:'FR eyewear studio',deviceId:deviceId(),platform:process.platform},null,2));return {message:'Solicitud guardada. Entrégala al titular de la licencia para recibir el archivo firmado.'};});
 }
 
 globalThis.__frSmokeDownloads=[];
 function configureWindow(win){
  win.webContents.setWindowOpenHandler(({url})=>{
-  if(url==='about:blank'||url==='')return {action:'allow',overrideBrowserWindowOptions:{width:1000,height:820,title:'FR eyewear studio · impresión',webPreferences}};
+  if(url==='about:blank'||url===''){if(!capabilities(licensingStatus()).includes('patterns'))return {action:'deny'};return {action:'allow',overrideBrowserWindowOptions:{width:1000,height:820,title:'FR eyewear studio · impresión',webPreferences}};}
   return {action:'deny'};
  });
  win.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith('fr://studio/')&&!url.startsWith('blob:fr://studio/'))event.preventDefault();});
@@ -49,10 +58,10 @@ async function start(){
  });
  // The installed application runs its own packaged assets. Neither the editor,
  // workers, imports nor exports require an Internet connection.
- session.defaultSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:/^https?:/i.test(details.url)}));
+ session.defaultSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:/^https?:/i.test(details.url)&&(!licenseOrigin||new URL(details.url).origin!==licenseOrigin)}));
  session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
  session.defaultSession.setPermissionCheckHandler(()=>false);
- session.defaultSession.on('will-download',(_event,item)=>{
+ session.defaultSession.on('will-download',(_event,item)=>{const name=item.getFilename().toLowerCase(),feature=name.endsWith('.glb')?'glb':name.endsWith('.stl')?'stl':name.endsWith('.svg')||name.endsWith('.pdf')?'patterns':'project';if(!capabilities(licensingStatus()).includes(feature)){item.cancel();return;}
   item.once('done',(_event,state)=>{globalThis.__frSmokeDownloads.push({state,name:item.getFilename(),path:item.getSavePath()});console.log('FR_DOWNLOAD',state,item.getSavePath());});
   const arg=process.argv.find(x=>x.startsWith('--download-dir='));
   if(arg){const directory=path.resolve(arg.slice('--download-dir='.length));fs.mkdirSync(directory,{recursive:true});item.setSavePath(path.join(directory,path.basename(item.getFilename())));}

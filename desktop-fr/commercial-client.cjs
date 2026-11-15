@@ -1,0 +1,7 @@
+const {randomUUID,verify}=require('node:crypto');
+function apiOrigin(config){if(!config?.apiURL)return null;const url=new URL(config.apiURL);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||url.pathname!=='/')throw Error('El servicio de licencias requiere un origen HTTPS fijo.');return url.origin;}
+function validateKey(key){if(typeof key!=='string'||key.trim().length<20||key.length>128)throw Error('Escribe la clave de licencia completa.');return key.trim();}
+function offlineRequest({key,deviceId,action='activate',activationToken}){return {product:'FR eyewear studio',version:1,action,key:validateKey(key),deviceId,requestId:randomUUID(),...(action==='deactivate'?{activationToken}:{})};}
+function verifyDeactivation(document,publicKey,device,licenseId){if(!document||typeof document.payload!=='string'||!verify(null,Buffer.from(document.payload),publicKey,Buffer.from(document.signature||'','base64')))throw Error('Respuesta de desactivación no válida.');const p=JSON.parse(document.payload);if(p.product!=='FR eyewear studio'||p.action!=='deactivated'||p.deviceId!==device||p.licenseId!==licenseId)throw Error('La respuesta no corresponde a esta licencia y equipo.');return p;}
+const allFeatures=['edit','project','reference','patterns','glb','stl','team'];function capabilities(status){return status.license?(Array.isArray(status.license.features)?status.license.features:allFeatures):status.trial?.valid?allFeatures:[];}
+module.exports={apiOrigin,validateKey,offlineRequest,verifyDeactivation,capabilities};

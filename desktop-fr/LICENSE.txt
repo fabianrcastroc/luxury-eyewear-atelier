@@ -1,16 +1,31 @@
-FR eyewear studio — Licencia comercial por equipo
-Copyright © 2026 FR eyewear studio. Todos los derechos reservados.
+FR eyewear studio — Candidato de evaluación 1.7.3
+Documento provisional; no constituye la licencia comercial definitiva.
 
-Se permite evaluar el programa durante 30 días. El uso posterior requiere una
-licencia firmada para el identificador del equipo. La licencia no transmite la
-titularidad del programa y no autoriza su redistribución comercial, sublicencia
-o venta. Los proyectos, dibujos y modelos creados por el usuario le pertenecen.
+Titular: [COMPLETAR RAZÓN SOCIAL Y RUT]. Domicilio: [COMPLETAR], Santiago,
+Región Metropolitana, Chile. Soporte: estudiomiscante@gmail.com.
 
-El programa funciona sin conexión. El archivo de activación se verifica localmente;
-no se envían archivos o identificadores automáticamente. La solicitud de licencia
-se guarda únicamente cuando el usuario lo decide. El titular puede emitir una
-licencia perpetua o con vencimiento mediante su herramienta de firma.
+El programa permite evaluación local durante 30 días. La licencia comercial
+que corresponda debe definir versión, funciones, puestos, plazo, actualizaciones,
+soporte y condiciones de compra antes de su venta. No se transmite propiedad
+sobre el código. Los proyectos del usuario conservan sus derechos respectivos.
+Las licencias de componentes de terceros mantienen sus condiciones.
 
-Las cotas y exportaciones digitales requieren calibración y comprobación del taller.
-Las fotografías y trazados rasterizados no garantizan ajuste clínico, tolerancias,
-resistencia, herrajes específicos ni encaje de lentes comerciales.
+El diseño y los archivos se procesan localmente. Si el usuario elige activar,
+renovar, desactivar o recuperar online, se envían al servicio configurado los
+datos de licencia, identificador de equipo o correo necesarios. También existe
+intercambio de solicitudes y respuestas por archivos para equipos sin conexión.
+El servicio comercial aún no está desplegado.
+
+El nuevo servicio preparado emite autorizaciones de hasta 30 días, renovables
+online o por archivos. Ese plazo es distinto del derecho contractual perpetuo
+o anual. Las licencias heredadas conservan su formato y vigencia. No se necesita
+conexión permanente durante una autorización válida. Una copia offline no puede
+revocarse inmediatamente antes de su vencimiento.
+
+Las cotas y exportaciones requieren calibración y comprobación de taller.
+Una fotografía no garantiza profundidad, ajuste clínico, tolerancias, resistencia,
+herrajes específicos ni encaje con lentes comerciales. Deben validarse prototipos.
+
+Las plantillas contractuales y de privacidad editables se entregan separadamente
+para completar y revisar jurídicamente. Las normas imperativas del consumidor
+prevalecen; este texto no excluye derechos legales obligatorios.

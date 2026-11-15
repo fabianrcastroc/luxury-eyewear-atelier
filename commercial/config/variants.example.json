@@ -1,0 +1,5 @@
+{
+  "lemonsqueezy:REPLACE_WITH_CORE_VARIANT_ID": {"plan":"perpetual","features":["edit","project","reference","patterns"],"seats":1},
+  "lemonsqueezy:REPLACE_WITH_ANNUAL_VARIANT_ID": {"plan":"annual","seats":1},
+  "paddle:REPLACE_WITH_ENTERPRISE_PRICE_ID": {"plan":"enterprise","kind":"annual","seats":10}
+}
