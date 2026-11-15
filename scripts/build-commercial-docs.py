@@ -56,7 +56,7 @@ for manifest in ['package-lock.json','desktop-fr/package-lock.json']:
    entry=lock['packages'].get('node_modules/'+name,{})
    rows.append([manifest,scope,name,entry.get('version',spec),entry.get('license','Consultar LICENSE original')])
 with (OUT/'inventario-dependencias-directas.csv').open('w',newline='') as f:
- writer=csv.writer(f);writer.writerow(['lockfile','scope','package','version','license_reported']);writer.writerows(rows)
+ writer=csv.writer(f,lineterminator="\n");writer.writerow(['lockfile','scope','package','version','license_reported']);writer.writerows(rows)
 files=sorted(p for p in OUT.iterdir() if p.suffix in ['.pdf','.docx','.md','.csv'])
 (OUT/'SHA256SUMS-documentos.txt').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in files))
 with zipfile.ZipFile(OUT/'FR-documentacion-profesional-2026-11.zip','w',zipfile.ZIP_DEFLATED) as z:
