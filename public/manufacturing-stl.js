@@ -1,3 +1,4 @@
+import{customTempleGeometry}from'./temple-profile-geometry.js';
 import {formGeometry} from './front-forming.js';
 import {normalizeDesign} from './designer-model.js';
 import {frontCutGeometry} from './manufacturing.js';
@@ -15,7 +16,7 @@ export function manufacturingSTL(raw,part='front'){
   const cut=frontCutGeometry(d);geometry=finishedExtrusion(cut.outerLoops[0],cut.holes,d.materialDepth,Math.min(.8,d.thickness*.22));
  }else if(stlParts.includes(part)){
   const side=part.endsWith('left')?-1:1;
-  geometry=part.startsWith('temple')?finishedTemple(templeSections(d,side).rows):finishedNasalLaminate(nasalPads(d,side).outline,3*MM);
+  geometry=part.startsWith('temple')?(customTempleGeometry(d,side)||finishedTemple(templeSections(d,side).rows)):finishedNasalLaminate(nasalPads(d,side).outline,3*MM);
   geometry.scale(1/MM,1/MM,1/MM);
  }else throw new Error('Selecciona frontal, brazo o luneta nasal para exportar STL.');
  if(d.frontWrap){if(part.startsWith('pad'))geometry.translate(0,0,-3);formGeometry(geometry,d,part,[0,0,0],1);}

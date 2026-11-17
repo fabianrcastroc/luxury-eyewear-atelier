@@ -1,3 +1,4 @@
+import{customFlatTemple,templeStyle}from'./temple-profile.js';
 import {MM,templePlan,frameContour} from './frame-geometry.js';
 const bounded=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
@@ -16,7 +17,7 @@ const STYLE={
 
 /** A common developed axis, with an editable ear section. `tipSize` is the
  * actual distal terminal length in mm, never an oversized knob's width. */
-function templeSectionsUncached(d,side,style=d.armStyle||'clasico'){
+function templeSectionsUncached(d,side,style=templeStyle(d,side)||'clasico'){
  const plan=templePlan(d,side,style),spec=STYLE[style]||STYLE.clasico,frame=frameContour(d,side);
  const top=Math.max(...frame.map(p=>p[1])),bottom=Math.min(...frame.map(p=>p[1]));
  const stock=bounded(d.materialDepth,2,12,6),depth=stock*MM/2,terminalThickness=Math.min(stock,bounded(d.terminalThickness,1.5,8,2.8));
@@ -62,7 +63,7 @@ function templeSectionsUncached(d,side,style=d.armStyle||'clasico'){
 }
 
 /** Develop X/Z wrap while retaining the actual Y profile and every arc step. */
-export function flatTemple(d,side,style=d.armStyle||'clasico'){
+export function flatTemple(d,side,style=templeStyle(d,side)||'clasico'){const custom=customFlatTemple(d,side);if(custom)return custom;
  const sections=templeSections(d,side,style),rows=sections.rows;let x=0;const first=rows[0].point;
  const points=rows.map((row,i)=>{if(i){const a=rows[i-1].point,b=row.point;x+=Math.hypot(b[0]-a[0],b[2]-a[2])/MM;}return {x,y:-(row.point[1]-first[1])/MM,width:row.height/MM};});
  const upper=[],lower=[];
@@ -74,4 +75,4 @@ export function flatTemple(d,side,style=d.armStyle||'clasico'){
  return {outline:[...upper,...lower.reverse()],centerline:points.map(p=>[p.x,p.y]),developedLength:sections.developedLength,nominalLength:sections.plan.nominalLength,hinge:[0,0],bendStart:[bend.x,bend.y],bendStartLength:sections.bendStartLength,tipShape:sections.tipShape,tipSize:sections.tipSize,tipLengthMM:sections.tipLengthMM,tipWidthMM:sections.tipWidthMM,terminalThicknessMM:sections.terminalThicknessMM,machining:sections.machining,earLengthMM:sections.earLengthMM,minimumBendRadiusMM:sections.minimumBendRadiusMM,bendMetric:sections.bendMetric};
 }
 
-const templeSectionsCache=new Map();export function templeSections(d,side,style=d.armStyle||'clasico'){const key=JSON.stringify([d,side,style]);if(templeSectionsCache.has(key))return templeSectionsCache.get(key);const result=templeSectionsUncached(d,side,style);if(templeSectionsCache.size>=96)templeSectionsCache.delete(templeSectionsCache.keys().next().value);templeSectionsCache.set(key,result);return result;}
+const templeSectionsCache=new Map();export function templeSections(d,side,style=templeStyle(d,side)||'clasico'){const key=JSON.stringify([d,side,style]);if(templeSectionsCache.has(key))return templeSectionsCache.get(key);const result=templeSectionsUncached(d,side,style);if(templeSectionsCache.size>=96)templeSectionsCache.delete(templeSectionsCache.keys().next().value);templeSectionsCache.set(key,result);return result;}

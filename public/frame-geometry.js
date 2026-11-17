@@ -121,7 +121,8 @@ function lensContourUncached(d,side){
  if(clipped.length!==1)throw new RangeError('La modificación divide o elimina la abertura. Reduce la pared o la edición local.');
  return clipped[0];
 }
-export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge)/2*MM;return [-center,center];}
+export function lensCenters(d){const size=sizeOf(d),center=(size.lens+size.bridge+finite(d.centerSpacingOffset,-40,40,0))/2*MM;return [-center,center];}
+export function independentCenterOffset(d,target=d){const current=lensCenters(d),base=lensCenters({...target,frameShapeMode:'independent',centerSpacingOffset:0});return ((current[1]-current[0])-(base[1]-base[0]))/MM;}
 function hingeGeometryUncached(d,side){
  const outer=frameContour(d,side),center=lensCenters(d)[side===-1?0:1],stock=finite(d.materialDepth,2,8,6)*MM,mode=d.hingeMode==='box'?'box':'hidden';
  const reference=offsetContour(baselineLens(d.frameShapeMode==='follow'?d:{...d,opticalShape:'',opticalBezier:null,opticalSpline:null,opticalOutline:null},side),finite(d.wallMode==='outward'?d.thickness:d.envelopeWall,3,8,4)*MM),height=Math.max(...reference.map(p=>Math.abs(p[1]))),station=height*(2*finite(d.hingeLevel,.55,.85,getFrameProfile(modelOf(d)).hingeFraction||.72)-1),y=deform(d,side,[[side*Math.max(...reference.map(p=>Math.abs(p[0]))),station]],reference)[0][1];

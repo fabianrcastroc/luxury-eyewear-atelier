@@ -1,3 +1,5 @@
+import{customTempleGeometry}from'./temple-profile-geometry.js';
+import{templeStyle,templeProfile,templeProfileLength}from'./temple-profile.js';
 import {createSolidClient} from './solid-client.js';
 import {constructionEdges} from './construction-edges.js';
 import {formGeometry,formingParameters} from './front-forming.js';
@@ -60,8 +62,8 @@ export function createDesignRenderer(container){
 
  function contours(d,side,scale=1){return frameContour(d,side,scale).map(p=>new THREE.Vector2(...p));}
  function arm(d,side,style,mat){
-  const sections=templeSections(d,side,style),geometry=finishedTemple(sections.rows),mesh=addMesh(geometry,mat);
-  mesh.name=`temple-${side}`;mesh.userData={part:'temple',materialClass:'acetate-stock',stockThicknessMM:d.materialDepth,sectionVertexCount:geometry.userData.sectionVertexCount,sectionCount:sections.rows.length,continuous:true,nominalLengthMM:sections.developedLength};
+  const sections=templeSections(d,side,style),geometry=customTempleGeometry(d,side)||finishedTemple(sections.rows),mesh=addMesh(geometry,mat);
+  mesh.name=`temple-${side}`;mesh.userData={part:'temple',materialClass:'acetate-stock',stockThicknessMM:d.materialDepth,sectionVertexCount:geometry.userData.sectionVertexCount,sectionCount:sections.rows.length,continuous:true,nominalLengthMM:templeProfile(d,side)?templeProfileLength(d,side):sections.developedLength};
   const hinge=hingeGeometry(d,side);
   const hardware=addMesh(finishedHinge(hinge.hardware.size),material('#9b927d',true));hardware.position.set(...hinge.hardware.center);hardware.name=`hinge-${side}`;hardware.userData={part:'hinge',materialClass:'hardware-placeholder',manufacturingValidated:false,construction:'three-knuckle-two-leaf-hinge',illustrativeEnvelopeMM:hinge.hardware.size.map(v=>v/MM)};
  }
@@ -88,7 +90,7 @@ export function createDesignRenderer(container){
    const mesh=addMesh(finishedNasalLaminate(pad.outline,pad.depth),rim);mesh.position.z=-pad.depth;mesh.name=`nasal-pad-${side}`;mesh.userData={part:'nasal-pad',materialClass:'added-laminate',addedThicknessMM:pad.depth/MM,includedInMainStock:false,manufacturingValidated:false,polishedContinuity:true,finish:'tapered-added-laminate',bondFaceZMM:0};
   }
   container.dataset.nasalPads='2';container.dataset.padConstruction='polished-laminated-crescent';container.dataset.measurements=JSON.stringify(designMeasurements(d));
-  arm(d,-1,d.armStyle,arms);arm(d,1,d.armStyle,arms);if(d.frontWrap){const forming=formingParameters(d);for(const mesh of group.children){if(!mesh.isMesh)continue;const position=mesh.position.toArray();formGeometry(mesh.geometry,d,mesh.name,position,MM,forming);for(const child of mesh.children)if(child.userData.featureEdges)formGeometry(child.geometry,d,mesh.name,position,MM,forming);mesh.position.set(0,0,0);}}rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}container.dataset.building='false';render();
+  arm(d,-1,d.armStyle,arms);arm(d,1,templeStyle(d,1),arms);if(d.frontWrap){const forming=formingParameters(d);for(const mesh of group.children){if(!mesh.isMesh)continue;const position=mesh.position.toArray();formGeometry(mesh.geometry,d,mesh.name,position,MM,forming);for(const child of mesh.children)if(child.userData.featureEdges)formGeometry(child.geometry,d,mesh.name,position,MM,forming);mesh.position.set(0,0,0);}}rim.dispose();bridge.dispose();arms.dispose();group.visible=!reference?.visible;applyDisplay();if(initialModelFit){initialModelFit=false;fit();}container.dataset.building='false';render();
  }
  function fit(){
   const target=controls.target,vector=camera.position.clone().sub(target).normalize(),aspect=Math.max(.15,camera.aspect||1);

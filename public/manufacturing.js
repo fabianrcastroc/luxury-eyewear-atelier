@@ -1,3 +1,4 @@
+import{templeStyle}from'./temple-profile.js';
 import {sampleBezier} from './bezier-profile.js';
 import {minimumProfileWall,isConvexProfile,sampleSpline} from './profile-spline.js';
 import {unionPolygons,offsetRegion} from './planar-kernel.js';
@@ -85,7 +86,7 @@ function boundariesCross(a,b){
 // in the model's frontal XY plane, before any paper placement or rotation.
 const frontGeometryCache=new Map();
 export function frontCutGeometry(raw={}){
- const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.outerOutline,d.outerBezier,d.opticalBezier,d.outerSpline,d.opticalSpline,d.opticalOutline,d.curveMinWall,d.curveAllowConcave,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
+ const d=normalizeDesign(raw),cacheKey=JSON.stringify([d.model,d.centerSpacingOffset,d.outerOutline,d.outerBezier,d.opticalBezier,d.outerSpline,d.opticalSpline,d.opticalOutline,d.curveMinWall,d.curveAllowConcave,d.rimJoin,d.frameShapeMode,d.hingeBoxLength,d.armWidth,d.frameSize,d.lensWidth,d.lensHeight,d.bridgeWidth,d.customContour,d.opticalShape,d.opticalContour,d.opticalWidth,d.opticalHeight,d.contourAspectScale,d.rounding,d.thickness,d.envelopeWall,d.wallMode,d.temporalLift,d.temporalReach,d.nasalAngle,d.hingeMode,d.hingeLevel,d.bridgeType,d.bridgeGauge,d.bridgeDip,d.bridgeRise,d.bridgeOffset,d.bridgeBlend]);if(frontGeometryCache.has(cacheKey))return frontGeometryCache.get(cacheKey);
  const parts=projectParts(d);let loops=unionPolygons(parts.polygons);
  if(d.bridgeBlend>0){loops=offsetRegion(offsetRegion(loops,d.bridgeBlend),-d.bridgeBlend).filter(loop=>Math.abs(signedArea(loop))>=1e-5);}
  const outerLoops=loops.filter(loop=>signedArea(loop)>0),bridgeVoids=loops.filter(loop=>signedArea(loop)<0);
@@ -149,10 +150,10 @@ export function manufacturingDocument(raw={},options={}){
   const top=cursor+5,bottom=top+height,x=14-b.minX,y=top-b.minY;
   if(bottom+14>paper.height-52)throw new Error(`Ambas patillas no caben en ${paper.name} a escala 1:1. Elige Oficio o reduce el ancho o el terminal; no se modificará la escala.`);
   templePatterns.push(flat);
-  arms+=`${text(14,cursor,`BRAZO ${i?'DERECHO':'IZQUIERDO'} · ${escape(d.armStyle)}`,'class="sheet-label"')}<path data-part="temple-${side}" d="${path(flat.outline.map(([px,py])=>[x+px,y+py]))}"/><path class="center" d="${linePath(flat.centerline.map(([px,py])=>[x+px,y+py]))}"/>${dimension(x+b.minX,x+b.maxX,bottom+6,`${f(width)} mm · proyección`)}${text(14,bottom+11,`L desarrollado del eje: ${f(flat.developedLength)} mm · ancho inicial: ${f(Number(d.armWidth))} mm · placa ${d.materialDepth} mm`,'class="caption"')}`;
-  if(flat.bendStart){const [bx,by]=flat.bendStart;arms+=`<path class="bend" data-part="bend-start-${side}" d="M${f(x+bx)},${f(y+by-3)}v6"/>`;}
-  arms+=text(14,bottom+16,`Terminal: ${f(flat.tipLengthMM)} × ${f(flat.tipWidthMM)} mm · espesor terminal ${f(flat.terminalThicknessMM)} mm`,'class="caption"');
-  arms+=text(14,bottom+21,`Tramo auricular ${f(flat.earLengthMM)} mm · ángulo ${f(d.armBendAngle)}° · radio mínimo ${flat.minimumBendRadiusMM==null?'recto':f(flat.minimumBendRadiusMM)+' mm'}`,'class="caption"');
+  arms+=`${text(14,cursor,`BRAZO ${i?'DERECHO':'IZQUIERDO'} · ${flat.custom?'PERFIL LIBRE':escape(templeStyle(d,side))}`,'class="sheet-label"')}<path data-part="temple-${side}" d="${path(flat.outline.map(([px,py])=>[x+px,y+py]))}"/>${flat.custom?'':`<path class="center" d="${linePath(flat.centerline.map(([px,py])=>[x+px,y+py]))}"/>`}${dimension(x+b.minX,x+b.maxX,bottom+6,`${f(width)} mm · proyección`)}${text(14,bottom+11,flat.custom?`L horizontal: ${f(width)} mm · altura total: ${f(height)} mm · espesor constante ${d.materialDepth} mm`:`L desarrollado del eje: ${f(flat.developedLength)} mm · ancho inicial: ${f(Number(d.armWidth))} mm · placa ${d.materialDepth} mm`,'class="caption"')}`;
+  if(flat.bendStart&&!flat.custom){const [bx,by]=flat.bendStart;arms+=`<path class="bend" data-part="bend-start-${side}" d="M${f(x+bx)},${f(y+by-3)}v6"/>`;}
+  if(!flat.custom)arms+=text(14,bottom+16,`Terminal: ${f(flat.tipLengthMM)} × ${f(flat.tipWidthMM)} mm · espesor terminal ${f(flat.terminalThicknessMM)} mm`,'class="caption"');
+  if(!flat.custom)arms+=text(14,bottom+21,`Tramo auricular ${f(flat.earLengthMM)} mm · ángulo ${f(d.armBendAngle)}° · radio mínimo ${flat.minimumBendRadiusMM==null?'recto':f(flat.minimumBendRadiusMM)+' mm'}`,'class="caption"');
   cursor=bottom+28;
  }
  const padBounds=parts.pads.map(p=>bounds(p.outline)),padsHeading=cursor+1,padsTop=padsHeading+8,padsHeight=Math.max(...padBounds.map(b=>b.maxY-b.minY)),padsBottom=padsTop+padsHeight;
