@@ -6,6 +6,7 @@ export function formingParameters(design){const angle=Math.max(0,Math.min(20,Num
 export function formPoint(point,parameters){
  const [x,y,z]=point,{radius}=parameters;if(!Number.isFinite(radius))return point.slice();const angle=x/radius;return [(radius+z)*Math.sin(angle),y,-radius*(1-Math.cos(angle))+z*Math.cos(angle)];
 }
+export function formRigidPoint(point,parameters,anchor){const formed=formPoint(anchor,parameters),theta=Number.isFinite(parameters.radius)?anchor[0]/parameters.radius:0,[dx,dy,dz]=point.map((v,k)=>v-anchor[k]);return[formed[0]+Math.cos(theta)*dx+Math.sin(theta)*dz,formed[1]+dy,formed[2]-Math.sin(theta)*dx+Math.cos(theta)*dz];}
 export function formGeometry(geometry,design,part,position=[0,0,0],unitsPerMM=MM,parameters=formingParameters(design)){
  if(!parameters.angle)return geometry;
  const rigid=/temple|hinge|pin/.test(part);if(!rigid&&!geometry.userData.linear)refineFormingSurface(geometry,2*unitsPerMM);

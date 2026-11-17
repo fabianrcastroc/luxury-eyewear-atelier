@@ -6,7 +6,7 @@ function saveDesign(config){try{localStorage.setItem('miscante-design',JSON.stri
 initDesigner({notify,onAdd:({config})=>saveDesign(config)});
 document.querySelector('#disena .designer-heading .eyebrow').textContent='FR / EYEWEAR STUDIO';
 document.querySelector('#disena .preview-top > span').textContent='FR · DISEÑO EN VIVO';
-document.querySelector('#standalone-save').addEventListener('click',()=>{const data=document.querySelector('#disena').dataset.design;if(data)saveDesign(JSON.parse(data));});
+document.querySelector('#standalone-save')?.addEventListener('click',()=>{const data=document.querySelector('#disena').dataset.design;if(data)saveDesign(JSON.parse(data));});
 document.addEventListener('click',event=>{const close=event.target.closest('[data-close]');if(close)close.closest('dialog')?.close();if(event.target instanceof HTMLDialogElement){const bounds=event.target.getBoundingClientRect();if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)event.target.close();}});
 
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));

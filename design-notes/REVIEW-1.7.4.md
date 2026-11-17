@@ -1,0 +1,15 @@
+# FR 1.7.4 interaction review
+
+Reproduced defects and fixes:
+
+1. Local nasal/temporal controls were deliberately disabled whenever an explicit contour existed. Added stable source-based edits for explicit profiles. Absolute values are always evaluated against a saved original source; reversing a control does not repeatedly warp an already warped outline. Direct node edits establish a new baseline. Invalid geometry is rejected and preserves the previous state.
+2. Model selection retained outerOutline/outerBezier/opticalBezier from a previous design. Cleared those fields and modifier source on template changes and resets. Renamed the visible model to Trapezoidal 1; legacy project ID remains compatible.
+3. Bézier smoothing formerly rebuilt an entire B-spline, potentially rounding intentional straight segments. Added selected/all tangent smoothing with deviation tolerance, retained anchors and straight spans. Fitting errors and construction rejection remain visible rather than uncaught.
+4. Added visible New, From scratch (four-node rectangular seed), Clear with Undo, and expanded workspace controls. Removed duplicated standalone header and offline slogan; reduced ribbon/sidebar footprint.
+5. Exposed forming angle, radius and sag, with 6-decimal angle storage to avoid coarse radius rounding. Added formed-width feedback and formed upper projection; temple projection follows rigid hinge transformation. The side frontal outline remains a schematic envelope, not an exact hidden-line CAD projection.
+6. During drag, update the light preview without dispatching a finished-solid worker job for every input. Finish with a full reconstruction; GLB export forces final geometry. Avoid unnecessary inspector synchronization during range dragging. This is not a certified real-time guarantee: the 1366x768 software-rendered browser scenario took approximately 1 second across three Playwright fill/input actions. That includes browser action overhead and is not a 60-FPS measurement. Further profiling is required for difficult profiles and low-end hardware.
+7. Added X/Y alignment of selected nodes, keeping existing direction/angle, segment type, transform, distribution and split tools.
+
+Validation: unit tests for reversible explicit edits, serialized source preservation, manufacturing-radius precision and tolerance/straight-segment smoothing; complete Node suite; actual browser interactions for new/clear/undo, explicit modifiers, wrap/radius/sag, template changes, expanded layout and final slider reconstruction; laptop mouse/tangent regression; reference crop/manual calibration regression; Linux native installed-app-equivalent smoke for 28 models, editing, project roundtrip, GLB/STL and two-page PDF.
+
+Limitations: no certification of exact manufacturer contours or physical fit; no claim of Rhino/Illustrator feature parity; reference photographs still require calibration/manual inspection. No model was trained. Signing/payment accounts remain unavailable; any Windows evaluation is explicitly unsigned and preserves the prior 30-day evaluation period.
